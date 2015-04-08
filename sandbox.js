@@ -1,43 +1,45 @@
 define(function(require, exports, module) {
-    main.consumes = ['Panel', 'commands', 'menus', 'ui', 'layout'];
+    main.consumes = ['Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error', 'tabManager', 'ethergit.solidity.compiler', 'ethergit.ethereum.sandbox.panel'];
     main.provides = ['ethergit.ethereum.sandbox'];
     return main;
 
     function main(options, imports, register) {
-        var Panel = imports.Panel;
+        var Plugin = imports.Plugin;
         var commands = imports.commands;
-        var menus = imports.menus;
         var ui = imports.ui;
         var layout = imports.layout;
+        var fs = imports.fs;
+        var errorDialog = imports['dialog.error'];
+        var tabs = imports.tabManager;
+        var compiler = imports['ethergit.solidity.compiler'];
+        var panel = imports['ethergit.ethereum.sandbox.panel'];
         
-        var plugin = new Panel('Ethergit', main.consumes, {
-            index: 200,
-            width: 400,
-            caption: 'Ethereum Sandbox',
-            minWidth: 300,
-            where: 'right'
-        });
-        var emit = plugin.getEmitter();
+        var Sandbox = require('./ethereum_sandbox.js');
+        var Buffer = require('./buffer.js').Buffer;
         
-        plugin.on('draw', function(e) {
-            e.html.innerHTML = 'Hello World!';
-        });
+        var plugin = new Plugin('Ethergit', main.consumes);
         
         function load() {
-            plugin.setCommand({
-                name    : 'sandboxPanel',
-                hint    : 'Ethereum Sandbox panel',
-                bindKey : { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
-            });
-            
             commands.addCommand({
                 name: 'runSandbox',
                 exec: function() {
-                    console.log('running sandbox!');
+                    readSandboxEnv(function(err, content) {
+                        if (err) return errorDialog.show(err);
+                        
+                        try {
+                            var config = JSON.parse(content);
+                        } catch(e) {
+                            return errorDialog.show('Could not parse sandbox.json: ' + e.message);
+                        }
+                        
+                        runSandbox(config, function(err) {
+                            if (err) return errorDialog.show(err);
+                        });
+                    });
                 }
             }, plugin);
             
-            var BtnSandbox = ui.insertByIndex(
+            var btnSandbox = ui.insertByIndex(
                 layout.getElement('barTools'),
                 new ui.button({
                     id: 'btnSandbox',
@@ -46,10 +48,39 @@ define(function(require, exports, module) {
                     caption: 'Sandbox',
                     disabled: false,
                     class: 'runbtn stopped',
-                    icon: 'run.png',
+                    icon: 'run.png'
                 }),
                 300, plugin
             );
+        }
+        
+        function readSandboxEnv(cb) {
+            fs.readFile('/sandbox.json', cb);
+        }
+        
+        function runSandbox(config, cb) {
+            var sandbox = Object.create(Sandbox).init();
+            panel.showSandbox(sandbox);
+            sandbox.initEnv(config.env, function(err) {
+                if (err) return cb(err);
+
+                // var text = tabs.focussedTab.document.value;
+                // compiler.binary(text, function(err, binary) {
+                //     if (err) return console.error(err);
+                    
+                //     console.log('code: ' + binary.toString('hex'));
+                    
+                //     sandbox.runTx(sandbox.createTx({
+                //         nonce: 0,
+                //         data: new Buffer(binary, 'hex'),
+                //         seed: 'cow'
+                //     }), function(err, results) {
+                //         if (err) return console.error(err);
+                        
+                //         console.log('created address: ' + results.createdAddress.toString('hex'));
+                //     });
+                // });
+            });
         }
         
         plugin.on('load', function() {
