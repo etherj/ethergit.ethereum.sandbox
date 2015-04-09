@@ -11,6 +11,7 @@ define(function(require) {
     
     return {
         state: 'INITIALIZING',
+        defaultAccount: null,
         on: function(eventName, callback, plugin) {
             this.emitter.on(eventName, callback, plugin);
         },
@@ -29,13 +30,24 @@ define(function(require) {
         },
         initEnv: function(env, cb) {
             var that = this;
-            async.each(Object.getOwnPropertyNames(env), function(address, callback) {
+            async.each(Object.getOwnPropertyNames(env), function(address, cb) {
                 var options = env[address];
+                
+                if (that.defaultAccount == null) {
+                    if (!options.hasOwnProperty('pkey'))
+                        return cb('First account in sandbox.json should have a pkey.');
+
+                    that.defaultAccount = {
+                        nonce: options.hasOwnProperty('nonce') ? parseInt(options.nonce, 16) : 0,
+                        pkey: options.pkey
+                    };
+                }
+                
                 options.address = new Buffer(address, 'hex');
                 if (options.hasOwnProperty('code'))
                     options.code = new Buffer(options.code, 'hex');
 
-                that.createAccount(options, callback);
+                that.createAccount(options, cb);
             }, function(err) {
                 that.setState(err === null ? 'INITIALIZED' : 'ERROR');
                 cb(err);
@@ -83,12 +95,19 @@ define(function(require) {
             tx.gasLimit = 100000;
             tx.value = options.hasOwnProperty('value') ? options.value : 0;
             tx.data = options.data;
-            tx.sign(new Buffer(this.sha3(options.seed), 'hex'));
+            tx.sign(new Buffer(this.sha3(options.pkey), 'hex'));
             return tx;
         },
-        runTx: function(tx, cb) {
+        runTx: function(options, cb) {
             var that = this;
-            this.vm.runTx({tx: tx}, function(err, results) {
+            this.vm.runTx({
+                tx: this.createTx({
+                    nonce: this.defaultAccount.nonce,
+                    data: options.data,
+                    pkey: this.defaultAccount.pkey
+                })
+            }, function(err, results) {
+                that.defaultAccount.nonce++;
                 that.emitter.emit('stateChanged', null);
                 cb(err, results);
             });
