@@ -12,6 +12,7 @@ define(function(require) {
         var Account = Ethereum.Account;
         var accountTemplate = require('text!./account.html');
         var async = require('async');
+        var rlp = require('./rlp.js');
 
         requirejs.config({
             context: 'sandbox',
@@ -62,7 +63,7 @@ define(function(require) {
                             var sstream = strie.createReadStream();
                             var storage = {};
                             sstream.on('data', function(data) {
-                                storage[data.key.toString('hex')] = data.value.toString('hex');
+                                storage[data.key.toString('hex')] = rlp.decode(data.value).toString('hex');
                             });
                             sstream.on('end', function() {
                                 cb(null, storage);

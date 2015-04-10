@@ -8,6 +8,7 @@ define(function(require) {
     var Emitter = require("events").EventEmitter;
     var async = require('async');
     var SHA3Hash = require('./sha3.js').SHA3Hash;
+    var rlp = require('./rlp.js');
     
     return {
         state: 'INITIALIZING',
@@ -80,10 +81,14 @@ define(function(require) {
                     async.eachSeries(
                         Object.getOwnPropertyNames(options.storage),
                         function(key, cb) {
-                            strie.put(createBuffer(key), createBuffer(options.storage[key]), function(err) {
-                                account.stateRoot = strie.root;
-                                cb(err);
-                            });
+                            strie.put(
+                                createBuffer(key),
+                                rlp.encode(new Buffer(options.storage[key], 'hex')),
+                                function(err) {
+                                    account.stateRoot = strie.root;
+                                    cb(err);
+                                }
+                            );
                         },
                         function(err) {
                             done(err);
@@ -121,23 +126,6 @@ define(function(require) {
                 })
             }, function(err, results) {
                 that.defaultAccount.nonce++;
-                if (results.createdAddress.toString('hex') === '77045e71a7a2c50903d88e564cd72fab11e82051') {
-                    that.trie.get(results.createdAddress, function(err, data) {
-                        if (err) return console.error(err);
-                        
-                        var account = new Account(data);
-                        var strie = that.trie.copy();
-                        strie.root = account.stateRoot;
-                        var sstream = strie.createReadStream();
-                        var storage = {};
-                        sstream.on('data', function(data) {
-                            storage[data.key.toString('hex')] = data.value.toString('hex');
-                        });
-                        sstream.on('end', function() {
-                            console.log(storage);
-                        });
-                    });
-                }
                 that.emitter.emit('stateChanged', null);
                 cb(err, results);
             });
