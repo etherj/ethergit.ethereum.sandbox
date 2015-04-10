@@ -90,9 +90,7 @@ define(function(require) {
                                 }
                             );
                         },
-                        function(err) {
-                            done(err);
-                        }
+                        done
                     );
                 },
                 function(done) {

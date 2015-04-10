@@ -58,12 +58,25 @@ define(function(require) {
                         var $container = $(accountTemplate);
                         
                         var getStorage = function(cb) {
+                            var removeLeadingZeroBytes = function(str) {
+                                if (str.length % 2 !== 0)
+                                    console.error('Wrong hex str: ' + str);
+                                    
+                                var firstNonZeroByte = str.length - 2;
+                                for (var i = 0; i < str.length; i += 2) {
+                                    if (str[i] !== '0' || str[i + 1] !== '0')
+                                        firstNonZeroByte = i;
+                                }
+                                
+                                return str.substring(firstNonZeroByte);
+                            };
+                            
                             var strie = sandbox.trie.copy();
                             strie.root = account.stateRoot;
                             var sstream = strie.createReadStream();
                             var storage = {};
                             sstream.on('data', function(data) {
-                                storage[data.key.toString('hex')] = rlp.decode(data.value).toString('hex');
+                                storage[removeLeadingZeroBytes(data.key.toString('hex'))] = rlp.decode(data.value).toString('hex');
                             });
                             sstream.on('end', function() {
                                 cb(null, storage);
