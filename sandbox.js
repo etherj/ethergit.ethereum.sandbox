@@ -34,6 +34,8 @@ define(function(require, exports, module) {
                         
                         runSandbox(config, function(err) {
                             if (err) return errorDialog.show(err);
+                            
+                            btnSandbox.setAttribute('caption', 'Stop Sandbox');
                         });
                     });
                 }
@@ -71,7 +73,9 @@ define(function(require, exports, module) {
                     sandbox.runTx({
                         data: new Buffer(contract, 'hex')
                     }, cb);
-                }, cb);
+                }, function(err) {
+                    cb(err, sandbox);
+                });
             };
 
             async.waterfall([

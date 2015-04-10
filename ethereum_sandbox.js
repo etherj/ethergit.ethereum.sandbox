@@ -60,26 +60,39 @@ define(function(require) {
             var that = this;
             async.series([
                 function(done) {
+                    if (!options.hasOwnProperty('code')) return done();
+                    
+                    account.storeCode(that.trie, options.code, done);
+                },
+                function(done) {
                     if (!options.hasOwnProperty('storage')) return done();
                     
-                    var strie = new Trie();
+                    function createBuffer(str) {
+                        var msg = new Buffer(str);
+                        var buf = new Buffer(32);
+                        buf.fill(0);
+                        msg.copy(buf, 32 - msg.length);
+                        return buf;
+                    }
+
+                    var strie = that.trie.copy();
+                    strie.root = account.stateRoot;
                     async.eachSeries(
                         Object.getOwnPropertyNames(options.storage),
                         function(key, cb) {
-                            strie.put(new Buffer(key, 'hex'), new Buffer(options.storage[key], 'hex'), cb);
+                            strie.put(createBuffer(key), createBuffer(options.storage[key]), function(err) {
+                                account.stateRoot = strie.root;
+                                cb(err);
+                            });
                         },
                         function(err) {
-                            account.stateRoot = strie.root;
                             done(err);
                         }
                     );
                 },
                 function(done) {
-                    if (!options.hasOwnProperty('code')) return done();
-                    
-                    account.storeCode(that.trie, options.code, done);
-                },
-                this.trie.put.bind(this.trie, options.address, account.serialize())
+                    that.trie.put(options.address, account.serialize(), done);
+                }
             ], cb);
         },
         sha3: function(str) {
@@ -108,6 +121,23 @@ define(function(require) {
                 })
             }, function(err, results) {
                 that.defaultAccount.nonce++;
+                if (results.createdAddress.toString('hex') === '77045e71a7a2c50903d88e564cd72fab11e82051') {
+                    that.trie.get(results.createdAddress, function(err, data) {
+                        if (err) return console.error(err);
+                        
+                        var account = new Account(data);
+                        var strie = that.trie.copy();
+                        strie.root = account.stateRoot;
+                        var sstream = strie.createReadStream();
+                        var storage = {};
+                        sstream.on('data', function(data) {
+                            storage[data.key.toString('hex')] = data.value.toString('hex');
+                        });
+                        sstream.on('end', function() {
+                            console.log(storage);
+                        });
+                    });
+                }
                 that.emitter.emit('stateChanged', null);
                 cb(err, results);
             });

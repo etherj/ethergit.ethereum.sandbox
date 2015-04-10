@@ -1,0 +1,14 @@
+.accounts-container {
+    height: 100%;
+    overflow-y: scroll;
+}
+
+.account-container {
+    color: white;
+    font-family: monospace;
+}
+
+.account-container .code {
+    width: 90%;
+    overflow-wrap: break-word;
+}
