@@ -68,7 +68,7 @@ define(function(require) {
                     if (!options.hasOwnProperty('storage')) return done();
                     
                     function createBuffer(str) {
-                        var msg = new Buffer(str);
+                        var msg = new Buffer(str, 'hex');
                         var buf = new Buffer(32);
                         buf.fill(0);
                         msg.copy(buf, 32 - msg.length);
