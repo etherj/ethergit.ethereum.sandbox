@@ -11,8 +11,19 @@ define(function(require) {
     var rlp = require('./rlp.js');
     
     return {
+        //hex string of SHA3-256 hash of `null`
+        SHA3_NULL: 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
+
+        //SHA3-256 hash of the rlp of []
+        SHA3_RLP_EMPTY_ARRAY: '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347',
+        
+        //SHA3-256 hash of the rlp of `null`
+        SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
+        
         state: 'INITIALIZING',
         defaultAccount: null,
+        transactions: [],
+        
         on: function(eventName, callback, plugin) {
             this.emitter.on(eventName, callback, plugin);
         },
@@ -116,13 +127,13 @@ define(function(require) {
         },
         runTx: function(options, cb) {
             var that = this;
-            this.vm.runTx({
-                tx: this.createTx({
-                    nonce: this.defaultAccount.nonce,
-                    data: options.data,
-                    pkey: this.defaultAccount.pkey
-                })
-            }, function(err, results) {
+            var tx = this.createTx({
+                nonce: this.defaultAccount.nonce,
+                data: options.data,
+                pkey: this.defaultAccount.pkey
+            });
+            this.vm.runTx({ tx: tx }, function(err, results) {
+                that.transactions.push(tx.serialize());
                 that.defaultAccount.nonce++;
                 that.emitter.emit('stateChanged', null);
                 cb(err, results);

@@ -50,62 +50,10 @@ define(function(require) {
                 } else if (sandbox.state === 'INITIALIZING') {
                     $sandbox.html('<h3>Initializing...<h3>');
                 } else if (sandbox.state === 'INITIALIZED') {
-                    var stream = sandbox.vm.trie.createReadStream();
-                    var $main = $sandbox.html('<div class="accounts-container">').children();
-                    
-                    stream.on('data', function (data) {
-                        var account = new Account(data.value);
-                        var $container = $(accountTemplate);
-                        
-                        var getStorage = function(cb) {
-                            var removeLeadingZeroBytes = function(str) {
-                                if (str.length % 2 !== 0)
-                                    console.error('Wrong hex str: ' + str);
-                                    
-                                var firstNonZeroByte = str.length - 2;
-                                for (var i = 0; i < str.length; i += 2) {
-                                    if (str[i] !== '0' || str[i + 1] !== '0')
-                                        firstNonZeroByte = i;
-                                }
-                                
-                                return str.substring(firstNonZeroByte);
-                            };
-                            
-                            var strie = sandbox.trie.copy();
-                            strie.root = account.stateRoot;
-                            var sstream = strie.createReadStream();
-                            var storage = {};
-                            sstream.on('data', function(data) {
-                                storage[removeLeadingZeroBytes(data.key.toString('hex'))] = rlp.decode(data.value).toString('hex');
-                            });
-                            sstream.on('end', function() {
-                                cb(null, storage);
-                            });
-                        };
-                        var getCode = function(cb) {
-                            account.getCode(sandbox.trie, function(err, code) {
-                                cb(err, code.toString('hex'));
-                            });
-                        };
-                        
-                        async.parallel({
-                            storage: getStorage,
-                            code: getCode
-                        }, function(err, results) {
-                            if (err) return errorDialog.show(err);
-                            
-                            $container.find('[data-name=address]').text(data.key.toString('hex'));
-                            $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
-                            $container.find('[data-name=balance]').text(account.balance.toString('hex'));
-                            Object.getOwnPropertyNames(results.storage).forEach(function(key) {
-                                $container.find('[data-name=storage]')
-                                    .append('<tr><td>' + key + '</td><td>' + results.storage[key] + '</td></tr>');
-                            });
-                            $container.find('[data-name=code]').text(results.code);
-                            
-                            $main.append($container);
-                        });
-                    });
+                    renderAccounts(
+                        $sandbox.html('<div class="accounts-container">').children(),
+                        sandbox, function() {}
+                    );
                 }
             };
     
@@ -123,6 +71,81 @@ define(function(require) {
                 sandbox.on('stateChanged', function() { panel.render(); });
                 panel.show();
                 panel.render();
+            }
+            
+            function renderAccounts($container, sandbox, cb) {
+                getAccounts(sandbox.trie, showAccount.bind(undefined, $container, sandbox), cb);
+                
+                function getAccounts(trie, accountHandler, cb) {
+                    var stream = trie.createReadStream();
+                    stream.on('data', function(data) {
+                        accountHandler(data.key.toString('hex'), new Account(data.value));
+                    });
+                    stream.on('end', cb);
+                }
+                function showAccount($container, sandbox, address, account) {
+                    var $account = $(accountTemplate);
+                    
+                    async.parallel([
+                        showAccountFields.bind(undefined, $account, address, account),
+                        getStorageEntries.bind(
+                            undefined, sandbox, account,
+                            showStorageEntry.bind(undefined, $account.find('[data-name=storage]'))
+                        ),
+                        getCode.bind(undefined, showCode.bind(undefined, $account.find('[data-name=code]')))
+                    ], function(err) {
+                        if (err) return cb(err);
+                        $container.append($account);
+                        cb();
+                    });
+
+                    function showAccountFields($container, address, account, cb) {
+                        $container.find('[data-name=address]').text(address);
+                        $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
+                        $container.find('[data-name=balance]').text(account.balance.toString('hex'));
+                        cb();
+                    }
+                    function getStorageEntries(sandbox, account, storageHandler, cb) {
+                        if (account.stateRoot === sandbox.SHA3_RLP_NULL) return;
+                        
+                        var strie = sandbox.trie.copy();
+                        strie.root = account.stateRoot;
+                        var stream = strie.createReadStream();
+                        stream.on('data', function(data) {
+                            storageHandler(
+                                removeLeadingZeroBytes(data.key.toString('hex')),
+                                rlp.decode(data.value).toString('hex')
+                            );
+                        });
+                        stream.on('end', cb);
+                        
+                        function removeLeadingZeroBytes(str) {
+                            if (str.length % 2 !== 0)
+                                console.error('Wrong hex str: ' + str);
+                                
+                            var firstNonZeroByte = str.length - 2;
+                            for (var i = 0; i < str.length; i += 2) {
+                                if (str[i] !== '0' || str[i + 1] !== '0')
+                                    firstNonZeroByte = i;
+                            }
+                            
+                            return str.substring(firstNonZeroByte);
+                        }
+                    }
+                    function showStorageEntry($container, key, value) {
+                        $container.append('<tr><td>' + key + '</td><td>' + value + '</td></tr>');
+                    }
+                    function getCode(codeHandler, cb) {
+                        account.getCode(sandbox.trie, function(err, code) {
+                            codeHandler(err, code.toString('hex'), cb);
+                        });
+                    }
+                    function showCode($container, err, code, cb) {
+                        if (err) return cb(err);
+                        $container.text(code);
+                        cb();
+                    }
+                }
             }
             
             panel.on('load', function() {

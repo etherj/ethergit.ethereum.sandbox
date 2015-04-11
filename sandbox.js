@@ -35,7 +35,7 @@ define(function(require, exports, module) {
                         runSandbox(config, function(err) {
                             if (err) return errorDialog.show(err);
                             
-                            btnSandbox.setAttribute('caption', 'Stop Sandbox');
+                            // btnSandbox.setAttribute('caption', 'Stop Sandbox');
                         });
                     });
                 }
