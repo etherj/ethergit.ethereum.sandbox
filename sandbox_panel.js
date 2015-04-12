@@ -39,6 +39,7 @@ define(function(require) {
             
             panel.on('draw', function(e) {
                 $sandbox = $(e.html);
+                $sandbox.click(foldOrUnfold);
                 panel.render();
             });
             
@@ -52,7 +53,10 @@ define(function(require) {
                 } else if (sandbox.state === 'INITIALIZED') {
                     renderAccounts(
                         $sandbox.html('<div class="accounts-container">').children(),
-                        sandbox, function() {}
+                        sandbox,
+                        function() {
+                            initFolder($sandbox);
+                        }
                     );
                 }
             };
@@ -72,10 +76,11 @@ define(function(require) {
                 panel.show();
                 panel.render();
             }
-            
+
             function renderAccounts($container, sandbox, cb) {
                 getAccounts(sandbox.trie, showAccount.bind(undefined, $container, sandbox), cb);
                 
+                // TODO: We accountHandler might be asynchronous functions, then cb will be called before the rendering really finished.
                 function getAccounts(trie, accountHandler, cb) {
                     var stream = trie.createReadStream();
                     stream.on('data', function(data) {
@@ -96,7 +101,6 @@ define(function(require) {
                     ], function(err) {
                         if (err) return cb(err);
                         $container.append($account);
-                        cb();
                     });
 
                     function showAccountFields($container, address, account, cb) {
@@ -146,6 +150,35 @@ define(function(require) {
                         cb();
                     }
                 }
+            }
+            
+            function initFolder($container) {
+                $container.find('[data-folder]').each(function() {
+                    var $el = $(this);
+                    $el.data('folder', $el.text());
+                    fold($el);
+                });
+            }
+            
+            function foldOrUnfold(e) {
+                var $el = $(e.target);
+                var foldData = $el.data('folder');
+                if (foldData !== undefined) {
+                    if (foldData === $el.text()) fold($el);
+                    else unfold($el);
+                }
+            }
+            
+            function fold($el) {
+                var text = $el.data('folder');
+                if (text.length > 11) {
+                    $el.text(text.substr(0, 3) + '[...]' + text.substr(-3));
+                }
+            }
+            
+            function unfold($el) {
+                var text = $el.data('folder');
+                if (text.length > 11) $el.text(text);
             }
             
             panel.on('load', function() {
