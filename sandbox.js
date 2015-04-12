@@ -20,23 +20,14 @@ define(function(require, exports, module) {
         var plugin = new Plugin('Ethergit', main.consumes);
         
         function load() {
+            var sandbox = Object.create(Sandbox).init();
+            panel.showSandbox(sandbox);
+            
             commands.addCommand({
                 name: 'runSandbox',
                 exec: function() {
-                    readSandboxEnv(function(err, content) {
+                    runOrStopSandbox(sandbox, function(err, sandbox) {
                         if (err) return errorDialog.show(err);
-                        
-                        try {
-                            var config = JSON.parse(content);
-                        } catch(e) {
-                            return errorDialog.show('Could not parse sandbox.json: ' + e.message);
-                        }
-                        
-                        runSandbox(config, function(err) {
-                            if (err) return errorDialog.show(err);
-                            
-                            // btnSandbox.setAttribute('caption', 'Stop Sandbox');
-                        });
                     });
                 }
             }, plugin);
@@ -47,28 +38,64 @@ define(function(require, exports, module) {
                     id: 'btnSandbox',
                     skin: 'c9-toolbarbutton-glossy',
                     command: 'runSandbox',
-                    caption: 'Sandbox',
+                    caption: 'Start Sandbox',
                     disabled: false,
                     class: 'runbtn stopped',
                     icon: 'run.png'
                 }),
                 300, plugin
             );
+            
+            sandbox.on('changed', function(sandbox) {
+                if (sandbox.state === 'CLEAN') {
+                    btnSandbox.setAttribute('disabled', false);
+                    btnSandbox.setAttribute('caption', 'Start Sandbox');
+                } else if (sandbox.state === 'INITIALIZING') {
+                    btnSandbox.setAttribute('disabled', true);
+                    btnSandbox.setAttribute('caption', 'Starting Sandbox...');
+                } else if (sandbox.state === 'INITIALIZED') {
+                    btnSandbox.setAttribute('disabled', false);
+                    btnSandbox.setAttribute('caption', 'Stop Sandbox');
+                }
+            });
         }
         
         function readSandboxEnv(cb) {
             fs.readFile('/sandbox.json', cb);
         }
         
-        function runSandbox(config, cb) {
-            var createSandbox = function(contracts, cb) {
-                var sandbox = Object.create(Sandbox).init();
-                panel.showSandbox(sandbox);
+        function runOrStopSandbox(sandbox, cb) {
+            if (sandbox.state === 'CLEAN') {
+                async.waterfall([
+                    compileContracts,
+                    readConfig,
+                    initSandbox,
+                    createContracts
+                ], cb);
+            } else if (sandbox.state === 'INITIALIZED') {
+                sandbox.reset();
+                cb(null, sandbox);
+            } else cb('Wait until Sandbox finish initialization.');
+            
+            function readConfig(contracts, cb) {
+                readSandboxEnv(function(err, content) {
+                    if (err) return cb(err);
+                    
+                    try {
+                        var config = JSON.parse(content);
+                    } catch(e) {
+                        return cb('Could not parse sandbox.json: ' + e.message);
+                    }
+                    
+                    cb(null, config, contracts);
+                });
+            }
+            function initSandbox(config, contracts, cb) {
                 sandbox.initEnv(config.env, function(err) {
                     cb(err, sandbox, contracts);
                 });
-            };
-            var createContracts = function(sandbox, contracts, cb) {
+            }
+            function createContracts(sandbox, contracts, cb) {
                 async.eachSeries(contracts, function(contract, cb) {
                     sandbox.runTx({
                         data: new Buffer(contract, 'hex')
@@ -76,13 +103,7 @@ define(function(require, exports, module) {
                 }, function(err) {
                     cb(err, sandbox);
                 });
-            };
-
-            async.waterfall([
-                compileContracts,
-                createSandbox,
-                createContracts
-            ], cb);
+            }
         }
         
         function compileContracts(cb) {

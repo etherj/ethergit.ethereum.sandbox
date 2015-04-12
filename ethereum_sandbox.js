@@ -20,7 +20,7 @@ define(function(require) {
         //SHA3-256 hash of the rlp of `null`
         SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
         
-        state: 'INITIALIZING',
+        state: 'CLEAN',
         defaultAccount: null,
         transactions: [],
         
@@ -28,11 +28,8 @@ define(function(require) {
             this.emitter.on(eventName, callback, plugin);
         },
         setState: function(state) {
-            var prev = this.state;
             this.state = state;
-            this.emitter.emit('stateChanged', {
-                current: this.state, previous: prev
-            });
+            this.emitter.emit('changed', this);
         },
         init: function() {
             this.emitter = new Emitter();
@@ -41,6 +38,7 @@ define(function(require) {
             return this;
         },
         initEnv: function(env, cb) {
+            this.setState('INITIALIZING');
             var that = this;
             async.each(Object.getOwnPropertyNames(env), function(address, cb) {
                 var options = env[address];
@@ -135,9 +133,17 @@ define(function(require) {
             this.vm.runTx({ tx: tx }, function(err, results) {
                 that.transactions.push(tx.serialize());
                 that.defaultAccount.nonce++;
-                that.emitter.emit('stateChanged', null);
+                
+                that.emitter.emit('changed', that);
                 cb(err, results);
             });
+        },
+        reset: function() {
+            this.trie = new Trie();
+            this.vm.trie = this.trie;
+            this.defaultAccount = null;
+            this.transactions = [];
+            this.setState('CLEAN');
         }
     };
 });

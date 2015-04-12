@@ -45,10 +45,10 @@ define(function(require) {
             panel.render = function() {
                 if ($sandbox === null) return;
                 
-                if (sandbox === null) {
-                    $sandbox.html('<h3>Start Ethereum Sandbox to run your contracts.<h3>');
+                if (sandbox === null || sandbox.state === 'CLEAN') {
+                    $sandbox.html('<div class="accounts-container"><h3>Start Ethereum Sandbox to run your contracts.<h3></div>');
                 } else if (sandbox.state === 'INITIALIZING') {
-                    $sandbox.html('<h3>Initializing...<h3>');
+                    $sandbox.html('<div class="accounts-container"><h3>Initializing...<h3></div>');
                 } else if (sandbox.state === 'INITIALIZED') {
                     renderAccounts(
                         $sandbox.html('<div class="accounts-container">').children(),
@@ -68,7 +68,7 @@ define(function(require) {
             
             function showSandbox(sandboxToShow) {
                 sandbox = sandboxToShow;
-                sandbox.on('stateChanged', function() { panel.render(); });
+                sandbox.on('changed', function() { panel.render(); });
                 panel.show();
                 panel.render();
             }
