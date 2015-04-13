@@ -131,7 +131,7 @@ define(function(require) {
                 pkey: this.defaultAccount.pkey
             });
             this.vm.runTx({ tx: tx }, function(err, results) {
-                that.transactions.push(tx.serialize());
+                that.transactions.push(tx);
                 that.defaultAccount.nonce++;
                 
                 that.emitter.emit('changed', that);

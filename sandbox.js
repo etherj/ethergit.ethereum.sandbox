@@ -1,5 +1,8 @@
 define(function(require, exports, module) {
-    main.consumes = ['Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error', 'ethergit.solidity.compiler', 'ethergit.ethereum.sandbox.panel'];
+    main.consumes = [
+        'Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error',
+        'ethergit.solidity.compiler', 'ethergit.ethereum.sandbox.panel', 'ethergit.ethereum.sandbox.dialog.transactions'
+    ];
     main.provides = ['ethergit.ethereum.sandbox'];
     return main;
 
@@ -12,6 +15,7 @@ define(function(require, exports, module) {
         var errorDialog = imports['dialog.error'];
         var compiler = imports['ethergit.solidity.compiler'];
         var panel = imports['ethergit.ethereum.sandbox.panel'];
+        var transactionsDialog = imports['ethergit.ethereum.sandbox.dialog.transactions'];
         
         var Sandbox = require('./ethereum_sandbox.js');
         var Buffer = require('./buffer.js').Buffer;
@@ -46,16 +50,41 @@ define(function(require, exports, module) {
                 300, plugin
             );
             
+            commands.addCommand({
+                name: 'showTransactions',
+                exec: function() {
+                    transactionsDialog.showSandbox(sandbox);
+                }
+            }, plugin);
+            
+            var btnTransactions = ui.insertByIndex(
+                layout.getElement('barTools'),
+                new ui.button({
+                    id: 'btnTransactions',
+                    skin: 'c9-toolbarbutton-glossy',
+                    command: 'showTransactions',
+                    caption: 'Transactions',
+                    disabled: true
+                }),
+                400, plugin
+            );
+            
             sandbox.on('changed', function(sandbox) {
                 if (sandbox.state === 'CLEAN') {
                     btnSandbox.setAttribute('disabled', false);
                     btnSandbox.setAttribute('caption', 'Start Sandbox');
+                    btnTransactions.setAttribute('disabled', true);
+                    btnTransactions.setAttribute('caption', 'Transactions');
                 } else if (sandbox.state === 'INITIALIZING') {
                     btnSandbox.setAttribute('disabled', true);
                     btnSandbox.setAttribute('caption', 'Starting Sandbox...');
+                    btnTransactions.setAttribute('disabled', false);
+                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions.length + ')');
                 } else if (sandbox.state === 'INITIALIZED') {
                     btnSandbox.setAttribute('disabled', false);
                     btnSandbox.setAttribute('caption', 'Stop Sandbox');
+                    btnTransactions.setAttribute('disabled', false);
+                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions.length + ')');
                 }
             });
         }

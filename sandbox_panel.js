@@ -13,6 +13,7 @@ define(function(require) {
         var accountTemplate = require('text!./account.html');
         var async = require('async');
         var rlp = require('./rlp.js');
+        var folder = require('./folder.js');
 
         requirejs.config({
             context: 'sandbox',
@@ -39,7 +40,6 @@ define(function(require) {
             
             panel.on('draw', function(e) {
                 $sandbox = $(e.html);
-                $sandbox.click(foldOrUnfold);
                 panel.render();
             });
             
@@ -55,7 +55,7 @@ define(function(require) {
                         $sandbox.html('<div class="accounts-container">').children(),
                         sandbox,
                         function() {
-                            initFolder($sandbox);
+                            folder.init($sandbox);
                         }
                     );
                 }
@@ -152,34 +152,7 @@ define(function(require) {
                 }
             }
             
-            function initFolder($container) {
-                $container.find('[data-folder]').each(function() {
-                    var $el = $(this);
-                    $el.data('folder', $el.text());
-                    fold($el);
-                });
-            }
             
-            function foldOrUnfold(e) {
-                var $el = $(e.target);
-                var foldData = $el.data('folder');
-                if (foldData !== undefined) {
-                    if (foldData === $el.text()) fold($el);
-                    else unfold($el);
-                }
-            }
-            
-            function fold($el) {
-                var text = $el.data('folder');
-                if (text.length > 11) {
-                    $el.text(text.substr(0, 3) + '[...]' + text.substr(-3));
-                }
-            }
-            
-            function unfold($el) {
-                var text = $el.data('folder');
-                if (text.length > 11) $el.text(text);
-            }
             
             panel.on('load', function() {
                 load();

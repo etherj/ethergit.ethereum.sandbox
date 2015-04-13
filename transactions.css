@@ -1,0 +1,8 @@
+.ethereum-sandbox-transactions-dialog table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.ethereum-sandbox-transactions-dialog table td {
+    overflow-wrap: break-word;
+}
