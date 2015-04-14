@@ -40,6 +40,7 @@ define(function(require) {
             
             panel.on('draw', function(e) {
                 $sandbox = $(e.html);
+                $sandbox.click(folder.foldOrUnfold);
                 panel.render();
             });
             

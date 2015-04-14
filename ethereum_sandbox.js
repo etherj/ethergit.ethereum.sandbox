@@ -131,9 +131,14 @@ define(function(require) {
                 pkey: this.defaultAccount.pkey
             });
             this.vm.runTx({ tx: tx }, function(err, results) {
-                that.transactions.push(tx);
+                that.transactions.push({
+                    tx: tx,
+                    createdAddress: results.createdAddress,
+                    gasUsed: results.gasUsed,
+                    returnValue: results.vm.returnValue,
+                    exception: results.vm.exceptionErr
+                });
                 that.defaultAccount.nonce++;
-                
                 that.emitter.emit('changed', that);
                 cb(err, results);
             });

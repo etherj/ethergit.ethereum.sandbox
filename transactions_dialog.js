@@ -44,9 +44,9 @@ define(function(require) {
                 sandbox.transactions.forEach(function(tx, id) {
                     $container.append(
                         $('<tr>')
-                            .append('<td data-name="from" class="from">' + tx.getSenderAddress().toString('hex') + '<span data-name="id" style="display:none">' + id + '</span></td>')
-                            .append('<td>' + tx.nonce.toString('hex') + '</td>')
-                            .append('<td>' + tx.to.toString('hex') + '</td>')
+                            .append('<td data-name="from" class="from">' + tx.tx.getSenderAddress().toString('hex') + '<span data-name="id" style="display:none">' + id + '</span></td>')
+                            .append('<td>' + tx.tx.nonce.toString('hex') + '</td>')
+                            .append('<td>' + tx.tx.to.toString('hex') + '</td>')
                     );
                 });
                 $container.click(function(e) {

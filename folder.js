@@ -6,7 +6,6 @@ define(function(require) {
                 $el.data('folder', $el.text());
                 folder.fold($el);
             });
-            $container.click(folder.foldOrUnfold);
         },
         foldOrUnfold: function(e) {
             var $el = $(e.target);

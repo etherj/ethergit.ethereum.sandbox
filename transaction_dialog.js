@@ -36,6 +36,7 @@ define(function(require) {
             
             dialog.on('draw', function(e) {
                 e.html.innerHTML = require('text!./transaction.html');
+                $(e.html).click(folder.foldOrUnfold);
             });
 
             function showTransaction(sandbox, id) {
@@ -43,12 +44,17 @@ define(function(require) {
                 var $container = $('[data-name=transaction]');
                 var tx = sandbox.transactions[id];
                 [
-                    ['from', tx.getSenderAddress().toString('hex')],
-                    ['nonce', tx.nonce.toString('hex')],
-                    ['to', tx.to.toString('hex')],
-                    ['value', tx.value.toString('hex')],
-                    ['data', tx.data.toString('hex')],
-                    ['rlp', tx.serialize().toString('hex')]
+                    ['from', tx.tx.getSenderAddress().toString('hex')],
+                    ['nonce', tx.tx.nonce.toString('hex')],
+                    ['to', tx.tx.to.toString('hex')],
+                    ['gasLimit', tx.tx.gasLimit.toString('hex')],
+                    ['gasUsed', tx.gasUsed.toString('hex')],
+                    ['value', tx.tx.value.toString('hex')],
+                    ['data', tx.tx.data.toString('hex')],
+                    ['createdAddress', tx.createdAddress.toString('hex')],
+                    ['returnValue', tx.returnValue.toString('hex')],
+                    ['exception', tx.exception ? tx.exception : 'There is no exception'],
+                    ['rlp', tx.tx.serialize().toString('hex')]
                 ].forEach(function(field) {
                     $container.find('[data-name=' + field[0] + ']').text(field[1]);
                 });
