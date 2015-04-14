@@ -46,7 +46,7 @@ define(function(require) {
                 [
                     ['from', tx.tx.getSenderAddress().toString('hex')],
                     ['nonce', tx.tx.nonce.toString('hex')],
-                    ['to', tx.tx.to.toString('hex')],
+                    ['to', tx.tx.to.length === 0 ? '[contract create]' : tx.tx.to.toString('hex')],
                     ['gasLimit', tx.tx.gasLimit.toString('hex')],
                     ['gasUsed', tx.gasUsed.toString('hex')],
                     ['value', tx.tx.value.toString('hex')],

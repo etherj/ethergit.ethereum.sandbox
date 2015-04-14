@@ -46,7 +46,7 @@ define(function(require) {
                         $('<tr>')
                             .append('<td data-name="from" class="from">' + tx.tx.getSenderAddress().toString('hex') + '<span data-name="id" style="display:none">' + id + '</span></td>')
                             .append('<td>' + tx.tx.nonce.toString('hex') + '</td>')
-                            .append('<td>' + tx.tx.to.toString('hex') + '</td>')
+                            .append('<td>' + (tx.tx.to.length === 0 ? '[contract create]' : tx.tx.to.toString('hex')) + '</td>')
                     );
                 });
                 $container.click(function(e) {
