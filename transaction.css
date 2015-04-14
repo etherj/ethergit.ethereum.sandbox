@@ -1,0 +1,8 @@
+.transaction .long-string {
+    width: 80%;
+    overflow-wrap: break-word;
+}
+
+.transaction .folder {
+    cursor: pointer;
+}

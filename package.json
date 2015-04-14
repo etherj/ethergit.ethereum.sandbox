@@ -16,7 +16,8 @@
   "plugins": {
     "sandbox": {},
     "sandbox_panel": {},
-    "transactions_dialog": {}
+    "transactions_dialog": {},
+    "transaction_dialog": {}
   },
   "categories": [
     "miscellaneous"

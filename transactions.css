@@ -6,3 +6,11 @@
 .ethereum-sandbox-transactions-dialog table td {
     overflow-wrap: break-word;
 }
+
+.ethereum-sandbox-transactions-dialog table tr td:nth-child(2) {
+    width: 10%;
+}
+
+.ethereum-sandbox-transactions-dialog .from {
+    cursor: pointer;
+}

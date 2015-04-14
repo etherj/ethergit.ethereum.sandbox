@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui'];
+    main.consumes = ['Dialog', 'ui', 'ethergit.ethereum.sandbox.dialog.transaction'];
     main.provides = ['ethergit.ethereum.sandbox.dialog.transactions'];
     
     return main;
@@ -7,7 +7,7 @@ define(function(require) {
     function main(options, imports, register) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
-        var folder = require('./folder.js');
+        var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
         
         requirejs.config({
             context: 'sandbox',
@@ -41,18 +41,20 @@ define(function(require) {
             function showSandbox(sandbox) {
                 dialog.show();
                 var $container = $('[data-name=transactions]').empty();
-                sandbox.transactions.forEach(function(tx) {
+                sandbox.transactions.forEach(function(tx, id) {
                     $container.append(
                         $('<tr>')
-                            .append('<td data-folder>' + tx.getSenderAddress().toString('hex') + '</td>')
+                            .append('<td data-name="from" class="from">' + tx.getSenderAddress().toString('hex') + '<span data-name="id" style="display:none">' + id + '</span></td>')
                             .append('<td>' + tx.nonce.toString('hex') + '</td>')
-                            .append('<td data-folder>' + tx.to.toString('hex') + '</td>')
-                            .append('<td>' + tx.value.toString('hex') + '</td>')
-                            .append('<td data-folder>' + tx.data.toString('hex') + '</td>')
-                            .append('<td data-folder>' + tx.serialize().toString('hex') + '</td>')
+                            .append('<td>' + tx.to.toString('hex') + '</td>')
                     );
                 });
-                folder.init($container);
+                $container.click(function(e) {
+                    var $el = $(e.target);
+                    if ($el.data('name') === 'from') {
+                        transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
+                    }
+                });
             }
             
             function hideDialog() {
