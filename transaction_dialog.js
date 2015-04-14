@@ -28,7 +28,7 @@ define(function(require) {
                 width: 500,
                 elements: [
                     {
-                        type: 'button', id: 'closeTransactionsDialog', color: 'blue',
+                        type: 'button', id: 'closeTransactionDialog', color: 'blue',
                         caption: 'Close', 'default': true, onclick: hideDialog
                     }
                 ]
@@ -51,7 +51,7 @@ define(function(require) {
                     ['gasUsed', tx.gasUsed.toString('hex')],
                     ['value', tx.tx.value.toString('hex')],
                     ['data', tx.tx.data.toString('hex')],
-                    ['createdAddress', tx.createdAddress.toString('hex')],
+                    ['createdAddress', tx.createdAddress ? tx.createdAddress.toString('hex') : ''],
                     ['returnValue', tx.returnValue.toString('hex')],
                     ['exception', tx.exception ? tx.exception : 'There is no exception'],
                     ['rlp', tx.tx.serialize().toString('hex')]

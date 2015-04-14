@@ -17,7 +17,8 @@
     "sandbox": {},
     "sandbox_panel": {},
     "transactions_dialog": {},
-    "transaction_dialog": {}
+    "transaction_dialog": {},
+    "contract_dialog": {}
   },
   "categories": [
     "miscellaneous"

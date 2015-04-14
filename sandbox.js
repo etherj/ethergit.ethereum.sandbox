@@ -127,7 +127,8 @@ define(function(require, exports, module) {
             function createContracts(sandbox, contracts, cb) {
                 async.eachSeries(contracts, function(contract, cb) {
                     sandbox.runTx({
-                        data: new Buffer(contract, 'hex')
+                        data: new Buffer(contract.binary, 'hex'),
+                        contract: contract
                     }, cb);
                 }, function(err) {
                     cb(err, sandbox);
@@ -162,9 +163,9 @@ define(function(require, exports, module) {
             };
             var compileTexts = function(texts, cb) {
                 async.map(texts, function(text, cb) {
-                    compiler.binary(text, cb);
-                }, function(err, binaries) {
-                    cb(err, binaries);
+                    compiler.binaryAndABI(text, cb);
+                }, function(err, results) {
+                    cb(err, results);
                 });
             };
             

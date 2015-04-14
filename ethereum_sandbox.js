@@ -10,19 +10,44 @@ define(function(require) {
     var SHA3Hash = require('./sha3.js').SHA3Hash;
     var rlp = require('./rlp.js');
     
+    function toHexNative(str) {
+        var hex = "";
+        for (var i = 0; i < str.length; i++) {
+            var n = str.charCodeAt(i).toString(16);
+            hex += n.length < 2 ? '0' + n : n;
+        }
+        return hex;
+    }
+        
+    function fromAscii(str, pad) {
+        pad = pad === undefined ? 0 : pad;
+        var hex = toHexNative(str);
+        while (hex.length < pad*2) hex += "00";
+        return hex;
+    }
+    
+    function createBuffer(str) {
+        var msg = new Buffer(str, 'hex');
+        var buf = new Buffer(32);
+        buf.fill(0);
+        msg.copy(buf, 32 - msg.length);
+        return buf;
+    }
+    
     return {
-        //hex string of SHA3-256 hash of `null`
+        // hex string of SHA3-256 hash of `null`
         SHA3_NULL: 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
 
-        //SHA3-256 hash of the rlp of []
+        // SHA3-256 hash of the rlp of []
         SHA3_RLP_EMPTY_ARRAY: '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347',
         
-        //SHA3-256 hash of the rlp of `null`
+        // SHA3-256 hash of the rlp of `null`
         SHA3_RLP_NULL: '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
         
         state: 'CLEAN',
         defaultAccount: null,
         transactions: [],
+        contracts: [],
         
         on: function(eventName, callback, plugin) {
             this.emitter.on(eventName, callback, plugin);
@@ -76,14 +101,6 @@ define(function(require) {
                 },
                 function(done) {
                     if (!options.hasOwnProperty('storage')) return done();
-                    
-                    function createBuffer(str) {
-                        var msg = new Buffer(str, 'hex');
-                        var buf = new Buffer(32);
-                        buf.fill(0);
-                        msg.copy(buf, 32 - msg.length);
-                        return buf;
-                    }
 
                     var strie = that.trie.copy();
                     strie.root = account.stateRoot;
@@ -127,6 +144,7 @@ define(function(require) {
             var that = this;
             var tx = this.createTx({
                 nonce: this.defaultAccount.nonce,
+                to: options.hasOwnProperty('to') ? options.to : null,
                 data: options.data,
                 pkey: this.defaultAccount.pkey
             });
@@ -139,9 +157,50 @@ define(function(require) {
                     exception: results.vm.exceptionErr
                 });
                 that.defaultAccount.nonce++;
+                
+                if (results.createdAddress && options.hasOwnProperty('contract')) {
+                    that.contracts[results.createdAddress.toString('hex')] = options.contract;
+                }
+                
                 that.emitter.emit('changed', that);
                 cb(err, results);
             });
+        },
+        callContractMethod: function(address, method, args, cb) {
+            this.runTx({
+                to: new Buffer(address, 'hex'),
+                data: this.encodeMethod(method, args)
+            }, cb);
+        },
+        encodeMethod: function(method, args) {
+            var name = method.name + '(';
+            method.inputs.forEach(function(input) {
+                name += input.type;
+            });
+            name += ')';
+            var encName = new Buffer(this.sha3(new Buffer(fromAscii(name), 'hex')).slice(0, 8), 'hex');
+            
+            var encArgs = method.inputs.map(function(input, idx) {
+                return this.encodeArg(input.type, args[idx]);
+            }, this);
+            
+            return Buffer.concat([encName].concat(encArgs));
+        },
+        encodeArg: function(type, arg) {
+            if (type.indexOf('uint') > -1) return uintEncoder(arg);
+            if (type.indexOf('bytes') > -1) return bytesEncoder(arg);
+            if (type === 'address') return addressEncoder(arg);
+            return createBuffer('00');
+
+            function uintEncoder(arg) {
+                return createBuffer(arg);
+            }
+            function bytesEncoder(arg) {
+                
+            }
+            function addressEncoder(arg) {
+                
+            }
         },
         reset: function() {
             this.trie = new Trie();

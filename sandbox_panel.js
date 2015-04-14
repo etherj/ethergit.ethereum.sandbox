@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Panel', 'ui', 'dialog.error'];
+    main.consumes = ['Panel', 'ui', 'ethergit.ethereum.sandbox.dialog.contract'];
     main.provides = ['ethergit.ethereum.sandbox.panel'];
     
     return main;
@@ -7,7 +7,7 @@ define(function(require) {
     function main(options, imports, register) {
         var Panel = imports.Panel;
         var ui = imports.ui;
-        var errorDialog = imports['dialog.error'];
+        var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
         var Ethereum = require('./ethereumjs-lib.js');
         var Account = Ethereum.Account;
         var accountTemplate = require('text!./account.html');
@@ -41,6 +41,13 @@ define(function(require) {
             panel.on('draw', function(e) {
                 $sandbox = $(e.html);
                 $sandbox.click(folder.foldOrUnfold);
+                $sandbox.click(function(e) {
+                    var $el = $(e.target);
+                    if ($el.data('name') === 'contract') {
+                        var address = $el.parent().find('[data-name=address]').text();
+                        contractDialog.showContract(sandbox, address);
+                    }
+                });
                 panel.render();
             });
             
@@ -81,7 +88,7 @@ define(function(require) {
             function renderAccounts($container, sandbox, cb) {
                 getAccounts(sandbox.trie, showAccount.bind(undefined, $container, sandbox), cb);
                 
-                // TODO: We accountHandler might be asynchronous functions, then cb will be called before the rendering really finished.
+                // TODO: accountHandler might be asynchronous functions, then cb will be called before the rendering really finished.
                 function getAccounts(trie, accountHandler, cb) {
                     var stream = trie.createReadStream();
                     stream.on('data', function(data) {
@@ -93,7 +100,7 @@ define(function(require) {
                     var $account = $(accountTemplate);
                     
                     async.parallel([
-                        showAccountFields.bind(undefined, $account, address, account),
+                        showAccountFields.bind(undefined, $account, sandbox, address, account),
                         getStorageEntries.bind(
                             undefined, sandbox, account,
                             showStorageEntry.bind(undefined, $account.find('[data-name=storage]'))
@@ -104,8 +111,11 @@ define(function(require) {
                         $container.append($account);
                     });
 
-                    function showAccountFields($container, address, account, cb) {
+                    function showAccountFields($container, sandbox, address, account, cb) {
                         $container.find('[data-name=address]').text(address);
+                        if (sandbox.contracts.hasOwnProperty(address)) {
+                            $container.find('[data-name=contract]').text('(' + sandbox.contracts[address].name + ')');
+                        }
                         $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
                         $container.find('[data-name=balance]').text(account.balance.toString('hex'));
                         cb();
@@ -152,8 +162,6 @@ define(function(require) {
                     }
                 }
             }
-            
-            
             
             panel.on('load', function() {
                 load();
