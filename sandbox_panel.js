@@ -49,7 +49,7 @@ define(function(require) {
                 {
                     type: 'number',
                     format: function(val) {
-                        return removeLeadingZeroBytes(val);
+                        return parseInt(removeLeadingZeroBytes(val), 16);
                         
                         function removeLeadingZeroBytes(str) {
                             if (str.length % 2 !== 0)
@@ -266,12 +266,10 @@ define(function(require) {
                             input.copy(buf, 32 - input.length);
                             return buf;
                         }
-                        
-                        
                     }
                     function showStorageEntry($container, key, value) {
                         $container.append(
-                            '<tr><td><button data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + value + '</td><td><button data-formatter="value">number</button></td></tr>'
+                            '<tr><td><button style="display:none" data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + value + '</td><td><button style="display:none" data-formatter="value">number</button></td></tr>'
                         );
                     }
                     function getCode(codeHandler, cb) {
