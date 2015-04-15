@@ -182,7 +182,10 @@ define(function(require) {
         },
         encodeMethod: function(method, args) {
             var name = method.name + '(';
+            var first = true;
             method.inputs.forEach(function(input) {
+                if (first) first = false;
+                else name += ',';
                 name += input.type;
             });
             name += ')';
@@ -208,7 +211,7 @@ define(function(require) {
                 return createBufferFromBeginning(fromAscii(arg));
             }
             function addressEncoder(arg) {
-                return new Buffer(arg, 'hex');
+                return createBuffer(arg);
             }
         },
         reset: function() {
