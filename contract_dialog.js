@@ -45,13 +45,15 @@ define(function(require) {
                 
                 var $methods = $container.find('[data-name=methods]').empty();
                 contract.abi.forEach(function(method) {
-                    var $inputs = $('<div>');
+                    var $method = $(require('text!./contract_method.html'));
+                    $method.find('[data-name=name]').text(method.name);
+                    
+                    var $args = $method.find('[data-name=args]');
                     method.inputs.forEach(function(input) {
-                        $inputs.append('<div>' + input.name + ' : ' + getTypeLabel(input.type) + ' <input type="text"></div>');
+                        $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input type="text"></td></tr>');
                     });
 
-                    var $btn = $('<button data-name="call">Call</button>');
-                    $btn.click(function(e) {
+                    $method.find('[data-name=call]').click(function(e) {
                         var args = $(e.target).parent().find('input').map(function() {
                             return $(this).val();
                         });
@@ -59,13 +61,8 @@ define(function(require) {
                             if (err) return console.error(err);
                         });
                     });
-
-                    $methods.append(
-                        $('<div class="method">')
-                            .append('<div class="method-name">' + method.name + '</div>')
-                            .append($inputs)
-                            .append($btn)
-                    );
+                    
+                    $methods.append($method);
                 });
             }
             
