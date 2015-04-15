@@ -34,6 +34,14 @@ define(function(require) {
         return buf;
     }
     
+    function createBufferFromBeginning(str) {
+        var msg = new Buffer(str, 'hex');
+        var buf = new Buffer(32);
+        buf.fill(0);
+        msg.copy(buf);
+        return buf;
+    }
+    
     return {
         // hex string of SHA3-256 hash of `null`
         SHA3_NULL: 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
@@ -193,13 +201,14 @@ define(function(require) {
             return createBuffer('00');
 
             function uintEncoder(arg) {
+                if (arg.length % 2 != 0) arg = '0' + arg;
                 return createBuffer(arg);
             }
             function bytesEncoder(arg) {
-                
+                return createBufferFromBeginning(fromAscii(arg));
             }
             function addressEncoder(arg) {
-                
+                return new Buffer(arg, 'hex');
             }
         },
         reset: function() {

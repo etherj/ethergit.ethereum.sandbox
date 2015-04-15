@@ -55,7 +55,6 @@ define(function(require) {
                         var args = $(e.target).parent().find('input').map(function() {
                             return $(this).val();
                         });
-                        console.log(args);
                         sandbox.callContractMethod(address, method, args, function(err) {
                             if (err) return console.error(err);
                         });
