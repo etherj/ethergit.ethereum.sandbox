@@ -14,6 +14,7 @@ define(function(require) {
         var async = require('async');
         var rlp = require('./rlp.js');
         var folder = require('./folder.js');
+        var Buffer = require('./buffer.js').Buffer;
 
         requirejs.config({
             context: 'sandbox',
@@ -38,6 +39,122 @@ define(function(require) {
             var sandbox = null;
             var $sandbox = null;
             
+            var formatters = [
+                {
+                    type: 'data',
+                    format: function(val) {
+                        return val;
+                    }
+                },
+                {
+                    type: 'number',
+                    format: function(val) {
+                        return removeLeadingZeroBytes(val);
+                        
+                        function removeLeadingZeroBytes(str) {
+                            if (str.length % 2 !== 0)
+                                console.error('Wrong hex str: ' + str);
+                                
+                            var firstNonZeroByte = str.length - 2;
+                            for (var i = 0; i < str.length; i += 2) {
+                                if (str.charAt(i) !== '0' || str.charAt(i + 1) !== '0') {
+                                    firstNonZeroByte = i;
+                                    break;
+                                }
+                            }
+                            
+                            return str.substring(firstNonZeroByte);
+                        }
+                    }
+                },
+                {
+                    type: 'string',
+                    format: function(val) {
+                        return String.fromCharCode.apply(null, toArray(removeTrailingZeroBytes(val)));
+                        
+                        function removeTrailingZeroBytes(str) {
+                            if (str.length % 2 !== 0)
+                                console.error('Wrong hex str: ' + str);
+                                
+                            var lastNonZeroByte = 0;
+                            for (var i = str.length - 1; i > 0; i -= 2) {
+                                if (str.charAt(i - 1) !== '0' || str.charAt(i) !== '0') {
+                                    lastNonZeroByte = i;
+                                    break;
+                                }
+                            }
+                            
+                            return str.substr(0, lastNonZeroByte + 1);
+                        }
+                        
+                        function toArray(str) {
+                            if (str.length % 2 !== 0)
+                                console.error('Wrong hex str: ' + str);
+                            
+                            var arr = [];
+                            for (var i = 0; i < str.length; i += 2) {
+                                arr.push(str.charAt(i) + str.charAt(i + 1));
+                            }
+                            
+                            return arr.map(function(e) { return parseInt(e, 16); });
+                        }
+                    }
+                },
+                {
+                    type: 'address',
+                    format: function(val) {
+                        return val.substr(24);
+                    }
+                }
+            ];
+            
+            function initFormatter($container) {
+                $container.find('[data-formatter]').each(function() {
+                    var $el = $(this);
+                    var $target = $el.parent().parent().find('[data-name=' + $el.data('formatter') + ']');
+                    var value = $target.text();
+                    var type = detectType(value);
+                    $el.data('formatter-type', type.type);
+                    $el.text(type.type);
+                    $el.data('formatter-value', value);
+                    $target.text(type.format(value));
+                });
+                
+                function detectType(value) {
+                    var type = getType(value);
+                    for (var i = 0; i < formatters.length; i++) {
+                        if (formatters[i].type === type) return formatters[i];
+                    }
+                    
+                    function getType(data) {
+                        // 24 leading zeroes -> address
+                        if (/^0{24}[^0]{2}/.test(data)) {
+                            return 'address';
+                        }
+                        // 7-31 trailing zeroes -> string
+                        if (/[^0]0{14,62}0?$/.test(data)) {
+                            return 'string';
+                        }
+                        if (/^0{48}/.test(data)) {
+                            return 'number';
+                        }
+                
+                        return 'data';
+                    }
+                }
+            }
+            
+            function nextFormatter(type) {
+                var idx = 0;
+                for (var i = 0; i < formatters.length; i++) {
+                    if (formatters[i].type === type) {
+                        idx = i;
+                        break;
+                    }
+                }
+                return formatters[idx === formatters.length - 1 ? 0 : idx + 1];
+            }
+            
             panel.on('draw', function(e) {
                 $sandbox = $(e.html);
                 $sandbox.click(folder.foldOrUnfold);
@@ -46,6 +163,12 @@ define(function(require) {
                     if ($el.data('name') === 'contract') {
                         var address = $el.parent().find('[data-name=address]').text();
                         contractDialog.showContract(sandbox, address);
+                    } else if ($el.data('formatter')) {
+                        var formatter = nextFormatter($el.data('formatter-type'));
+                        $el.data('formatter-type', formatter.type);
+                        $el.text(formatter.type);
+                        var $target = $el.parent().parent().find('[data-name=' + $el.data('formatter') + ']');
+                        $target.text(formatter.format($el.data('formatter-value'))); 
                     }
                 });
                 panel.render();
@@ -108,6 +231,7 @@ define(function(require) {
                         getCode.bind(undefined, showCode.bind(undefined, $account.find('[data-name=code]')))
                     ], function(err) {
                         if (err) return cb(err);
+                        initFormatter($account.find('[data-name=storage]'));
                         $container.append($account);
                     });
 
@@ -128,27 +252,27 @@ define(function(require) {
                         var stream = strie.createReadStream();
                         stream.on('data', function(data) {
                             storageHandler(
-                                removeLeadingZeroBytes(data.key.toString('hex')),
-                                rlp.decode(data.value).toString('hex')
+                                data.key.toString('hex'),
+                                createBuffer(rlp.decode(data.value)).toString('hex')
                             );
                         });
                         stream.on('end', cb);
                         
-                        function removeLeadingZeroBytes(str) {
-                            if (str.length % 2 !== 0)
-                                console.error('Wrong hex str: ' + str);
-                                
-                            var firstNonZeroByte = str.length - 2;
-                            for (var i = 0; i < str.length; i += 2) {
-                                if (str[i] !== '0' || str[i + 1] !== '0')
-                                    firstNonZeroByte = i;
-                            }
+                        function createBuffer(input) {
+                            if (input.length === 32) return input;
                             
-                            return str.substring(firstNonZeroByte);
+                            var buf = new Buffer(32);
+                            buf.fill(0);
+                            input.copy(buf, 32 - input.length);
+                            return buf;
                         }
+                        
+                        
                     }
                     function showStorageEntry($container, key, value) {
-                        $container.append('<tr><td>' + key + '</td><td>' + value + '</td></tr>');
+                        $container.append(
+                            '<tr><td><button data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + value + '</td><td><button data-formatter="value">number</button></td></tr>'
+                        );
                     }
                     function getCode(codeHandler, cb) {
                         account.getCode(sandbox.trie, function(err, code) {

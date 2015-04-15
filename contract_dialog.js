@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui']
+    main.consumes = ['Dialog', 'ui'];
     main.provides = ['ethergit.ethereum.sandbox.dialog.contract'];
     
     return main;
