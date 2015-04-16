@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Panel', 'ui', 'ethergit.ethereum.sandbox.dialog.contract'];
+    main.consumes = ['Panel', 'ui', 'ethergit.ethereum.sandbox.dialog.contract', 'apf'];
     main.provides = ['ethergit.ethereum.sandbox.panel'];
     
     return main;
@@ -8,6 +8,7 @@ define(function(require) {
         var Panel = imports.Panel;
         var ui = imports.ui;
         var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
+        var apf = imports.apf;
         var Ethereum = require('./ethereumjs-lib.js');
         var Account = Ethereum.Account;
         var accountTemplate = require('text!./account.html');
@@ -15,6 +16,8 @@ define(function(require) {
         var rlp = require('./rlp.js');
         var folder = require('./folder.js');
         var Buffer = require('./buffer.js').Buffer;
+
+        apf.config.setProperty('allow-select', true);
 
         requirejs.config({
             context: 'sandbox',
@@ -173,7 +176,6 @@ define(function(require) {
                     }
                 });
                 panel.render();
-                panel.aml.textselect = true;
             });
             
             panel.render = function() {
