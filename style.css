@@ -29,6 +29,12 @@
   text-decoration: none;
 }
 
+.account-container .contract-name {
+  border: solid 1px;
+  padding: 2px;
+  cursor: pointer;
+}
+
 .account-container td {
     padding: 3px;
 }

@@ -239,7 +239,7 @@ define(function(require) {
                     function showAccountFields($container, sandbox, address, account, cb) {
                         $container.find('[data-name=address]').text(address);
                         if (sandbox.contracts.hasOwnProperty(address)) {
-                            $container.find('[data-name=contract]').text('(' + sandbox.contracts[address].name + ')');
+                            $container.find('[data-name=contract]').text(sandbox.contracts[address].name).show();
                         }
                         $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
                         $container.find('[data-name=balance]').text(account.balance.toString('hex'));
