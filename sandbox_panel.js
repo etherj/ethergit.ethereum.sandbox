@@ -164,6 +164,7 @@ define(function(require) {
                         var address = $el.parent().find('[data-name=address]').text();
                         contractDialog.showContract(sandbox, address);
                     } else if ($el.data('formatter')) {
+                        e.preventDefault();
                         var formatter = nextFormatter($el.data('formatter-type'));
                         $el.data('formatter-type', formatter.type);
                         $el.text(formatter.type);
@@ -269,7 +270,7 @@ define(function(require) {
                     }
                     function showStorageEntry($container, key, value) {
                         $container.append(
-                            '<tr><td><button style="display:none" data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + value + '</td><td><button style="display:none" data-formatter="value">number</button></td></tr>'
+                            '<tr><td><a href="#" class="button" data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + value + '</td><td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
                         );
                     }
                     function getCode(codeHandler, cb) {

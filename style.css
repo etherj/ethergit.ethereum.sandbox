@@ -21,3 +21,14 @@
 .accounts-container .folder {
     cursor: pointer;
 }
+
+.account-container .button {
+  color: gray;
+  padding: 2px;
+  border: solid 1px;
+  text-decoration: none;
+}
+
+.account-container td {
+    padding: 3px;
+}
