@@ -23,16 +23,18 @@
 }
 
 .account-container .button {
-  color: gray;
-  padding: 2px;
-  border: solid 1px;
-  text-decoration: none;
+    color: gray;
+    border-top: 1px dotted grey;
+    border-bottom: 1px dotted grey;
+    padding: 2px;
+    text-decoration: none;
 }
 
 .account-container .contract-name {
-  border: solid 1px;
-  padding: 2px;
-  cursor: pointer;
+    border-top: 1px dotted grey;
+    border-bottom: 1px dotted grey;
+    padding: 2px;
+    cursor: pointer;
 }
 
 .account-container td {
