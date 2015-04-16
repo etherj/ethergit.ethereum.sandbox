@@ -205,11 +205,7 @@ define(function(require) {
             
             function showSandbox(sandboxToShow) {
                 sandbox = sandboxToShow;
-                sandbox.on('changed', function() {
-                    panel.render();
-                    console.log(panel);
-                    console.log(panel.container);
-                });
+                sandbox.on('changed', function() { panel.render(); });
                 panel.show();
                 panel.render();
             }
