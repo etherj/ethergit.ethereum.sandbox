@@ -173,6 +173,7 @@ define(function(require) {
                     }
                 });
                 panel.render();
+                panel.aml.textselect = true;
             });
             
             panel.render = function() {
@@ -204,7 +205,11 @@ define(function(require) {
             
             function showSandbox(sandboxToShow) {
                 sandbox = sandboxToShow;
-                sandbox.on('changed', function() { panel.render(); });
+                sandbox.on('changed', function() {
+                    panel.render();
+                    console.log(panel);
+                    console.log(panel.container);
+                });
                 panel.show();
                 panel.render();
             }
