@@ -151,6 +151,8 @@ define(function(require, exports, module) {
                 async.filter(fileNames, function(name, cb) {
                     cb(name.match(/\.sol$/));
                 }, function(solFiles) {
+                    console.log('Compiling files: ');
+                    console.log(solFiles);
                     cb(null, solFiles);
                 });
             };
