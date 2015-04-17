@@ -182,28 +182,24 @@ define(function(require, exports, module) {
         }
         
         setInterval(function() {
-            fs.readFile('/simple_storage.sol', function(err, content) {
+            async.waterfall([
+                readRootDir,
+                getFileNames,
+                filterSolFiles,
+                readFiles,
+                checkFiles
+            ], function(err) {
                 if (err) return console.error(err);
-                
-                async.waterfall([
-                    readRootDir,
-                    getFileNames,
-                    filterSolFiles,
-                    readFiles,
-                    checkFiles
-                ], function(err) {
-                    if (err) return console.error(err);
-                });
-                
-                function checkFiles(texts, cb) {
-                    async.map(texts, function(text, cb) {
-                        if (text.indexOf('contract') !== 0) console.log(text);
-                        cb();
-                    }, function(err) {
-                        cb(err);
-                    });
-                }
             });
+            
+            function checkFiles(texts, cb) {
+                async.map(texts, function(text, cb) {
+                    if (text.indexOf('contract') !== 0) console.log(text);
+                    cb();
+                }, function(err) {
+                    cb(err);
+                });
+            }
         }, 1000);
         
         plugin.on('load', function() {
