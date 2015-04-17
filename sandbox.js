@@ -136,33 +136,34 @@ define(function(require, exports, module) {
             }
         }
         
+        
+        var readRootDir = function(cb) {
+            fs.readdir('/', function(err, files) { cb(err, files); });
+        };
+        var getFileNames = function(fileStats, cb) {
+            async.map(fileStats, function(stat, cb) {
+                cb(null, stat.name);
+            }, function(err, names) {
+                cb(err, names);
+            });
+        };
+        var filterSolFiles = function(fileNames, cb) {
+            async.filter(fileNames, function(name, cb) {
+                cb(name.match(/\.sol$/));
+            }, function(solFiles) {
+                cb(null, solFiles);
+            });
+        };
+        var readFiles = function(fileNames, cb) {
+            async.map(fileNames, function(file, cb) {
+                fs.readFile('/' + file, cb);
+            }, function(err, contents) {
+                cb(err, contents);
+            });
+        };
+        
         function compileContracts(cb) {
-            var readRootDir = function(cb) {
-                fs.readdir('/', function(err, files) { cb(err, files); });
-            };
-            var getFileNames = function(fileStats, cb) {
-                async.map(fileStats, function(stat, cb) {
-                    cb(null, stat.name);
-                }, function(err, names) {
-                    cb(err, names);
-                });
-            };
-            var filterSolFiles = function(fileNames, cb) {
-                async.filter(fileNames, function(name, cb) {
-                    cb(name.match(/\.sol$/));
-                }, function(solFiles) {
-                    console.log('Compiling files: ');
-                    console.log(solFiles);
-                    cb(null, solFiles);
-                });
-            };
-            var readFiles = function(fileNames, cb) {
-                async.map(fileNames, function(file, cb) {
-                    fs.readFile('/' + file, cb);
-                }, function(err, contents) {
-                    cb(err, contents);
-                });
-            };
+            
             var compileTexts = function(texts, cb) {
                 async.map(texts, function(text, cb) {
                     compiler.binaryAndABI(text, cb);
@@ -179,6 +180,31 @@ define(function(require, exports, module) {
                 compileTexts
             ], cb);
         }
+        
+        setInterval(function() {
+            fs.readFile('/simple_storage.sol', function(err, content) {
+                if (err) return console.error(err);
+                
+                async.waterfall([
+                    readRootDir,
+                    getFileNames,
+                    filterSolFiles,
+                    readFiles,
+                    checkFiles
+                ], function(err) {
+                    if (err) return console.error(err);
+                });
+                
+                function checkFiles(texts, cb) {
+                    async.map(texts, function(text, cb) {
+                        if (text.indexOf('contract') !== 0) console.log(text);
+                        cb();
+                    }, function(err) {
+                        cb(err);
+                    });
+                }
+            });
+        }, 1000);
         
         plugin.on('load', function() {
             load();
