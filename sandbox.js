@@ -142,7 +142,7 @@ define(function(require, exports, module) {
                 getFileNames,
                 filterSolFiles,
                 readFiles,
-                checkFiles,
+                workaroundWrongFileContent,
                 compileTexts
             ], cb);
             
@@ -164,19 +164,15 @@ define(function(require, exports, module) {
                     fs.readFile('/' + file, cb);
                 }, cb);
             }
-            function checkFiles(texts, cb) {
+            // Workaround for https://github.com/c9/core/issues/71
+            function workaroundWrongFileContent(texts, cb) {
                 async.map(texts, function(text, cb) {
-                    if (text.indexOf('contract') !== 0) console.error('Wrong content: ' + text);
-                    cb(null, text);
+                    var jsonAtTheEnd = text.indexOf('{"changed"');
+                    cb(null, jsonAtTheEnd !== -1 ? text.substr(0, jsonAtTheEnd) : text);
                 }, cb);
             }
             function compileTexts(texts, cb) {
-                async.map(texts, function(text, cb) {
-                    console.log('Content to compile: ' + text);
-                    compiler.binaryAndABI(text, cb);
-                }, function(err, results) {
-                    cb(err, results);
-                });
+                async.map(texts, compiler.binaryAndABI.bind(compiler), cb);
             }
         }
         
