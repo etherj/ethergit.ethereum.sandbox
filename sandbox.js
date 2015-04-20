@@ -168,6 +168,7 @@ define(function(require, exports, module) {
             function workaroundWrongFileContent(texts, cb) {
                 async.map(texts, function(text, cb) {
                     var jsonAtTheEnd = text.indexOf('{"changed"');
+                    if (jsonAtTheEnd === -1) jsonAtTheEnd = text.indexOf('{"filter"');
                     cb(null, jsonAtTheEnd !== -1 ? text.substr(0, jsonAtTheEnd) : text);
                 }, cb);
             }
