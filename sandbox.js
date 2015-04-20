@@ -135,72 +135,49 @@ define(function(require, exports, module) {
                 });
             }
         }
-        
-        
-        var readRootDir = function(cb) {
-            fs.readdir('/', function(err, files) { cb(err, files); });
-        };
-        var getFileNames = function(fileStats, cb) {
-            async.map(fileStats, function(stat, cb) {
-                cb(null, stat.name);
-            }, function(err, names) {
-                cb(err, names);
-            });
-        };
-        var filterSolFiles = function(fileNames, cb) {
-            async.filter(fileNames, function(name, cb) {
-                cb(name.match(/\.sol$/));
-            }, function(solFiles) {
-                cb(null, solFiles);
-            });
-        };
-        var readFiles = function(fileNames, cb) {
-            async.map(fileNames, function(file, cb) {
-                fs.readFile('/' + file, cb);
-            }, function(err, contents) {
-                cb(err, contents);
-            });
-        };
-        
+
         function compileContracts(cb) {
+            async.waterfall([
+                readRootDir,
+                getFileNames,
+                filterSolFiles,
+                readFiles,
+                checkFiles,
+                compileTexts
+            ], cb);
             
-            var compileTexts = function(texts, cb) {
+            function readRootDir(cb) {
+                fs.readdir('/', function(err, files) { cb(err, files); });
+            }
+            function getFileNames(fileStats, cb) {
+                async.map(fileStats, function(stat, cb) {
+                    cb(null, stat.name);
+                }, cb);
+            }
+            function filterSolFiles(fileNames, cb) {
+                async.filter(fileNames, function(name, cb) {
+                    cb(name.match(/\.sol$/));
+                }, cb.bind(undefined, null));
+            }
+            function readFiles(fileNames, cb) {
+                async.map(fileNames, function(file, cb) {
+                    fs.readFile('/' + file, cb);
+                }, cb);
+            }
+            function checkFiles(texts, cb) {
+                async.map(texts, function(text, cb) {
+                    if (text.indexOf('contract') !== 0) console.log('Wrong content: ' + text);
+                    cb(null, text);
+                }, cb);
+            }
+            function compileTexts(texts, cb) {
                 async.map(texts, function(text, cb) {
                     compiler.binaryAndABI(text, cb);
                 }, function(err, results) {
                     cb(err, results);
                 });
-            };
-            
-            async.waterfall([
-                readRootDir,
-                getFileNames,
-                filterSolFiles,
-                readFiles,
-                compileTexts
-            ], cb);
-        }
-        
-        setInterval(function() {
-            async.waterfall([
-                readRootDir,
-                getFileNames,
-                filterSolFiles,
-                readFiles,
-                checkFiles
-            ], function(err) {
-                if (err) return console.error(err);
-            });
-            
-            function checkFiles(texts, cb) {
-                async.map(texts, function(text, cb) {
-                    if (text.indexOf('contract') !== 0) console.log(text);
-                    cb();
-                }, function(err) {
-                    cb(err);
-                });
             }
-        }, 1000);
+        }
         
         plugin.on('load', function() {
             load();
