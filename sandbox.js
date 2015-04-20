@@ -166,12 +166,13 @@ define(function(require, exports, module) {
             }
             function checkFiles(texts, cb) {
                 async.map(texts, function(text, cb) {
-                    if (text.indexOf('contract') !== 0) console.log('Wrong content: ' + text);
+                    if (text.indexOf('contract') !== 0) console.error('Wrong content: ' + text);
                     cb(null, text);
                 }, cb);
             }
             function compileTexts(texts, cb) {
                 async.map(texts, function(text, cb) {
+                    console.log('Content to compile: ' + text);
                     compiler.binaryAndABI(text, cb);
                 }, function(err, results) {
                     cb(err, results);
