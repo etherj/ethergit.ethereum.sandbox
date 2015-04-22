@@ -44,7 +44,6 @@ define(function(require, exports, module) {
                     command: 'runSandbox',
                     caption: 'Start Sandbox',
                     disabled: false,
-                    class: 'runbtn stopped',
                     icon: 'run.png'
                 }),
                 300, plugin

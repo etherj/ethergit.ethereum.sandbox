@@ -40,3 +40,7 @@
 .account-container td {
     padding: 3px;
 }
+
+.runbtn {
+    display: none;
+}
