@@ -21,7 +21,7 @@ define(function(require) {
                 }
             }
         });
-        require(['jquery'], function($) {
+        require(['jquery', './formatter', './folder'], function($, formatter, folder) {
             var dialog = new Dialog('Ethergit', main.consumes, {
                 name: 'sandbox-contract',
                 allowClose: true,
@@ -44,6 +44,12 @@ define(function(require) {
                 var contract = sandbox.contracts[address];
                 var $container = $('[data-name=contract]');
                 $container.find('[data-name=name]').text(contract.name);
+                $container.click(function(e) {
+                    formatter.format(e);
+                    if ($(e.target).data('formatter'))
+                        folder.init($(e.target).parent().parent());
+                });
+                $container.click(folder.foldOrUnfold);
                 
                 var $methods = $container.find('[data-name=methods]').empty();
                 contract.abi.forEach(function(method) {
@@ -59,8 +65,16 @@ define(function(require) {
                         var args = $(e.target).parent().find('input').map(function() {
                             return $(this).val();
                         });
-                        sandbox.callContractMethod(address, method, args, function(err) {
+                        sandbox.callContractMethod(address, method, args, function(err, results) {
                             if (err) return console.error(err);
+                            
+                            if (results.vm.hasOwnProperty('returnValue')) {
+                                $method.find('[data-name=returnValue]')
+                                    .text(results.vm.returnValue.toString('hex'))
+                                    .parent().show();
+                                formatter.init($method);
+                                folder.init($method);
+                            }
                         });
                     });
                     

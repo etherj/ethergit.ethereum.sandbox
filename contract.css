@@ -5,3 +5,19 @@
 .contract .method-name {
     font-size: x-large;
 }
+
+.contract .button {
+    color: gray;
+    border-top: 1px dotted grey;
+    border-bottom: 1px dotted grey;
+    padding: 2px;
+    text-decoration: none;
+}
+
+.contract .long-string {
+    overflow-wrap: break-word;
+}
+
+.contract .folder {
+    cursor: pointer;
+}
