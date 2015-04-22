@@ -6,19 +6,21 @@ define(function(require) {
     
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
+        var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
 
         requirejs.config({
             context: 'sandbox',
             paths:{
                 // 'jquery': 'http://code.jquery.com/jquery-1.11.2.min'
-                'jquery': 'vfs/0/plugins/token/ethergit.ethereum.sandbox/jquery-1.11.2.min'
+                'jquery': baseUrl + '/ethergit.ethereum.sandbox/jquery-1.11.2.min'
             },
             shim: {
                 'jquery': {
                     exports: 'jQuery',
                 }
             }
-        })(['jquery'], function($) {
+        });
+        require(['jquery'], function($) {
             var plugin  = new Plugin('Ethergit', main.consumes);
             
             function load() {

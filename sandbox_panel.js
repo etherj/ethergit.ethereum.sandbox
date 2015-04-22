@@ -9,13 +9,14 @@ define(function(require) {
         var ui = imports.ui;
         var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
         var apf = imports.apf;
-        var Ethereum = require('./ethereumjs-lib.js');
+        var Ethereum = require('./ethereumjs-lib');
         var Account = Ethereum.Account;
         var accountTemplate = require('text!./account.html');
         var async = require('async');
-        var rlp = require('./rlp.js');
-        var folder = require('./folder.js');
-        var Buffer = require('./buffer.js').Buffer;
+        var rlp = require('./rlp');
+        var folder = require('./folder');
+        var Buffer = require('./buffer').Buffer;
+        var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
 
         apf.config.setProperty('allow-select', true);
 
@@ -23,14 +24,15 @@ define(function(require) {
             context: 'sandbox',
             paths:{
                 // 'jquery': 'http://code.jquery.com/jquery-1.11.2.min'
-                'jquery': 'vfs/0/plugins/token/ethergit.ethereum.sandbox/jquery-1.11.2.min'
+                'jquery': baseUrl + '/ethergit.ethereum.sandbox/jquery-1.11.2.min'
             },
             shim: {
                 'jquery': {
                     exports: 'jQuery',
                 }
             }
-        })(['jquery'], function($) {
+        });
+        require(['jquery'], function($) {
             var panel = new Panel('Ethergit', main.consumes, {
                 index: 300,
                 width: 400,
@@ -207,7 +209,7 @@ define(function(require) {
             
             function showSandbox(sandboxToShow) {
                 sandbox = sandboxToShow;
-                sandbox.on('changed', function() { panel.render(); });
+                sandbox.on('changed', function() { panel.render(); }, panel);
                 panel.show();
                 panel.render();
             }

@@ -7,19 +7,21 @@ define(function(require) {
     function main(options, imports, register) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
+        var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
 
         requirejs.config({
             context: 'sandbox',
             paths:{
                 // 'jquery': 'http://code.jquery.com/jquery-1.11.2.min'
-                'jquery': 'vfs/0/plugins/token/ethergit.ethereum.sandbox/jquery-1.11.2.min'
+                'jquery': baseUrl + '/ethergit.ethereum.sandbox/jquery-1.11.2.min'
             },
             shim: {
                 'jquery': {
                     exports: 'jQuery',
                 }
             }
-        })(['jquery'], function($) {
+        });
+        require(['jquery'], function($) {
             var dialog = new Dialog('Ethergit', main.consumes, {
                 name: 'sandbox-contract',
                 allowClose: true,

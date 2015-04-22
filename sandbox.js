@@ -17,8 +17,8 @@ define(function(require, exports, module) {
         var panel = imports['ethergit.ethereum.sandbox.panel'];
         var transactionsDialog = imports['ethergit.ethereum.sandbox.dialog.transactions'];
         
-        var Sandbox = require('./ethereum_sandbox.js');
-        var Buffer = require('./buffer.js').Buffer;
+        var Sandbox = require('./ethereum_sandbox');
+        var Buffer = require('./buffer').Buffer;
         var async = require('async');
         
         var plugin = new Plugin('Ethergit', main.consumes);
@@ -86,7 +86,7 @@ define(function(require, exports, module) {
                     btnTransactions.setAttribute('disabled', false);
                     btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions.length + ')');
                 }
-            });
+            }, plugin);
         }
         
         function readSandboxEnv(cb) {

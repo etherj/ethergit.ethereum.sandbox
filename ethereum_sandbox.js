@@ -1,14 +1,14 @@
 define(function(require) {
-    var Ethereum = require('./ethereumjs-lib.js');
+    var Ethereum = require('./ethereumjs-lib');
     var Trie = Ethereum.Trie;
     var VM = Ethereum.VM;
     var Account = Ethereum.Account;
     var Transaction = Ethereum.Transaction;
-    var Buffer = require('./buffer.js').Buffer;
+    var Buffer = require('./buffer').Buffer;
     var Emitter = require("events").EventEmitter;
     var async = require('async');
-    var SHA3Hash = require('./sha3.js').SHA3Hash;
-    var rlp = require('./rlp.js');
+    var SHA3Hash = require('./sha3').SHA3Hash;
+    var rlp = require('./rlp');
     
     function toHexNative(str) {
         var hex = "";
