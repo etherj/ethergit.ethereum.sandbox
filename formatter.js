@@ -59,7 +59,7 @@ define(['jquery'], function($) {
                             if (code > 9) arr.push(code);
                         }
                         
-                        return arr.map(function(e) { return parseInt(e, 16); });
+                        return arr;
                     }
                 }
             },
@@ -84,11 +84,8 @@ define(['jquery'], function($) {
             });
         },
         detectType: function(value) {
-            var type = getType(value);
-            for (var i = 0; i < this.formatters.length; i++) {
-                if (this.formatters[i].type === type) return this.formatters[i];
-            }
-            
+            return this.getFormatter(getType(value));
+
             function getType(data) {
                 // 24 leading zeroes -> address
                 if (/^0{24}[^0]{2}/.test(data)) {
@@ -125,6 +122,16 @@ define(['jquery'], function($) {
                     }
                 }
                 return formatters[idx === formatters.length - 1 ? 0 : idx + 1];
+            }
+        },
+        findFormatter: function(realType) {
+            if (realType === 'address') return this.getFormatter('address');
+            if (realType.indexOf('bytes') > -1) return this.getFormatter('string');
+            return this.getFormatter('number');
+        },
+        getFormatter: function(type) {
+            for (var i = 0; i < this.formatters.length; i++) {
+                if (this.formatters[i].type === type) return this.formatters[i];
             }
         }
     };

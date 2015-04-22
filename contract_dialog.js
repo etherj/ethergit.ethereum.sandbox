@@ -44,11 +44,6 @@ define(function(require) {
                 var contract = sandbox.contracts[address];
                 var $container = $('[data-name=contract]');
                 $container.find('[data-name=name]').text(contract.name);
-                $container.click(function(e) {
-                    formatter.format(e);
-                    if ($(e.target).data('formatter'))
-                        folder.init($(e.target).parent().parent());
-                });
                 $container.click(folder.foldOrUnfold);
                 
                 var $methods = $container.find('[data-name=methods]').empty();
@@ -68,11 +63,10 @@ define(function(require) {
                         sandbox.callContractMethod(address, method, args, function(err, results) {
                             if (err) return console.error(err);
                             
-                            if (results.vm.hasOwnProperty('returnValue')) {
+                            if (method.outputs.length > 0) {
                                 $method.find('[data-name=returnValue]')
-                                    .text(results.vm.returnValue.toString('hex'))
+                                    .text(formatter.findFormatter(method.outputs[0].type).format(results.vm.returnValue.toString('hex')))
                                     .parent().show();
-                                formatter.init($method);
                                 folder.init($method);
                             }
                         });
@@ -81,6 +75,10 @@ define(function(require) {
                     $methods.append($method);
                 });
             }
+            
+            dialog.on('hide', function() {
+                $('[data-name=contract]').off('click');
+            });
             
             function getTypeLabel(type) {
                 if (type === 'address') return 'address';
