@@ -43,14 +43,14 @@ define(function(require) {
             address: {
                 validate: function(value) {
                     var errors = [];
-                    if (!value.metch('^[\dabcdef]*$'))
+                    if (!value.match(/^[\dabcdef]*$/))
                         errors.push('Address must contain only hex digits.');
-                    if (value.length != 20)
+                    if (value.length != 40)
                         errors.push('Address must contain 40 symbols.');
                     return errors;
                 },
                 parse: function(value) {
-                    return createBufferFromBeginning(value);
+                    return utils.createBuffer(value);
                 }
             }
         },
