@@ -53,14 +53,15 @@ define(function(require) {
                     
                     var $args = $method.find('[data-name=args]');
                     method.inputs.forEach(function(input) {
-                        $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input type="text"></td></tr>');
+                        $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input name="' + input.name + '" type="text"></td></tr>');
                     });
 
                     $method.find('[data-name=call]').click(function(e) {
-                        var args = $(e.target).parent().find('input').map(function() {
-                            return $(this).val();
+                        var args = {};
+                        $method.find('input').each(function() {
+                            args[$(this).attr('name')] = $(this).val();
                         });
-                        sandbox.callContractMethod(address, method, args, function(err, results) {
+                        contract.call(method.name, args, function(err, results) {
                             if (err) return console.error(err);
                             
                             if (method.outputs.length > 0) {

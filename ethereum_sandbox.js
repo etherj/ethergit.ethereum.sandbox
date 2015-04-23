@@ -9,38 +9,8 @@ define(function(require) {
     var async = require('async');
     var SHA3Hash = require('./sha3').SHA3Hash;
     var rlp = require('./rlp');
-    
-    function toHexNative(str) {
-        var hex = "";
-        for (var i = 0; i < str.length; i++) {
-            var n = str.charCodeAt(i).toString(16);
-            hex += n.length < 2 ? '0' + n : n;
-        }
-        return hex;
-    }
-        
-    function fromAscii(str, pad) {
-        pad = pad === undefined ? 0 : pad;
-        var hex = toHexNative(str);
-        while (hex.length < pad*2) hex += "00";
-        return hex;
-    }
-    
-    function createBuffer(str) {
-        var msg = new Buffer(str, 'hex');
-        var buf = new Buffer(32);
-        buf.fill(0);
-        msg.copy(buf, 32 - msg.length);
-        return buf;
-    }
-    
-    function createBufferFromBeginning(str) {
-        var msg = new Buffer(str, 'hex');
-        var buf = new Buffer(32);
-        buf.fill(0);
-        msg.copy(buf);
-        return buf;
-    }
+    var utils = require('./utils');
+    var Contract = require('./contract');
     
     return {
         // hex string of SHA3-256 hash of `null`
@@ -116,7 +86,7 @@ define(function(require) {
                         Object.getOwnPropertyNames(options.storage),
                         function(key, cb) {
                             strie.put(
-                                createBuffer(key),
+                                utils.createBuffer(key),
                                 rlp.encode(new Buffer(options.storage[key], 'hex')),
                                 function(err) {
                                     account.stateRoot = strie.root;
@@ -167,52 +137,13 @@ define(function(require) {
                 that.defaultAccount.nonce++;
                 
                 if (results.createdAddress && options.hasOwnProperty('contract')) {
-                    that.contracts[results.createdAddress.toString('hex')] = options.contract;
+                    var address = results.createdAddress.toString('hex');
+                    that.contracts[address] = Object.create(Contract).init(that, address, options.contract);
                 }
                 
                 that.emitter.emit('changed', that);
                 cb(err, results);
             });
-        },
-        callContractMethod: function(address, method, args, cb) {
-            this.runTx({
-                to: new Buffer(address, 'hex'),
-                data: this.encodeMethod(method, args)
-            }, cb);
-        },
-        encodeMethod: function(method, args) {
-            var name = method.name + '(';
-            var first = true;
-            method.inputs.forEach(function(input) {
-                if (first) first = false;
-                else name += ',';
-                name += input.type;
-            });
-            name += ')';
-            var encName = new Buffer(this.sha3(new Buffer(fromAscii(name), 'hex')).slice(0, 8), 'hex');
-            
-            var encArgs = method.inputs.map(function(input, idx) {
-                return this.encodeArg(input.type, args[idx]);
-            }, this);
-            
-            return Buffer.concat([encName].concat(encArgs));
-        },
-        encodeArg: function(type, arg) {
-            if (type.indexOf('uint') > -1) return uintEncoder(arg);
-            if (type.indexOf('bytes') > -1) return bytesEncoder(arg);
-            if (type === 'address') return addressEncoder(arg);
-            return createBuffer('00');
-
-            function uintEncoder(arg) {
-                if (arg.length % 2 != 0) arg = '0' + arg;
-                return createBuffer(arg);
-            }
-            function bytesEncoder(arg) {
-                return createBufferFromBeginning(fromAscii(arg));
-            }
-            function addressEncoder(arg) {
-                return createBuffer(arg);
-            }
         },
         reset: function() {
             this.trie = new Trie();
