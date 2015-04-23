@@ -21,3 +21,7 @@
 .contract .folder {
     cursor: pointer;
 }
+
+.contract .error {
+    color: red;
+}

@@ -53,22 +53,31 @@ define(function(require) {
                     
                     var $args = $method.find('[data-name=args]');
                     method.inputs.forEach(function(input) {
-                        $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input name="' + input.name + '" type="text"></td></tr>');
+                        $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input name="' + input.name + '" type="text"></td><td><span class="error" data-label="' + input.name + '"></span></td></tr>');
                     });
 
                     $method.find('[data-name=call]').click(function(e) {
+                        $container.find('[data-name=error]').empty();
+                        $method.find('[data-label]').empty();
+
                         var args = {};
                         $method.find('input').each(function() {
                             args[$(this).attr('name')] = $(this).val();
                         });
-                        contract.call(method.name, args, function(err, results) {
-                            if (err) return console.error(err);
-                            
-                            if (method.outputs.length > 0) {
-                                $method.find('[data-name=returnValue]')
-                                    .text(formatter.findFormatter(method.outputs[0].type).format(results.vm.returnValue.toString('hex')))
-                                    .parent().show();
-                                folder.init($method);
+                        contract.call(method.name, args, function(errors, results) {
+                            if (errors) {
+                                if (errors.hasOwnProperty('general'))
+                                    $container.find('[data-name=error]').text(errors.general);
+                                Object.keys(errors).forEach(function(name) {
+                                    $method.find('[data-label=' + name + ']').text(errors[name]);
+                                });
+                            } else {
+                                if (method.outputs.length > 0) {
+                                    $method.find('[data-name=returnValue]')
+                                        .text(formatter.findFormatter(method.outputs[0].type).format(results.vm.returnValue.toString('hex')))
+                                        .parent().show();
+                                    folder.init($method);
+                                }
                             }
                         });
                     });

@@ -33,7 +33,10 @@ define(function(require) {
             this.sandbox.runTx({
                 to: new Buffer(this.address, 'hex'),
                 data: Buffer.concat([this.encodeMethod(method)].concat(encArgs))
-            }, cb);
+            }, function(err, results) {
+                if (err) cb({ general: err });
+                else cb(null, results);
+            });
         },
         findMethod: function(name) {
             return this.abi.find(function(method) {
