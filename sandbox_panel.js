@@ -1,5 +1,9 @@
 define(function(require) {
-    main.consumes = ['Panel', 'ui', 'ethergit.ethereum.sandbox.dialog.contract', 'apf'];
+    main.consumes = [
+        'Panel', 'ui', 'apf',
+        'ethergit.ethereum.sandbox.dialog.contract',
+        'ethergit.sandbox'
+    ];
     main.provides = ['ethergit.ethereum.sandbox.panel'];
     
     return main;
@@ -7,15 +11,12 @@ define(function(require) {
     function main(options, imports, register) {
         var Panel = imports.Panel;
         var ui = imports.ui;
-        var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
         var apf = imports.apf;
-        var Ethereum = require('./ethereumjs-lib');
-        var Account = Ethereum.Account;
+        var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
+        var sandbox = imports['ethergit.sandbox'];
         var accountTemplate = require('text!./account.html');
         var async = require('async');
-        var rlp = require('./rlp');
         var folder = require('./folder');
-        var Buffer = require('./buffer').Buffer;
         var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
 
         apf.config.setProperty('allow-select', true);
@@ -41,7 +42,6 @@ define(function(require) {
                 where: 'right'
             });
 
-            var sandbox = null;
             var $sandbox = null;
 
             panel.on('draw', function(e) {
@@ -61,15 +61,17 @@ define(function(require) {
             panel.render = function() {
                 if ($sandbox === null) return;
                 
-                if (sandbox === null || sandbox.state === 'CLEAN') {
+                if (sandbox.state() === 'CLEAN') {
                     $sandbox.html('<div class="accounts-container"><h3>Start Ethereum Sandbox to run your contracts.<h3></div>');
-                } else if (sandbox.state === 'INITIALIZING') {
+                } else if (sandbox.state() === 'INITIALIZING') {
                     $sandbox.html('<div class="accounts-container"><h3>Initializing...<h3></div>');
-                } else if (sandbox.state === 'INITIALIZED') {
+                } else if (sandbox.state() === 'ACTIVE') {
                     renderAccounts(
                         $sandbox.html('<div class="accounts-container">').children(),
                         sandbox,
-                        function() {
+                        function(err) {
+                            if (err) return console.error(err);
+                            
                             folder.init($sandbox);
                         }
                     );
@@ -83,36 +85,30 @@ define(function(require) {
                     hint: 'Ethereum Sandbox Panel',
                     bindKey: { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
                 });
+                sandbox.on('changed', function() { panel.render(); }, panel);
             }
             
-            function showSandbox(sandboxToShow) {
-                sandbox = sandboxToShow;
-                sandbox.on('changed', function() { panel.render(); }, panel);
-                panel.show();
-                panel.render();
-            }
-
             function renderAccounts($container, sandbox, cb) {
-                getAccounts(sandbox.trie, showAccount.bind(undefined, $container, sandbox), cb);
+                getAccounts(sandbox, showAccount.bind(undefined, $container, sandbox), cb);
                 
                 // TODO: accountHandler might be asynchronous functions, then cb will be called before the rendering really finished.
-                function getAccounts(trie, accountHandler, cb) {
-                    var stream = trie.createReadStream();
-                    stream.on('data', function(data) {
-                        accountHandler(data.key.toString('hex'), new Account(data.value));
+                function getAccounts(sandbox, accountHandler, cb) {
+                    sandbox.accounts(function(err, accounts) {
+                        if (err) return cb(err);
+                        
+                        Object.keys(accounts).forEach(function(key) {
+                            accountHandler(key, accounts[key]);
+                        });
+                        cb();
                     });
-                    stream.on('end', cb);
                 }
                 function showAccount($container, sandbox, address, account) {
                     var $account = $(accountTemplate);
                     
                     async.parallel([
                         showAccountFields.bind(undefined, $account, sandbox, address, account),
-                        getStorageEntries.bind(
-                            undefined, sandbox, account,
-                            showStorageEntry.bind(undefined, $account.find('[data-name=storage]'))
-                        ),
-                        getCode.bind(undefined, showCode.bind(undefined, $account.find('[data-name=code]')))
+                        showStorage.bind(undefined, $account.find('[data-name=storage]'), account.storage),
+                        showCode.bind(undefined, $account.find('[data-name=code]'), account.code)
                     ], function(err) {
                         if (err) return cb(err);
                         formatter.init($account.find('[data-name=storage]'));
@@ -121,48 +117,22 @@ define(function(require) {
 
                     function showAccountFields($container, sandbox, address, account, cb) {
                         $container.find('[data-name=address]').text(address);
-                        if (sandbox.contracts.hasOwnProperty(address)) {
-                            $container.find('[data-name=contract]').text(sandbox.contracts[address].name).show();
+                        if (sandbox.contracts().hasOwnProperty(address)) {
+                            $container.find('[data-name=contract]').text(sandbox.contracts()[address].name).show();
                         }
                         $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
                         $container.find('[data-name=balance]').text(account.balance.toString('hex'));
                         cb();
                     }
-                    function getStorageEntries(sandbox, account, storageHandler, cb) {
-                        if (account.stateRoot === sandbox.SHA3_RLP_NULL) return;
-                        
-                        var strie = sandbox.trie.copy();
-                        strie.root = account.stateRoot;
-                        var stream = strie.createReadStream();
-                        stream.on('data', function(data) {
-                            storageHandler(
-                                data.key.toString('hex'),
-                                createBuffer(rlp.decode(data.value)).toString('hex')
+                    function showStorage($container, storage, cb) {
+                        Object.keys(storage).forEach(function(key) {
+                            $container.append(
+                                '<tr><td><a href="#" class="button" data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + storage[key] + '</td><td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
                             );
                         });
-                        stream.on('end', cb);
-                        
-                        function createBuffer(input) {
-                            if (input.length === 32) return input;
-                            
-                            var buf = new Buffer(32);
-                            buf.fill(0);
-                            input.copy(buf, 32 - input.length);
-                            return buf;
-                        }
+                        cb();
                     }
-                    function showStorageEntry($container, key, value) {
-                        $container.append(
-                            '<tr><td><a href="#" class="button" data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + value + '</td><td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
-                        );
-                    }
-                    function getCode(codeHandler, cb) {
-                        account.getCode(sandbox.trie, function(err, code) {
-                            codeHandler(err, code.toString('hex'), cb);
-                        });
-                    }
-                    function showCode($container, err, code, cb) {
-                        if (err) return cb(err);
+                    function showCode($container, code, cb) {
                         $container.text(code);
                         cb();
                     }
@@ -174,7 +144,6 @@ define(function(require) {
             });
             
             panel.freezePublicAPI({
-                showSandbox: showSandbox
             });
             
             register(null, {

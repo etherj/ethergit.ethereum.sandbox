@@ -1,7 +1,10 @@
 define(function(require, exports, module) {
     main.consumes = [
         'Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error',
-        'ethergit.solidity.compiler', 'ethergit.ethereum.sandbox.panel', 'ethergit.ethereum.sandbox.dialog.transactions'
+        'ethergit.solidity.compiler',
+        'ethergit.sandbox',
+        'ethergit.ethereum.sandbox.panel',
+        'ethergit.ethereum.sandbox.dialog.transactions'
     ];
     main.provides = ['ethergit.ethereum.sandbox'];
     return main;
@@ -13,25 +16,22 @@ define(function(require, exports, module) {
         var layout = imports.layout;
         var fs = imports.fs;
         var errorDialog = imports['dialog.error'];
+        var sandbox = imports['ethergit.sandbox'];
+        var sandboxPanel = imports['ethergit.ethereum.sandbox.panel'];
         var compiler = imports['ethergit.solidity.compiler'];
-        var panel = imports['ethergit.ethereum.sandbox.panel'];
         var transactionsDialog = imports['ethergit.ethereum.sandbox.dialog.transactions'];
         
-        var Sandbox = require('./ethereum_sandbox');
-        var Buffer = require('./buffer').Buffer;
         var async = require('async');
         
         var plugin = new Plugin('Ethergit', main.consumes);
         
         function load() {
-            var sandbox = Object.create(Sandbox).init();
-            panel.showSandbox(sandbox);
-            
             commands.addCommand({
                 name: 'runSandbox',
                 exec: function() {
+                    sandboxPanel.show();
                     runOrStopSandbox(sandbox, function(err, sandbox) {
-                        if (err) return errorDialog.show(err);
+                         if (err) return errorDialog.show(err);
                     });
                 }
             }, plugin);
@@ -68,45 +68,42 @@ define(function(require, exports, module) {
                 400, plugin
             );
             
-            sandbox.on('changed', function(sandbox) {
-                if (sandbox.state === 'CLEAN') {
+            sandbox.on('changed', function() {
+                if (sandbox.state() === 'CLEAN') {
                     btnSandbox.setAttribute('disabled', false);
                     btnSandbox.setAttribute('caption', 'Start Sandbox');
                     btnTransactions.setAttribute('disabled', true);
                     btnTransactions.setAttribute('caption', 'Transactions');
-                } else if (sandbox.state === 'INITIALIZING') {
+                } else if (sandbox.state() === 'INITIALIZING') {
                     btnSandbox.setAttribute('disabled', true);
                     btnSandbox.setAttribute('caption', 'Starting Sandbox...');
                     btnTransactions.setAttribute('disabled', false);
-                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions.length + ')');
-                } else if (sandbox.state === 'INITIALIZED') {
+                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions().length + ')');
+                } else if (sandbox.state() === 'ACTIVE') {
                     btnSandbox.setAttribute('disabled', false);
                     btnSandbox.setAttribute('caption', 'Stop Sandbox');
                     btnTransactions.setAttribute('disabled', false);
-                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions.length + ')');
+                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions().length + ')');
                 }
             }, plugin);
         }
         
-        function readSandboxEnv(cb) {
-            fs.readFile('/sandbox.json', cb);
-        }
-        
         function runOrStopSandbox(sandbox, cb) {
-            if (sandbox.state === 'CLEAN') {
+            if (sandbox.state() === 'CLEAN') {
                 async.waterfall([
                     compileContracts,
                     readConfig,
                     initSandbox,
                     createContracts
                 ], cb);
-            } else if (sandbox.state === 'INITIALIZED') {
-                sandbox.reset();
-                cb(null, sandbox);
+            } else if (sandbox.state() === 'ACTIVE') {
+                sandbox.stop(function(err) {
+                    cb(err, sandbox);
+                });
             } else cb('Wait until Sandbox finish initialization.');
             
             function readConfig(contracts, cb) {
-                readSandboxEnv(function(err, content) {
+                fs.readFile('/sandbox.json', function(err, content) {
                     if (err) return cb(err);
                     
                     try {
@@ -119,14 +116,14 @@ define(function(require, exports, module) {
                 });
             }
             function initSandbox(config, contracts, cb) {
-                sandbox.initEnv(config.env, function(err) {
+                sandbox.start(config.env, function(err) {
                     cb(err, sandbox, contracts);
                 });
             }
             function createContracts(sandbox, contracts, cb) {
                 async.eachSeries(contracts, function(contract, cb) {
                     sandbox.runTx({
-                        data: new Buffer(contract.binary, 'hex'),
+                        data: contract.binary,
                         contract: contract
                     }, cb);
                 }, function(err) {

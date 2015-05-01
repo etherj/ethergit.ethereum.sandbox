@@ -14,7 +14,9 @@
     "url": "http://github.com/etherj/ethergit.ethereum.sandbox"
   },
   "plugins": {
-    "sandbox": {},
+    "sandbox": {
+      "baseUrl": "/vfs/0/plugins/token"
+    },
     "sandbox_panel": {
       "baseUrl": "/vfs/0/plugins/token"
     },
@@ -34,9 +36,5 @@
   "categories": [
     "miscellaneous"
   ],
-  "licenses": [],
-  "devDependencies": {
-    "buffer": "^3.1.2",
-    "ethereumjs-lib": "0.1.10"
-  }
+  "licenses": []
 }

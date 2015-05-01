@@ -44,21 +44,9 @@ define(function(require) {
             function showTransaction(sandbox, id) {
                 dialog.show();
                 var $container = $('[data-name=transaction]');
-                var tx = sandbox.transactions[id];
-                [
-                    ['from', tx.tx.getSenderAddress().toString('hex')],
-                    ['nonce', tx.tx.nonce.toString('hex')],
-                    ['to', tx.tx.to.length === 0 ? '[contract create]' : tx.tx.to.toString('hex')],
-                    ['gasLimit', tx.tx.gasLimit.toString('hex')],
-                    ['gasUsed', tx.gasUsed.toString('hex')],
-                    ['value', tx.tx.value.toString('hex')],
-                    ['data', tx.tx.data.toString('hex')],
-                    ['createdAddress', tx.createdAddress ? tx.createdAddress.toString('hex') : ''],
-                    ['returnValue', tx.returnValue.toString('hex')],
-                    ['exception', tx.exception ? tx.exception : 'There is no exception'],
-                    ['rlp', tx.tx.serialize().toString('hex')]
-                ].forEach(function(field) {
-                    $container.find('[data-name=' + field[0] + ']').text(field[1]);
+                var tx = sandbox.transactions()[id];
+                Object.keys(tx).forEach(function(field) {
+                    $container.find('[data-name=' + field + ']').text(tx[field]);
                 });
                 folder.init($container);
             }

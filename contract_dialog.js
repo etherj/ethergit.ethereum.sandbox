@@ -41,7 +41,7 @@ define(function(require) {
 
             function showContract(sandbox, address) {
                 dialog.show();
-                var contract = sandbox.contracts[address];
+                var contract = sandbox.contracts()[address];
                 var $container = $('[data-name=contract]');
                 $container.find('[data-name=name]').text(contract.name);
                 $container.click(folder.foldOrUnfold);
@@ -64,17 +64,18 @@ define(function(require) {
                         $method.find('input').each(function() {
                             args[$(this).attr('name')] = $(this).val();
                         });
-                        contract.call(method.name, args, function(errors, results) {
+                        contract.call(sandbox, method.name, args, function(errors, results) {
                             if (errors) {
                                 if (errors.hasOwnProperty('general'))
                                     $container.find('[data-name=error]').text(errors.general);
+
                                 Object.keys(errors).forEach(function(name) {
                                     $method.find('[data-label=' + name + ']').text(errors[name]);
                                 });
                             } else {
                                 if (method.outputs.length > 0) {
                                     $method.find('[data-name=returnValue]')
-                                        .text(formatter.findFormatter(method.outputs[0].type).format(results.vm.returnValue.toString('hex')))
+                                        .text(formatter.findFormatter(method.outputs[0].type).format(results.returnValue))
                                         .parent().show();
                                     folder.init($method);
                                 }
