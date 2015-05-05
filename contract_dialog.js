@@ -28,6 +28,16 @@ define(function(require) {
                 title: 'Contract',
                 width: 500,
                 elements: [
+                    { 
+                        type: 'dropdown', 
+                        id: 'accounts',
+                        width: 330,
+                        items: [
+                            { caption: 'some' },
+                            { caption: 'magic' }
+                        ]
+                    },
+                    { type: 'filler' },
                     {
                         type: 'button', id: 'closeContractDialog', color: 'blue',
                         caption: 'Close', 'default': true, onclick: hideDialog
@@ -41,6 +51,23 @@ define(function(require) {
 
             function showContract(sandbox, address) {
                 dialog.show();
+                dialog.aml.setAttribute('zindex', 10000);
+
+                var dropdown = dialog.getElement('accounts');
+                dropdown.childNodes.slice().forEach(function(node) {
+                    dropdown.removeChild(node);
+                });
+                var env = sandbox.env();
+                var first = null;
+                Object.keys(env).forEach(function(address) {
+                    if (!first) first = address;
+                    var pkey = env[address].pkey;
+                    var item = new ui.item({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
+                    dropdown.appendChild(item);
+                    dialog.addElement(item);
+                });
+                dropdown.setAttribute('value', first);
+
                 var contract = sandbox.contracts()[address];
                 var $container = $('[data-name=contract]');
                 $container.find('[data-name=name]').text(contract.name);
@@ -60,11 +87,13 @@ define(function(require) {
                         $container.find('[data-name=error]').empty();
                         $method.find('[data-label]').empty();
 
+                        var address = dialog.getElement('accounts').value;
+
                         var args = {};
                         $method.find('input').each(function() {
                             args[$(this).attr('name')] = $(this).val();
                         });
-                        contract.call(sandbox, method.name, args, function(errors, results) {
+                        contract.call(sandbox, address, env[address].pkey, method.name, args, function(errors, results) {
                             if (errors) {
                                 if (errors.hasOwnProperty('general'))
                                     $container.find('[data-name=error]').text(errors.general);
