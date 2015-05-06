@@ -4,7 +4,7 @@ define(function(require, exports, module) {
         'ethergit.solidity.compiler',
         'ethergit.sandbox',
         'ethergit.ethereum.sandbox.panel',
-        'ethergit.ethereum.sandbox.dialog.transactions', 'Dialog'
+        'ethergit.ethereum.sandbox.dialog.transactions'
     ];
     main.provides = ['ethergit.ethereum.sandbox'];
     return main;

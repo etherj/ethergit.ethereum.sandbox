@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui'];
+    main.consumes = ['Dialog', 'ui', 'ethergit.ethereum.sandbox.dialog.pkey'];
     main.provides = ['ethergit.ethereum.sandbox.dialog.contract'];
     
     return main;
@@ -7,6 +7,7 @@ define(function(require) {
     function main(options, imports, register) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
+        var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
         var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
 
         requirejs.config({
@@ -50,23 +51,23 @@ define(function(require) {
             });
 
             function showContract(sandbox, address) {
+                var env = sandbox.env();
+                var items = [];
+                Object.keys(env).forEach(function(address) {
+                    var pkey = env[address].pkey;
+                    items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
+                });
+
+                dialog.update([
+                    {
+                        id: 'accounts',
+                        defaultValue: items[0].value,
+                        items: items
+                    }
+                ]);
+                
                 dialog.show();
                 dialog.aml.setAttribute('zindex', 10000);
-
-                var dropdown = dialog.getElement('accounts');
-                dropdown.childNodes.slice().forEach(function(node) {
-                    dropdown.removeChild(node);
-                });
-                var env = sandbox.env();
-                var first = null;
-                Object.keys(env).forEach(function(address) {
-                    if (!first) first = address;
-                    var pkey = env[address].pkey;
-                    var item = new ui.item({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
-                    dropdown.appendChild(item);
-                    dialog.addElement(item);
-                });
-                dropdown.setAttribute('value', first);
 
                 var contract = sandbox.contracts()[address];
                 var $container = $('[data-name=contract]');
@@ -93,23 +94,33 @@ define(function(require) {
                         $method.find('input').each(function() {
                             args[$(this).attr('name')] = $(this).val();
                         });
-                        contract.call(sandbox, address, env[address].pkey, method.name, args, function(errors, results) {
-                            if (errors) {
-                                if (errors.hasOwnProperty('general'))
-                                    $container.find('[data-name=error]').text(errors.general);
 
-                                Object.keys(errors).forEach(function(name) {
-                                    $method.find('[data-label=' + name + ']').text(errors[name]);
-                                });
-                            } else {
-                                if (method.outputs.length > 0) {
-                                    $method.find('[data-name=returnValue]')
-                                        .text(formatter.findFormatter(method.outputs[0].type).format(results.returnValue))
-                                        .parent().show();
-                                    folder.init($method);
+                        if (env[address].pkey) callContract(env[address].pkey);
+                        else {
+                            pkeyDialog.ask(function(data) {
+                                callContract(data.pkey);
+                            });
+                        }
+                        
+                        function callContract(pkey) {
+                            contract.call(sandbox, address, pkey, method.name, args, function(errors, results) {
+                                if (errors) {
+                                    if (errors.hasOwnProperty('general'))
+                                        $container.find('[data-name=error]').text(errors.general);
+    
+                                    Object.keys(errors).forEach(function(name) {
+                                        $method.find('[data-label=' + name + ']').text(errors[name]);
+                                    });
+                                } else {
+                                    if (method.outputs.length > 0) {
+                                        $method.find('[data-name=returnValue]')
+                                            .text(formatter.findFormatter(method.outputs[0].type).format(results.returnValue))
+                                            .parent().show();
+                                        folder.init($method);
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     });
                     
                     $methods.append($method);

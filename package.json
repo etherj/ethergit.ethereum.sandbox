@@ -29,6 +29,9 @@
     "contract_dialog": {
       "baseUrl": "/vfs/0/plugins/token"
     },
+    "pkey_dialog": {
+      "baseUrl": "/vfs/0/plugins/token"
+    },
     "idle_detector": {
       "baseUrl": "/vfs/0/plugins/token"
     }
