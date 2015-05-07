@@ -1,5 +1,9 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui', 'ethergit.ethereum.sandbox.dialog.transaction'];
+    main.consumes = [
+        'Dialog', 'ui',
+        'ethergit.ethereum.sandbox.dialog.transaction',
+        'ethergit.ethereum.sandbox.dialog.new.tx'
+    ];
     main.provides = ['ethergit.ethereum.sandbox.dialog.transactions'];
     
     return main;
@@ -8,6 +12,7 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
+        var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
         var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
         
         requirejs.config({
@@ -30,18 +35,39 @@ define(function(require) {
                 width: 800,
                 elements: [
                     {
-                        type: 'button', id: 'closeTransactionsDialog', color: 'blue',
+                        type: 'button', id: 'transactionsDialogNewTx', color: 'green',
+                        caption: 'New Transaction', 'default': false, onclick: openNewTxDialog
+                    },
+                    {
+                        type: 'button', id: 'transactionsDialogClose', color: 'blue',
                         caption: 'Close', 'default': true, onclick: hideDialog
                     }
                 ]
             });
             
+            var sandbox;
+            
             dialog.on('draw', function(e) {
                 e.html.innerHTML = require('text!./transactions.html');
+                dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
+                
             });
 
-            function showSandbox(sandbox) {
+            function showSandbox(targetSandbox) {
                 dialog.show();
+                sandbox = targetSandbox;
+                render();
+                sandbox.on('changed', render, dialog);
+                
+                $('[data-name=transactions]').off('click').click(function(e) {
+                    var $el = $(e.target);
+                    if ($el.data('name') === 'from') {
+                        transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
+                    }
+                });
+            }
+            
+            function render() {
                 var $container = $('[data-name=transactions]').empty();
                 var transactions = sandbox.transactions();
                 transactions.forEach(function(tx, id) {
@@ -52,12 +78,10 @@ define(function(require) {
                             .append('<td>' + (tx.to.length === 0 ? '[contract create]' : tx.to) + '</td>')
                     );
                 });
-                $container.click(function(e) {
-                    var $el = $(e.target);
-                    if ($el.data('name') === 'from') {
-                        transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
-                    }
-                });
+            }
+            
+            function openNewTxDialog() {
+                newTxDialog.show();
             }
             
             function hideDialog() {

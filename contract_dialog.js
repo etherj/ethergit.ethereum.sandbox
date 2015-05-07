@@ -48,6 +48,7 @@ define(function(require) {
             
             dialog.on('draw', function(e) {
                 e.html.innerHTML = require('text!./contract.html');
+                dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
             });
 
             function showContract(sandbox, address) {
@@ -67,7 +68,6 @@ define(function(require) {
                 ]);
                 
                 dialog.show();
-                dialog.aml.setAttribute('zindex', 10000);
 
                 var contract = sandbox.contracts()[address];
                 var $container = $('[data-name=contract]');
