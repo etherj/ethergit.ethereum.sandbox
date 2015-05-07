@@ -79,7 +79,7 @@ define(function(require) {
                 sandbox.runTx({
                     from: options.from,
                     to: options.to,
-                    value: parseInt(options.value, 10).toString(16),
+                    value: pad(parseInt(options.value, 10).toString(16)),
                     pkey: pkey
                 }, function(err) {
                     if (err) {
@@ -89,6 +89,10 @@ define(function(require) {
                         hideDialog();
                     }
                 });
+            }
+            
+            function pad(str) {
+                return str.length % 2 === 0 ? str : '0' + str;
             }
         }
         
