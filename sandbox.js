@@ -105,6 +105,8 @@ define(function(require, exports, module) {
             function readConfig(contracts, cb) {
                 fs.readFile('/sandbox.json', function(err, content) {
                     if (err) return cb(err);
+
+                    content = removeMetaInfo(content);
                     
                     try {
                         var config = JSON.parse(content);
@@ -163,14 +165,19 @@ define(function(require, exports, module) {
             // Workaround for https://github.com/c9/core/issues/71
             function workaroundWrongFileContent(texts, cb) {
                 async.map(texts, function(text, cb) {
-                    var jsonAtTheEnd = text.indexOf('{"changed"');
-                    if (jsonAtTheEnd === -1) jsonAtTheEnd = text.indexOf('{"filter"');
-                    cb(null, jsonAtTheEnd !== -1 ? text.substr(0, jsonAtTheEnd) : text);
+                    cb(null, removeMetaInfo(text));
                 }, cb);
             }
             function compileTexts(texts, cb) {
                 async.map(texts, compiler.binaryAndABI.bind(compiler), cb);
             }
+        }
+
+        // Workaround for https://github.com/c9/core/issues/71
+        function removeMetaInfo(text) {
+            var jsonAtTheEnd = text.indexOf('{"changed"');
+            if (jsonAtTheEnd === -1) jsonAtTheEnd = text.indexOf('{"filter"');
+            return jsonAtTheEnd !== -1 ? text.substr(0, jsonAtTheEnd) : text;
         }
         
         plugin.on('load', function() {
