@@ -13,92 +13,78 @@ define(function(require) {
         var ui = imports.ui;
         var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
         var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
-        var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
-        
-        requirejs.config({
-            context: 'sandbox',
-            paths:{
-                // 'jquery': 'http://code.jquery.com/jquery-1.11.2.min'
-                'jquery': baseUrl + '/ethergit.ethereum.sandbox/jquery-1.11.2.min'
-            },
-            shim: {
-                'jquery': {
-                    exports: 'jQuery',
-                }
-            }
-        });
-        require(['jquery'], function($) {
-            var dialog = new Dialog('Ethergit', main.consumes, {
-                name: 'sandbox-transactions',
-                allowClose: true,
-                title: 'Ethereum Sandbox Transactions',
-                width: 800,
-                elements: [
-                    {
-                        type: 'button', id: 'transactionsDialogNewTx', color: 'green',
-                        caption: 'New Transaction', 'default': false, onclick: openNewTxDialog
-                    },
-                    {
-                        type: 'button', id: 'transactionsDialogClose', color: 'blue',
-                        caption: 'Close', 'default': true, onclick: hideDialog
-                    }
-                ]
-            });
-            
-            var sandbox;
-            
-            dialog.on('draw', function(e) {
-                e.html.innerHTML = require('text!./transactions.html');
-                dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
-                
-            });
+        var $ = require('./jquery');
 
-            function showSandbox(targetSandbox) {
-                dialog.show();
-                sandbox = targetSandbox;
-                render();
-                sandbox.on('changed', render, dialog);
-                
-                $('[data-name=transactions]').off('click').click(function(e) {
-                    var $el = $(e.target);
-                    if ($el.data('name') === 'from') {
-                        transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
-                    }
-                });
-            }
+        var dialog = new Dialog('Ethergit', main.consumes, {
+            name: 'sandbox-transactions',
+            allowClose: true,
+            title: 'Ethereum Sandbox Transactions',
+            width: 800,
+            elements: [
+                {
+                    type: 'button', id: 'transactionsDialogNewTx', color: 'green',
+                    caption: 'New Transaction', 'default': false, onclick: openNewTxDialog
+                },
+                {
+                    type: 'button', id: 'transactionsDialogClose', color: 'blue',
+                    caption: 'Close', 'default': true, onclick: hideDialog
+                }
+            ]
+        });
+        
+        var sandbox;
+        
+        dialog.on('draw', function(e) {
+            e.html.innerHTML = require('text!./transactions.html');
+            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
             
-            function render() {
-                var $container = $('[data-name=transactions]').empty();
-                var transactions = sandbox.transactions();
-                transactions.forEach(function(tx, id) {
-                    $container.append(
-                        $('<tr>')
-                            .append('<td data-name="from" class="from">' + tx.from + '<span data-name="id" style="display:none">' + id + '</span></td>')
-                            .append('<td>' + tx.nonce + '</td>')
-                            .append('<td>' + (tx.to.length === 0 ? '[contract create]' : tx.to) + '</td>')
-                    );
-                });
-            }
+        });
+
+        function showSandbox(targetSandbox) {
+            dialog.show();
+            sandbox = targetSandbox;
+            render();
+            sandbox.on('changed', render, dialog);
             
-            function openNewTxDialog() {
-                newTxDialog.show();
-            }
-            
-            function hideDialog() {
-                dialog.hide();
-            }
-            
-            dialog.on('load', function() {
-                ui.insertCss(require('text!./transactions.css'), false, dialog);
+            $('[data-name=transactions]').off('click').click(function(e) {
+                var $el = $(e.target);
+                if ($el.data('name') === 'from') {
+                    transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
+                }
             });
-            
-            dialog.freezePublicAPI({
-                showSandbox: showSandbox
+        }
+        
+        function render() {
+            var $container = $('[data-name=transactions]').empty();
+            var transactions = sandbox.transactions();
+            transactions.forEach(function(tx, id) {
+                $container.append(
+                    $('<tr>')
+                        .append('<td data-name="from" class="from">' + tx.from + '<span data-name="id" style="display:none">' + id + '</span></td>')
+                        .append('<td>' + tx.nonce + '</td>')
+                        .append('<td>' + (tx.to.length === 0 ? '[contract create]' : tx.to) + '</td>')
+                );
             });
-            
-            register(null, {
-                'ethergit.ethereum.sandbox.dialog.transactions': dialog
-            });
+        }
+        
+        function openNewTxDialog() {
+            newTxDialog.show();
+        }
+        
+        function hideDialog() {
+            dialog.hide();
+        }
+        
+        dialog.on('load', function() {
+            ui.insertCss(require('text!./transactions.css'), false, dialog);
+        });
+        
+        dialog.freezePublicAPI({
+            showSandbox: showSandbox
+        });
+        
+        register(null, {
+            'ethergit.ethereum.sandbox.dialog.transactions': dialog
         });
     }
 });

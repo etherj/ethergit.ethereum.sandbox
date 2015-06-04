@@ -1,4 +1,4 @@
-define(function(require) {
+define(['./jquery'], function($) {
     var folder = {
         init: function($container) {
             $container.find('[data-folder]').each(function() {

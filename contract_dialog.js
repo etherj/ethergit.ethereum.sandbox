@@ -8,150 +8,138 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
-        var baseUrl = options.hasOwnProperty('baseUrl') ? options.baseUrl : 'plugins';
-
-        requirejs.config({
-            context: 'sandbox',
-            paths:{
-                // 'jquery': 'http://code.jquery.com/jquery-1.11.2.min'
-                'jquery': baseUrl + '/ethergit.ethereum.sandbox/jquery-1.11.2.min'
-            },
-            shim: {
-                'jquery': {
-                    exports: 'jQuery',
+        var $ = require('./jquery');
+        var formatter = require('./formatter');
+        var folder = require('./folder');
+        
+        var dialog = new Dialog('Ethergit', main.consumes, {
+            name: 'sandbox-contract',
+            allowClose: true,
+            title: 'Contract',
+            width: 500,
+            elements: [
+                { 
+                    type: 'dropdown', 
+                    id: 'accounts',
+                    width: 330,
+                    items: [
+                        { caption: 'some' },
+                        { caption: 'magic' }
+                    ]
+                },
+                { type: 'filler' },
+                {
+                    type: 'button', id: 'closeContractDialog', color: 'blue',
+                    caption: 'Close', 'default': true, onclick: hideDialog
                 }
-            }
+            ]
         });
-        require(['jquery', './formatter', './folder'], function($, formatter, folder) {
-            var dialog = new Dialog('Ethergit', main.consumes, {
-                name: 'sandbox-contract',
-                allowClose: true,
-                title: 'Contract',
-                width: 500,
-                elements: [
-                    { 
-                        type: 'dropdown', 
-                        id: 'accounts',
-                        width: 330,
-                        items: [
-                            { caption: 'some' },
-                            { caption: 'magic' }
-                        ]
-                    },
-                    { type: 'filler' },
-                    {
-                        type: 'button', id: 'closeContractDialog', color: 'blue',
-                        caption: 'Close', 'default': true, onclick: hideDialog
-                    }
-                ]
-            });
-            
-            dialog.on('draw', function(e) {
-                e.html.innerHTML = require('text!./contract.html');
-                dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
+        
+        dialog.on('draw', function(e) {
+            e.html.innerHTML = require('text!./contract.html');
+            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
+        });
+
+        function showContract(sandbox, address) {
+            var env = sandbox.env();
+            var items = [];
+            Object.keys(env).forEach(function(address) {
+                var pkey = env[address].pkey;
+                items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
             });
 
-            function showContract(sandbox, address) {
-                var env = sandbox.env();
-                var items = [];
-                Object.keys(env).forEach(function(address) {
-                    var pkey = env[address].pkey;
-                    items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
+            dialog.update([
+                {
+                    id: 'accounts',
+                    defaultValue: items[0].value,
+                    items: items
+                }
+            ]);
+            
+            dialog.show();
+
+            var contract = sandbox.contracts()[address];
+            var $container = $('[data-name=contract]');
+            $container.find('[data-name=name]').text(contract.name);
+            $container.click(folder.foldOrUnfold);
+            
+            var $methods = $container.find('[data-name=methods]').empty();
+            contract.abi.forEach(function(method) {
+                var $method = $(require('text!./contract_method.html'));
+                $method.find('[data-name=name]').text(method.name);
+                
+                var $args = $method.find('[data-name=args]');
+                method.inputs.forEach(function(input) {
+                    $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input name="' + input.name + '" type="text"></td><td><span class="error" data-label="' + input.name + '"></span></td></tr>');
                 });
 
-                dialog.update([
-                    {
-                        id: 'accounts',
-                        defaultValue: items[0].value,
-                        items: items
-                    }
-                ]);
-                
-                dialog.show();
+                $method.find('[data-name=call]').click(function(e) {
+                    $container.find('[data-name=error]').empty();
+                    $method.find('[data-label]').empty();
 
-                var contract = sandbox.contracts()[address];
-                var $container = $('[data-name=contract]');
-                $container.find('[data-name=name]').text(contract.name);
-                $container.click(folder.foldOrUnfold);
-                
-                var $methods = $container.find('[data-name=methods]').empty();
-                contract.abi.forEach(function(method) {
-                    var $method = $(require('text!./contract_method.html'));
-                    $method.find('[data-name=name]').text(method.name);
-                    
-                    var $args = $method.find('[data-name=args]');
-                    method.inputs.forEach(function(input) {
-                        $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input name="' + input.name + '" type="text"></td><td><span class="error" data-label="' + input.name + '"></span></td></tr>');
+                    var address = dialog.getElement('accounts').value;
+
+                    var args = {};
+                    $method.find('input').each(function() {
+                        args[$(this).attr('name')] = $(this).val();
                     });
 
-                    $method.find('[data-name=call]').click(function(e) {
-                        $container.find('[data-name=error]').empty();
-                        $method.find('[data-label]').empty();
-
-                        var address = dialog.getElement('accounts').value;
-
-                        var args = {};
-                        $method.find('input').each(function() {
-                            args[$(this).attr('name')] = $(this).val();
+                    if (env[address].pkey) callContract(env[address].pkey);
+                    else {
+                        pkeyDialog.ask(function(data) {
+                            callContract(data.pkey);
                         });
-
-                        if (env[address].pkey) callContract(env[address].pkey);
-                        else {
-                            pkeyDialog.ask(function(data) {
-                                callContract(data.pkey);
-                            });
-                        }
-                        
-                        function callContract(pkey) {
-                            contract.call(sandbox, address, pkey, method.name, args, function(errors, results) {
-                                if (errors) {
-                                    if (errors.hasOwnProperty('general'))
-                                        $container.find('[data-name=error]').text(errors.general);
-    
-                                    Object.keys(errors).forEach(function(name) {
-                                        $method.find('[data-label=' + name + ']').text(errors[name]);
-                                    });
-                                } else {
-                                    if (method.outputs.length > 0) {
-                                        $method.find('[data-name=returnValue]')
-                                            .text(formatter.findFormatter(method.outputs[0].type).format(results.returnValue))
-                                            .parent().show();
-                                        folder.init($method);
-                                    }
-                                }
-                            });
-                        }
-                    });
+                    }
                     
-                    $methods.append($method);
+                    function callContract(pkey) {
+                        contract.call(sandbox, address, pkey, method.name, args, function(errors, results) {
+                            if (errors) {
+                                if (errors.hasOwnProperty('general'))
+                                    $container.find('[data-name=error]').text(errors.general);
+                                
+                                Object.keys(errors).forEach(function(name) {
+                                    $method.find('[data-label=' + name + ']').text(errors[name]);
+                                });
+                            } else {
+                                if (method.outputs.length > 0) {
+                                    $method.find('[data-name=returnValue]')
+                                        .text(formatter.findFormatter(method.outputs[0].type).format(results.returnValue))
+                                        .parent().show();
+                                    folder.init($method);
+                                }
+                            }
+                        });
+                    }
                 });
-            }
-            
-            dialog.on('hide', function() {
-                $('[data-name=contract]').off('click');
+                
+                $methods.append($method);
             });
-            
-            function getTypeLabel(type) {
-                if (type === 'address') return 'address';
-                if (type.indexOf('bytes') > -1) return 'string';
-                return 'number';
-            }
-            
-            function hideDialog() {
-                dialog.hide();
-            }
-            
-            dialog.on('load', function() {
-                ui.insertCss(require('text!./contract.css'), false, dialog);
-            });
-            
-            dialog.freezePublicAPI({
-                showContract: showContract
-            });
-            
-            register(null, {
-                'ethergit.ethereum.sandbox.dialog.contract': dialog
-            });
+        }
+        
+        dialog.on('hide', function() {
+            $('[data-name=contract]').off('click');
+        });
+        
+        function getTypeLabel(type) {
+            if (type === 'address') return 'address';
+            if (type.indexOf('bytes') > -1) return 'string';
+            return 'number';
+        }
+        
+        function hideDialog() {
+            dialog.hide();
+        }
+        
+        dialog.on('load', function() {
+            ui.insertCss(require('text!./contract.css'), false, dialog);
+        });
+        
+        dialog.freezePublicAPI({
+            showContract: showContract
+        });
+        
+        register(null, {
+            'ethergit.ethereum.sandbox.dialog.contract': dialog
         });
     }
 });
