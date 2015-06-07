@@ -36,8 +36,7 @@ define(function(require) {
         
         dialog.on('draw', function(e) {
             e.html.innerHTML = require('text!./transactions.html');
-            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
-            
+            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);            
         });
 
         function showSandbox(targetSandbox) {
@@ -56,14 +55,15 @@ define(function(require) {
         
         function render() {
             var $container = $('[data-name=transactions]').empty();
-            var transactions = sandbox.transactions();
-            transactions.forEach(function(tx, id) {
-                $container.append(
-                    $('<tr>')
-                        .append('<td data-name="from" class="from">' + tx.from + '<span data-name="id" style="display:none">' + id + '</span></td>')
-                        .append('<td>' + tx.nonce + '</td>')
-                        .append('<td>' + (tx.to.length === 0 ? '[contract create]' : tx.to) + '</td>')
-                );
+            sandbox.transactions(function(err, transactions) {
+                transactions.forEach(function(tx, id) {
+                    $container.append(
+                        $('<tr>')
+                            .append('<td data-name="from" class="from">' + tx.from + '<span data-name="id" style="display:none">' + id + '</span></td>')
+                            .append('<td>' + tx.nonce + '</td>')
+                            .append('<td>' + (tx.to.length === 0 ? '[contract create]' : tx.to) + '</td>')
+                    );
+                });
             });
         }
         

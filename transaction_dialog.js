@@ -31,11 +31,13 @@ define(function(require) {
         function showTransaction(sandbox, id) {
             dialog.show();
             var $container = $('[data-name=transaction]');
-            var tx = sandbox.transactions()[id];
-            Object.keys(tx).forEach(function(field) {
-                $container.find('[data-name=' + field + ']').text(tx[field]);
+            sandbox.transactions(function(err, transactions) {
+                var tx = transactions[id];
+                Object.keys(tx).forEach(function(field) {
+                    $container.find('[data-name=' + field + ']').text(tx[field]);
+                });
+                folder.init($container);
             });
-            folder.init($container);
         }
         
         function hideDialog() {

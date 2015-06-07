@@ -73,11 +73,14 @@ define(function(require) {
                 hint: 'Ethereum Sandbox Panel',
                 bindKey: { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
             });
-            sandbox.on('changed', function() { panel.render(); }, panel);
+            sandbox.on('changed', panel.render.bind(panel), panel);
         }
         
         function renderAccounts($container, sandbox, cb) {
-            getAccounts(sandbox, showAccount.bind(undefined, $container, sandbox), cb);
+            sandbox.contracts(function(err, contracts) {
+                if (err) return cb(err);
+                getAccounts(sandbox, showAccount.bind(undefined, $container, sandbox, contracts), cb);
+            });
             
             // TODO: accountHandler might be asynchronous functions, then cb will be called before the rendering really finished.
             function getAccounts(sandbox, accountHandler, cb) {
@@ -90,11 +93,11 @@ define(function(require) {
                     cb();
                 });
             }
-            function showAccount($container, sandbox, address, account) {
+            function showAccount($container, sandbox, contracts, address, account) {
                 var $account = $(accountTemplate);
                 
                 async.parallel([
-                    showAccountFields.bind(undefined, $account, sandbox, address, account),
+                    showAccountFields.bind(undefined, $account, sandbox, address, account, contracts),
                     showStorage.bind(undefined, $account.find('[data-name=storage]'), account.storage),
                     showCode.bind(undefined, $account.find('[data-name=code]'), account.code)
                 ], function(err) {
@@ -103,10 +106,10 @@ define(function(require) {
                     $container.append($account);
                 });
 
-                function showAccountFields($container, sandbox, address, account, cb) {
+                function showAccountFields($container, sandbox, address, account, contracts, cb) {
                     $container.find('[data-name=address]').text(address);
-                    if (sandbox.contracts().hasOwnProperty(address)) {
-                        $container.find('[data-name=contract]').text(sandbox.contracts()[address].name).show();
+                    if (contracts.hasOwnProperty(address)) {
+                        $container.find('[data-name=contract]').text(contracts[address].name).show();
                     }
                     $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
                     $container.find('[data-name=balance]').text(account.balance.toString('hex'));

@@ -66,13 +66,17 @@ define(function(require) {
             if (!/^\d+$/.test(options.value)) {
                 form.getElement('error').setAttribute('caption', 'Value must be a digit.');
             } else {
-                var pkey = sandbox.env()[options.from].pkey;
-                if (pkey !== null) sendTx(pkey);
-                else {
-                    pkeyDialog.ask(function(data) {
-                        sendTx(data.pkey);
-                    });
-                }
+                sandbox.env(function(err, env) {
+                    if (err) return console.err(err);
+                    
+                    var pkey = env[options.from].pkey;
+                    if (pkey !== null) sendTx(pkey);
+                    else {
+                        pkeyDialog.ask(function(data) {
+                            sendTx(data.pkey);
+                        });
+                    }
+                });
             }
             
             function sendTx(pkey) {
@@ -108,30 +112,33 @@ define(function(require) {
         
         dialog.on('show', function() {
             form.reset();
-            
-            var items = [];
-            var env = sandbox.env();
-            Object.keys(env).forEach(function(address) {
-                var pkey = env[address].pkey;
-                items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
-            });
-            form.update([{
-                id: 'from',
-                value: items[0].value,
-                items: items
-            }]);
-            
-            sandbox.accounts(function(err, accounts) {
+
+            sandbox.env(function(err, env) {
                 if (err) return console.error(err);
                 
-                var items = Object.keys(accounts).map(function(address) {
-                    return { caption: address, value: address };
+                var items = [];
+                Object.keys(env).forEach(function(address) {
+                    var pkey = env[address].pkey;
+                    items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
                 });
                 form.update([{
-                    id: 'to',
+                    id: 'from',
                     value: items[0].value,
                     items: items
                 }]);
+                
+                sandbox.accounts(function(err, accounts) {
+                    if (err) return console.error(err);
+                    
+                    var items = Object.keys(accounts).map(function(address) {
+                        return { caption: address, value: address };
+                    });
+                    form.update([{
+                        id: 'to',
+                        value: items[0].value,
+                        items: items
+                    }]);
+                });
             });
         });
         

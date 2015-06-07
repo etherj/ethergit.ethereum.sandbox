@@ -48,14 +48,14 @@ define(function(require, exports, module) {
                 }),
                 300, plugin
             );
-            
+
             commands.addCommand({
                 name: 'showTransactions',
                 exec: function() {
                     transactionsDialog.showSandbox(sandbox);
                 }
             }, plugin);
-            
+
             var btnTransactions = ui.insertByIndex(
                 layout.getElement('barTools'),
                 new ui.button({
@@ -78,14 +78,29 @@ define(function(require, exports, module) {
                     btnSandbox.setAttribute('disabled', true);
                     btnSandbox.setAttribute('caption', 'Starting Sandbox...');
                     btnTransactions.setAttribute('disabled', false);
-                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions().length + ')');
+                    sandbox.transactions(function(err, transactions) {
+                        if (err) return console.error(err);
+                        btnTransactions.setAttribute(
+                            'caption', 'Transactions (' + transactions.length + ')'
+                        );
+                    });
                 } else if (sandbox.state() === 'ACTIVE') {
                     btnSandbox.setAttribute('disabled', false);
                     btnSandbox.setAttribute('caption', 'Stop Sandbox');
                     btnTransactions.setAttribute('disabled', false);
-                    btnTransactions.setAttribute('caption', 'Transactions (' + sandbox.transactions().length + ')');
+                    sandbox.transactions(function(err, transactions) {
+                        if (err) return console.error(err);
+                        btnTransactions.setAttribute(
+                            'caption', 'Transactions (' + transactions.length + ')'
+                        );
+                    });
+                } else if (sandbox.state() === 'STOPPING') {
+                    btnSandbox.setAttribute('disabled', true);
+                    btnSandbox.setAttribute('caption', 'Stopping Sandbox...');
+                    btnTransactions.setAttribute('disabled', false);
+                    btnTransactions.setAttribute('caption', 'Transactions');
                 }
-            }, plugin);
+            });
         }
         
         function runOrStopSandbox(sandbox, cb) {
