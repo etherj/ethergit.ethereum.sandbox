@@ -107,7 +107,7 @@ define(function(require) {
         dialog.on('draw', function(e) {
             ui.insertCss('.bk-container .label { color: #222222; }', false, dialog);
             form.attachTo(e.html);
-            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
+            //dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
         });
         
         dialog.on('show', function() {

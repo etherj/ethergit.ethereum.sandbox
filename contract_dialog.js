@@ -38,7 +38,7 @@ define(function(require) {
         
         dialog.on('draw', function(e) {
             e.html.innerHTML = require('text!./contract.html');
-            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
+            //dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
         });
 
         function showContract(sandbox, address) {
