@@ -118,7 +118,10 @@ define(function(require) {
                 function showStorage($container, storage, cb) {
                     Object.keys(storage).forEach(function(key) {
                         $container.append(
-                            '<tr><td><a href="#" class="button" data-formatter="key">number</button></td><td data-name="key">' + key + '</td><td data-name="value">' + storage[key] + '</td><td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
+                            '<tr><td><a href="#" class="button" data-formatter="key">number</button></td>'
+                                + '<td data-name="key">' + key + '</td>'
+                                + '<td data-folder data-name="value" class="folder">' + storage[key] + '</td>'
+                                + '<td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
                         );
                     });
                     cb();
