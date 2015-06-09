@@ -10,7 +10,7 @@ define(['./jquery'], function($) {
             {
                 type: 'number',
                 format: function(val) {
-                    return parseInt(removeLeadingZeroBytes(val), 16);
+                    return val.length == 0 ? 0 : parseInt(removeLeadingZeroBytes(val), 16);
                     
                     function removeLeadingZeroBytes(str) {
                         if (str.length % 2 !== 0)

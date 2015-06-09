@@ -112,7 +112,9 @@ define(function(require) {
                         $container.find('[data-name=contract]').text(contracts[address].name).show();
                     }
                     $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
-                    $container.find('[data-name=balance]').text(account.balance.toString('hex'));
+                    $container.find('[data-name=balance]').text(
+                        formatter.getFormatter('number').format(account.balance.toString('hex'))
+                    );
                     cb();
                 }
                 function showStorage($container, storage, cb) {
