@@ -41,6 +41,6 @@
     padding: 3px;
 }
 
-.runbtn {
+.fakehbox > .runbtn {
     display: none;
 }
