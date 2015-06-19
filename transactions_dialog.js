@@ -74,6 +74,10 @@ define(function(require) {
         function hideDialog() {
             dialog.hide();
         }
+
+        dialog.on('hide', function() {
+            sandbox.off('changed', render);
+        });
         
         dialog.on('load', function() {
             ui.insertCss(require('text!./transactions.css'), false, dialog);
