@@ -22,6 +22,7 @@ define(function(require, exports, module) {
         var transactionsDialog = imports['ethergit.ethereum.sandbox.dialog.transactions'];
         
         var async = require('async');
+        var utils = require('./utils');
         
         var plugin = new Plugin('Ethergit', main.consumes);
         
@@ -108,6 +109,7 @@ define(function(require, exports, module) {
                 async.waterfall([
                     compileContracts,
                     readConfig,
+                    calcPrivateKeys,
                     initSandbox,
                     createContracts
                 ], cb);
@@ -131,6 +133,16 @@ define(function(require, exports, module) {
                     
                     cb(null, config, contracts);
                 });
+            }
+            function calcPrivateKeys(config, contracts, cb) {
+                Object.keys(config.env).forEach(function(address) {
+                    var account = config.env[address];
+                    if (account.hasOwnProperty('pkey') && account.pkey.length !== 64) {
+                        account.pkey = utils.sha3(account.pkey);
+                        console.log('key: ' + account.pkey);
+                    }
+                });
+                cb(null, config, contracts);
             }
             function initSandbox(config, contracts, cb) {
                 sandbox.start(config.env, function(err) {
