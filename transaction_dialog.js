@@ -9,6 +9,20 @@ define(function(require) {
         var ui = imports.ui;
         var folder = require('./folder');
         var $ = require('./jquery');
+
+        var displayFields = [
+            'from',
+            'nonce',
+            'to',
+            'gasLimit',
+            'gasUsed',
+            'value',
+            'data',
+            'createdAddress',
+            'returnValue',
+            'exception',
+            'rlp'
+        ];
         
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-transaction',
@@ -33,7 +47,7 @@ define(function(require) {
             var $container = $('[data-name=transaction]');
             sandbox.transactions(function(err, transactions) {
                 var tx = transactions[id];
-                Object.keys(tx).forEach(function(field) {
+                displayFields.forEach(function(field) {
                     $container.find('[data-name=' + field + ']').text(tx[field]);
                 });
                 folder.init($container);
