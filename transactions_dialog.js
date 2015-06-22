@@ -86,7 +86,7 @@ define(function(require) {
                 if (err) return errorDialog.show(err);
                 async.eachSeries(transactions, sendTx, function(err) {
                     if (err) {
-                        console.error(err);
+                        console.error('Could not send a transaction to stable net: ' + err);
                         errorDialog.show(err);
                     } else {
                         notificationDialog.show('All transactions have been sent');
