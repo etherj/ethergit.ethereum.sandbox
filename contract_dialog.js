@@ -90,9 +90,7 @@ define(function(require) {
 
                             if (env[address].pkey) callContract(env[address].pkey);
                             else {
-                                pkeyDialog.ask(function(data) {
-                                    callContract(data.pkey);
-                                });
+                                pkeyDialog.ask(callContract);
                             }
                             
                             function callContract(pkey) {

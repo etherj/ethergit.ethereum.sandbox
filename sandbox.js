@@ -139,7 +139,6 @@ define(function(require, exports, module) {
                     var account = config.env[address];
                     if (account.hasOwnProperty('pkey') && account.pkey.length !== 64) {
                         account.pkey = utils.sha3(account.pkey);
-                        console.log('key: ' + account.pkey);
                     }
                 });
                 cb(null, config, contracts);

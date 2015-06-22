@@ -8,6 +8,7 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var Form = imports.Form;
+        var utils = require('./utils');
         
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-pkey',
@@ -48,7 +49,9 @@ define(function(require) {
                 {
                     id: 'privateKeyDialogOk',
                     onclick: function() {
-                        cb(form.toJson());
+                        var pkey = form.toJson().pkey;
+                        if (pkey.length !== 64) pkey = utils.sha3(pkey);
+                        cb(pkey);
                         hideDialog();
                     }
                 }

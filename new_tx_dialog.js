@@ -72,9 +72,7 @@ define(function(require) {
                     var pkey = env[options.from].pkey;
                     if (pkey !== null) sendTx(pkey);
                     else {
-                        pkeyDialog.ask(function(data) {
-                            sendTx(data.pkey);
-                        });
+                        pkeyDialog.ask(sendTx);
                     }
                 });
             }
