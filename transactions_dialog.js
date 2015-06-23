@@ -95,52 +95,104 @@ define(function(require) {
 
                     tab.editor.addEntry('Sending transactions...');
                     
-                    async.eachSeries(transactions, sendTx, function(err) {
-                        if (err) {
-                            console.error('Could not send a transaction to stable net: ' + err);
-                            tab.editor.addEntry('Could not send a transaction to stable net: ' + err);
-                        }
+                    async.series([
+                        checkNonces.bind(null, transactions),
+                        sendTransactions.bind(null, transactions)
+                    ], function(err) {
+                        if (err) errorDialog.show(err);
                     });
 
-                    function sendTx(tx, cb) {
-                        var txMsg = {
-                            from : tx.from,
-                            nonce : tx.nonce,
-                            gasPrice : tx.gasPrice,
-                            gasLimit : tx.gasLimit,
-                            value : tx.value.toString(),
-                            codeOrData: tx.data,
-                            r : tx.r,
-                            s : tx.s,
-                            v : tx.v,
-                            hash : tx.hash
-                        };
-                        if (tx.to) txMsg.to = tx.to;
-                        
-                        http.request(
-                            sendTxUrl,
-                            {
-                                method: 'POST',
-                                contentType: 'application/json; charset=UTF-8',
-                                body: JSON.stringify(txMsg)
-                            },
-                            function(err, data) {
-                                var txId = data.substr(data.indexOf('hash=') + 5);
-                                var newAddress = tx.to ?
-                                        undefined :
-                                        utils.calcNewAddress(tx.from, tx.nonce).toString('hex');
-                                tab.editor.addEntry(txEntry(txId, newAddress));
-                                cb(err);
+                    function checkNonces(transactions, cb) {
+                        var accountsMap = transactions
+                                .reduce(function(uniqueAccounts, tx) {
+                                    if (!uniqueAccounts.hasOwnProperty(tx.from)) {
+                                        uniqueAccounts[tx.from] = {
+                                            address: tx.from,
+                                            nonce: tx.nonce
+                                        };
+                                    }
+                                    return uniqueAccounts;
+                                }, {});
 
-                                function txEntry(txId, newAddress) {
-                                    var msg = 'The transaction has been sent ' +
-                                        '<a target="_blank" href="' + showTxUrl + txId + '">' + txId + '</a>';
-                                    if (newAddress)
-                                        msg += ' (a new contract created: <a target="_blank" href="' + showAccountUrl + newAddress + '">' + newAddress + '</a>)';
-                                    return msg;
-                                }
+                        var accounts = [];
+                        for (var address in accountsMap) {
+                            accounts.push(accountsMap[address]);
+                        }
+                        
+                        async.each(accounts, getRealNonce, function(err) {
+                            if (err) return cb(err);
+                            
+                            var badAccounts = accounts.filter(function(account) {
+                                return account.nonce !== account.realNonce;
+                            });
+
+                            if (badAccounts.length !== 0) {
+                                badAccounts.each(function(badAccount) {
+                                    tab.editor.addEntry(badAccount.address + ' should have nonce ' + badAccount.realNonce);
+                                });
+                                cb('Wrong nonce');
+                            } else cb();
+                        });
+                        
+                        function getRealNonce(account, cb) {
+                            http.request(showAccountUrl + account.address, function(err, realAccount) {
+                                if (err) return cb(err);
+                                account.realNonce = realAccount.length === 0 ? 0 : realAccount[0].nonce;
+                                cb();
+                            });
+                        }
+                    }
+
+                    function sendTransactions(transactions, cb) {
+                        async.eachSeries(transactions, sendTx, function(err) {
+                            if (err) {
+                                console.error('Could not send a transaction to stable net: ' + err);
+                                tab.editor.addEntry('Could not send a transaction to stable net: ' + err);
                             }
-                        );
+                        });
+
+                        function sendTx(tx, cb) {
+                            var txMsg = {
+                                from : tx.from,
+                                nonce : tx.nonce,
+                                gasPrice : tx.gasPrice,
+                                gasLimit : tx.gasLimit,
+                                value : tx.value.toString(),
+                                codeOrData: tx.data,
+                                r : tx.r,
+                                s : tx.s,
+                                v : tx.v,
+                                hash : tx.hash
+                            };
+                            if (tx.to) txMsg.to = tx.to;
+                            
+                            http.request(
+                                sendTxUrl,
+                                {
+                                    method: 'POST',
+                                    contentType: 'application/json; charset=UTF-8',
+                                    body: JSON.stringify(txMsg)
+                                },
+                                function(err, data) {
+                                    if (err) return cb(err);
+                                    
+                                    var txId = data.substr(data.indexOf('hash=') + 5);
+                                    var newAddress = tx.to ?
+                                            undefined :
+                                            utils.calcNewAddress(tx.from, tx.nonce).toString('hex');
+                                    tab.editor.addEntry(txEntry(txId, newAddress));
+                                    cb(null);
+
+                                    function txEntry(txId, newAddress) {
+                                        var msg = 'The transaction has been sent ' +
+                                                '<a target="_blank" href="' + showTxUrl + txId + '">' + txId + '</a>';
+                                        if (newAddress)
+                                            msg += ' (a new contract created: <a target="_blank" href="' + showAccountUrl + newAddress + '">' + newAddress + '</a>)';
+                                        return msg;
+                                    }
+                                }
+                            );
+                        }
                     }
                 });
             });
