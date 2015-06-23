@@ -1,6 +1,6 @@
 define(function(require) {
     main.consumes = [
-        'Dialog', 'ui', 'dialog.error', 'dialog.notification', 'http',
+        'Dialog', 'ui', 'dialog.error', 'http', 'tabManager',
         'ethergit.ethereum.sandbox.dialog.transaction',
         'ethergit.ethereum.sandbox.dialog.new.tx'
     ];
@@ -12,15 +12,20 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var errorDialog = imports['dialog.error'];
-        var notificationDialog = imports['dialog.notification'];
+
         var http = imports.http;
+        var tabs = imports.tabManager;
         var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
         var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
         var $ = require('./jquery');
         var async = require('async');
-
-        var stablenetUrl = 'http://stablenet.blockapps.net/includetransaction';
-
+        var utils = require('./utils');
+        
+        var stablenetUrl = 'http://stablenet.blockapps.net';
+        var sendTxUrl = stablenetUrl + '/includetransaction';
+        var showTxUrl = stablenetUrl + '/query/transaction?hash=';
+        var showAccountUrl = stablenetUrl + '/query/account?address=';
+        
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-transactions',
             allowClose: true,
@@ -80,44 +85,81 @@ define(function(require) {
         function openNewTxDialog() {
             newTxDialog.show();
         }
-
+        
         function sendToNetwork() {
             sandbox.transactions(function(err, transactions) {
                 if (err) return errorDialog.show(err);
-                async.eachSeries(transactions, sendTx, function(err) {
-                    if (err) {
-                        console.error('Could not send a transaction to stable net: ' + err);
-                        errorDialog.show(err);
-                    } else {
-                        notificationDialog.show('All transactions have been sent');
+
+                openLog(function(err, tab) {
+                    if (err) return console.error(err);
+
+                    tab.editor.addEntry('Sending transactions...');
+                    
+                    async.eachSeries(transactions, sendTx, function(err) {
+                        if (err) {
+                            console.error('Could not send a transaction to stable net: ' + err);
+                            tab.editor.addEntry('Could not send a transaction to stable net: ' + err);
+                        }
+                    });
+
+                    function sendTx(tx, cb) {
+                        var txMsg = {
+                            from : tx.from,
+                            nonce : tx.nonce,
+                            gasPrice : tx.gasPrice,
+                            gasLimit : tx.gasLimit,
+                            value : tx.value.toString(),
+                            codeOrData: tx.data,
+                            r : tx.r,
+                            s : tx.s,
+                            v : tx.v,
+                            hash : tx.hash
+                        };
+                        if (tx.to) txMsg.to = tx.to;
+                        
+                        http.request(
+                            sendTxUrl,
+                            {
+                                method: 'POST',
+                                contentType: 'application/json; charset=UTF-8',
+                                body: JSON.stringify(txMsg)
+                            },
+                            function(err, data) {
+                                var txId = data.substr(data.indexOf('hash=') + 5);
+                                var newAddress = tx.to ?
+                                        undefined :
+                                        utils.calcNewAddress(tx.from, tx.nonce).toString('hex');
+                                tab.editor.addEntry(txEntry(txId, newAddress));
+                                cb(err);
+
+                                function txEntry(txId, newAddress) {
+                                    var msg = 'The transaction has been sent ' +
+                                        '<a target="_blank" href="' + showTxUrl + txId + '">' + txId + '</a>';
+                                    if (newAddress)
+                                        msg += ' (a new contract created: <a target="_blank" href="' + showAccountUrl + newAddress + '">' + newAddress + '</a>)';
+                                    return msg;
+                                }
+                            }
+                        );
                     }
                 });
+            });
+        }
 
-                function sendTx(tx, cb) {
-                    var txMsg = {
-                        from : tx.from,
-                        nonce : tx.nonce,
-                        gasPrice : tx.gasPrice,
-                        gasLimit : tx.gasLimit,
-                        value : tx.value.toString(),
-                        codeOrData: tx.data,
-                        r : tx.r,
-                        s : tx.s,
-                        v : tx.v,
-                        hash : tx.hash
-                    };
-                    http.request(
-                        stablenetUrl,
-                        {
-                            method: 'POST',
-                            contentType: 'application/json; charset=UTF-8',
-                            body: JSON.stringify(txMsg)
-                        },
-                        function(err, data) {
-                            cb(err);
-                        }
-                    );
-                }
+        function openLog(cb) {
+            var pane = tabs.getPanes().length > 1 ?
+                    tabs.getPanes()[1] :
+                    tabs.getPanes()[0].vsplit(true);
+            
+            tabs.open({
+                editorType: 'stablenet-log',
+                title: 'Stablenet Log',
+                active: true,
+                pane: pane,
+                demandExisting: true
+            }, function(err, tab) {
+                if (!tab.classList.names.contains('dark')) tab.classList.add('dark');
+                cb(err, tab);
             });
         }
         

@@ -1,5 +1,6 @@
 define(function(require) {
     var SHA3Hash = require('./sha3').SHA3Hash;
+    var ethereumjsUtil = require('./ethereumjs-util');
     
     function arrayFindPolyfill() {
         if (!Array.prototype.find) {
@@ -50,6 +51,9 @@ define(function(require) {
         },
         pad: function(str) {
             return str.length % 2 === 0 ? str : '0' + str;
+        },
+        calcNewAddress: function(from, nonce) {
+            return ethereumjsUtil.generateAddress(from, nonce + 1);
         }
     };
 });
