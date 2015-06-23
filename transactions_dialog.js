@@ -128,9 +128,14 @@ define(function(require) {
 
                             if (badAccounts.length !== 0) {
                                 badAccounts.each(function(badAccount) {
-                                    tab.editor.addEntry(badAccount.address + ' should have nonce ' + badAccount.realNonce);
+                                    tab.editor.addEntry(
+                                        'The nonce for [' +
+                                            '<a target="_blank" href="' + showAccountUrl + badAccount.address + '">' +
+                                            badAccount.address + '</a>] in stable network is ' + badAccount.realNonce
+                                    );
                                 });
-                                cb('Wrong nonce');
+                                tab.editor.addEntry('Please update sandbox values to sync with stable network');
+                                cb('Please update sandbox values to sync with stable network');
                             } else cb();
                         });
                         
