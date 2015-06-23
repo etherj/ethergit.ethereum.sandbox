@@ -131,7 +131,7 @@ define(function(require) {
                                     tab.editor.addEntry(
                                         'The nonce for [' +
                                             '<a target="_blank" href="' + showAccountUrl + badAccount.address + '">' +
-                                            badAccount.address + '</a>] in stable network is ' + badAccount.realNonce
+                                            badAccount.address + '</a>] in stable network is ' + badAccount.realNonce.toString(16)
                                     );
                                 });
                                 tab.editor.addEntry('Please update sandbox values to sync with stable network');
