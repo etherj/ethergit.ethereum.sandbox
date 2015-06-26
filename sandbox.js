@@ -109,6 +109,7 @@ define(function(require, exports, module) {
                 async.waterfall([
                     compileContracts,
                     readConfig,
+                    parseValues,
                     calcPrivateKeys,
                     initSandbox,
                     createContracts
@@ -134,13 +135,81 @@ define(function(require, exports, module) {
                     cb(null, config, contracts);
                 });
             }
-            function calcPrivateKeys(config, contracts, cb) {
-                Object.keys(config.env).forEach(function(address) {
-                    var account = config.env[address];
-                    if (account.hasOwnProperty('pkey') && account.pkey.length !== 64) {
-                        account.pkey = utils.sha3(account.pkey);
+            function parseValues(config, contracts, cb) {
+                if (!config.hasOwnProperty('env') || Object.keys(config.env) === 0) {
+                    return cb('Please, add initial account(s) to sandbox.json');
+                }
+
+                try {
+                    Object.keys(config.env).forEach(function(address) {
+                        var account = config.env[address];
+                        ['balance', 'nonce'].forEach(function(field) {
+                            if (account.hasOwnProperty(field)) {
+                                try {
+                                    account[field] = value(account[field]);
+                                } catch (e) {
+                                    throw 'Could not parse ' + field + ': ' + e;
+                                }
+                            }
+                        });
+                        if (account.hasOwnProperty('storage')) {
+                            var parsedStorage = {};
+                            Object.keys(account.storage).forEach(function(key) {
+                                try {
+                                    var parsedKey = value(key);
+                                } catch (e) {
+                                    throw 'Could not parse key of storage entry: ' + e;
+                                }
+                                try {
+                                    parsedStorage[parsedKey] = value(account.storage[key]);
+                                } catch (e) {
+                                    throw 'Could not parse value of storage entry: ' + e;
+                                }
+                            });
+                            account.storage = parsedStorage;
+                        }
+                    });
+                } catch (e) {
+                    return cb(e);
+                }
+                
+                cb(null, config, contracts);
+
+                function value(val) {
+                    var type = typeof val;
+                    var res;
+                    if (type === 'number') {
+                        res = utils.pad(val.toString(16));
+                    } else if (type === 'string') {
+                        if (val.indexOf('0x') === 0) {
+                            res = utils.pad(val.substr(2));
+                        } else if (/^\d+$/.test(val)) {
+                            res = utils.pad(parseInt(val, 10).toString(16));
+                        } else {
+                            throw '"' + val + '" is not a decimal number (use 0x prefix for hexadecimal numbers)';
+                        }
+                    } else {
+                        throw 'Value should be either number or string';
                     }
-                });
+                    return res;
+                }
+            }
+            function calcPrivateKeys(config, contracts, cb) {
+                try {
+                    Object.keys(config.env).forEach(function(address) {
+                        var account = config.env[address];
+                        if (account.hasOwnProperty('pkey')) {
+                            if (typeof account.pkey != 'string') {
+                                throw 'Private key should be a hexadecimal hash (64 symbols) or a string';
+                            }
+                            if (account.pkey.length !== 64) {
+                                account.pkey = utils.sha3(account.pkey);
+                            }
+                        }
+                    });
+                } catch (e) {
+                    return cb(e);
+                }
                 cb(null, config, contracts);
             }
             function initSandbox(config, contracts, cb) {
