@@ -264,7 +264,11 @@ define(function(require, exports, module) {
                 }, cb);
             }
             function compileTexts(texts, cb) {
-                async.map(texts, compiler.binaryAndABI.bind(compiler), cb);
+                async.map(texts, compiler.binaryAndABI.bind(compiler), function(err, compiled) {
+                    if (err) return cb(err);
+                    // flatten the array of arrays of contracts
+                    cb(null, [].concat.apply([], compiled));
+                });
             }
         }
 
