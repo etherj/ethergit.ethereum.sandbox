@@ -1,6 +1,7 @@
 define(function(require) {
     main.consumes = [
         'Panel', 'ui', 'apf',
+        'ethergit.libs',
         'ethergit.ethereum.sandbox.dialog.contract',
         'ethergit.sandbox'
     ];
@@ -12,13 +13,15 @@ define(function(require) {
         var Panel = imports.Panel;
         var ui = imports.ui;
         var apf = imports.apf;
+        var libs = imports['ethergit.libs'];
         var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
         var sandbox = imports['ethergit.sandbox'];
         var accountTemplate = require('text!./account.html');
         var async = require('async');
         var folder = require('./folder');
-        var $ = require('./jquery');
         var formatter = require('./formatter');
+
+        var $ = libs.jquery();
 
         apf.config.setProperty('allow-select', true);
 
@@ -40,7 +43,7 @@ define(function(require) {
                 var $el = $(e.target);
                 if ($el.data('name') === 'contract') {
                     var address = $el.parent().find('[data-name=address]').text();
-                    contractDialog.showContract(sandbox, address);
+                    contractDialog.showContract(address);
                 }
             });
             panel.render();

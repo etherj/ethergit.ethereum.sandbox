@@ -1,12 +1,14 @@
 define(function(require) {
-    main.consumes = ['Plugin'];
+    main.consumes = ['Plugin', 'ethergit.libs'];
     main.provides = ['ethergit.idle.detector'];
     
     return main;
     
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
-        var $ = require('./jquery');
+        var libs = imports['ethergit.libs'];
+        var $ = libs.jquery();
+        
         var plugin  = new Plugin('Ethergit', main.consumes);
         
         function load() {

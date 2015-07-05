@@ -10,29 +10,32 @@ define(function(require) {
             this.abi = details.abi;
             return this;
         },
-        call: function(sandbox, from, pkey, name, args, cb) {
-            var method = this.findMethod(name);
-            if (!method) return cb({ general: 'Could not find method: ' + name });
+        call: function(sandbox, options, cb) {
+            var method = this.findMethod(options.name);
+            if (!method) return cb({ general: 'Could not find method: ' + options.name });
             
-            var err = this.checkArgs(method, args);
+            var err = this.checkArgs(method, options.args);
             if (err) return cb({ general: err });
 
             var errors = method.inputs.reduce(function(errors, input) {
-                var errs = Parsers.parser(input.type).validate(args[input.name]);
+                var errs = Parsers.parser(input.type).validate(options.args[input.name]);
                 if (errs.length > 0) errors[input.name] = errs;
                 return errors;
             }, {});
             if (Object.keys(errors).length > 0) return cb(errors);
             
             var encArgs = method.inputs.map(function(input) {
-                return Parsers.parser(input.type).parse(args[input.name]);
+                return Parsers.parser(input.type).parse(options.args[input.name]);
             });
 
             sandbox.runTx({
                 to: this.address,
                 data: this.encodeMethod(method) + encArgs.join(''),
-                from: from,
-                pkey: pkey
+                from: options.from,
+                pkey: options.pkey,
+                value: options.value,
+                gasPrice: options.gasPrice,
+                gasLimit: options.gasLimit
             }, function(err, results) {
                 if (err) cb({ general: err });
                 else cb(null, results);
@@ -47,7 +50,7 @@ define(function(require) {
             var inputs = method.inputs;
             
             if (inputs.length !== Object.keys(args).length || 
-                !inputs.every(function(arg) { return args.hasOwnProperty(arg.name) }))
+                !inputs.every(function(arg) { return args.hasOwnProperty(arg.name); }))
                 return 'Wrong arguments.';
         },
         encodeMethod: function(method) {

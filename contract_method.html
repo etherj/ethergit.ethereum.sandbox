@@ -1,9 +1,11 @@
-<div class="method">
-    <div data-name="name" class="method-name"></div>
-    <table data-name="args"></table>
-    <button data-name="call">Call</button>
-    <div style="display:none">
-        Returned value:
-        <span data-name="returnValue" data-folder class="long-string folder"></span>
-    </div>
+<div class="method col-sm-12">
+  <h4 data-name="name"></h4>
+  <form class="form-horizontal">
+    <div data-name="args"></div>
+    <button data-name="call" class="btn btn-primary">Call</button>
+  </form>
+  <p class="ret-container" data-name="retContainer" style="display:none">
+    <strong>ret:</strong> <code data-name="ret" data-folder class="long-string folder"></code>
+  </p>
+  <hr>
 </div>

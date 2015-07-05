@@ -1,6 +1,7 @@
 define(function(require) {
     main.consumes = [
         'Dialog', 'ui', 'dialog.error', 'http', 'tabManager',
+        'ethergit.libs',
         'ethergit.ethereum.sandbox.dialog.transaction',
         'ethergit.ethereum.sandbox.dialog.new.tx'
     ];
@@ -12,14 +13,15 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var errorDialog = imports['dialog.error'];
-
         var http = imports.http;
         var tabs = imports.tabManager;
+        var libs = imports['ethergit.libs'];
         var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
         var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
-        var $ = require('./jquery');
         var async = require('async');
         var utils = require('./utils');
+
+        var $ = libs.jquery();
         
         var stablenetUrl = 'http://stablenet.blockapps.net';
         var sendTxUrl = stablenetUrl + '/includetransaction';

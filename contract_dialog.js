@@ -1,5 +1,10 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui', 'ethergit.ethereum.sandbox.dialog.pkey'];
+    main.consumes = [
+        'Dialog', 'ui', 'dialog.error',
+        'ethergit.libs',
+        'ethergit.ethereum.sandbox.dialog.pkey',
+        'ethergit.sandbox'
+    ];
     main.provides = ['ethergit.ethereum.sandbox.dialog.contract'];
     
     return main;
@@ -7,11 +12,22 @@ define(function(require) {
     function main(options, imports, register) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
+        var showError = imports['dialog.error'].show;
+        var libs = imports['ethergit.libs'];
         var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
-        var $ = require('./jquery');
+        var sandbox = imports['ethergit.sandbox'];
+        var async = require('async');
         var formatter = require('./formatter');
         var folder = require('./folder');
         var Contract = require('./contract');
+        var utils = require('./utils');
+
+        var $ = libs.jquery();
+        var _ = libs.lodash();
+
+        // Cached elements
+        var $root, $error, $advanced, $sender, $value, $gasPrice, $gasLimit,
+            $contract, $name, $methods;
         
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-contract',
@@ -19,16 +35,6 @@ define(function(require) {
             title: 'Contract',
             width: 500,
             elements: [
-                { 
-                    type: 'dropdown', 
-                    id: 'accounts',
-                    width: 330,
-                    items: [
-                        { caption: 'some' },
-                        { caption: 'magic' }
-                    ]
-                },
-                { type: 'filler' },
                 {
                     type: 'button', id: 'closeContractDialog', color: 'blue',
                     caption: 'Close', 'default': true, onclick: hideDialog
@@ -38,86 +44,181 @@ define(function(require) {
         
         dialog.on('draw', function(e) {
             e.html.innerHTML = require('text!./contract.html');
-            //dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);
+            $root = $(e.html);
+            $error = $root.find('[data-name=error]');
+            $advanced = $root.find('[data-name=advanced]');
+            $sender = $advanced.find('select[name=sender]');
+            $value = $advanced.find('input[name=value]');
+            $gasPrice = $advanced.find('input[name=gasPrice]');
+            $gasLimit = $advanced.find('input[name=gasLimit]');
+            $contract = $root.find('[data-name=contract]');
+            $name = $contract.find('[data-name=name]');
+            $methods = $contract.find('[data-name=methods]');
+            
+            $contract.click(folder.foldOrUnfold);
+            
+            var showOrHideAdvanced = (function() {
+                var $icon = $root.find('[data-name=advanced-btn-icon]');
+                return function() {
+                    if ($advanced.is(":visible")) {
+                        $icon.removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up');
+                        $advanced.slideUp({ duration: 500 });
+                    } else {
+                        $icon.removeClass('glyphicon-menu-up').addClass('glyphicon-menu-down');
+                        $advanced.slideDown({ duration: 500 });
+                    }
+                };
+            })();
+            $root.find('[data-name=advanced-btn]').click(showOrHideAdvanced);
         });
 
-        function showContract(sandbox, address) {
-            sandbox.env(function(err, env) {
-                if (err) return console.error(err);
-                
-                var items = [];
-                Object.keys(env).forEach(function(address) {
-                    var pkey = env[address].pkey;
-                    items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
-                });
+        function showAdvanced() {
+            if (!$advanced.is(":visible")) {
+                $root.find('[data-name=advanced-btn-icon]')
+                    .removeClass('glyphicon-menu-up')
+                    .addClass('glyphicon-menu-down');
+                $advanced.slideDown({ duration: 500 });
+            }
+        }
 
-                dialog.update([
-                    {
-                        id: 'accounts',
-                        defaultValue: items[0].value,
-                        items: items
-                    }
-                ]);
-                
-                dialog.show();
+        function showContract(address) {
+            dialog.show();
+            
+            async.parallel([ showAccounts, showContract ], function(err) {
+                if (err) showError(err);
+            });
 
-                sandbox.contracts(function(err, contracts) {
-                    var contract = Object.create(Contract).init(address, contracts[address]);
-                    var $container = $('[data-name=contract]');
-                    $container.find('[data-name=name]').text(contract.name);
-                    $container.click(folder.foldOrUnfold);
-                    
-                    var $methods = $container.find('[data-name=methods]').empty();
-                    contract.abi.forEach(function(method) {
-                        var $method = $(require('text!./contract_method.html'));
-                        $method.find('[data-name=name]').text(method.name);
-                        
-                        var $args = $method.find('[data-name=args]');
-                        method.inputs.forEach(function(input) {
-                            $args.append('<tr><td>' + input.name + ' : ' + getTypeLabel(input.type) + '</td><td><input name="' + input.name + '" type="text"></td><td><span class="error" data-label="' + input.name + '"></span></td></tr>');
-                        });
+            function showAccounts(cb) {
+                async.waterfall([ load, show ], cb);
 
-                        $method.find('[data-name=call]').click(function(e) {
-                            $container.find('[data-name=error]').empty();
-                            $method.find('[data-label]').empty();
+                function load(cb) {
+                    sandbox.env(cb);
+                }
+                function show(accounts, cb) {
+                    $sender.html(
+                        Object.keys(accounts).reduce(function(html, address) {
+                            return html + '<option>' + address + '</option>';
+                        }, '')
+                    );
+                    cb();
+                }
+            }
 
-                            var address = dialog.getElement('accounts').value;
+            function showContract(cb) {
+                async.waterfall([ load, show ], cb);
 
-                            var args = {};
-                            $method.find('input').each(function() {
-                                args[$(this).attr('name')] = $(this).val();
+                function load(cb) {
+                    sandbox.contracts(function(err, contracts) {
+                        if (!contracts.hasOwnProperty(address))
+                            return cb('Could not find a contract with address ' + address);
+                        cb(null, contracts[address]);
+                    });
+                }
+                function show(contractRaw, cb) {
+                    var contract = Object.create(Contract).init(address, contractRaw);
+                    $name.text(contract.name);
+                    $methods.empty();
+
+                    var argsForm = _.template(
+                        '<div class="form-group">\
+                            <label for="<%= name %>" class="col-sm-4 control-label"><%= name %> : <%= type %></label>\
+                            <div class="col-sm-8">\
+                            <input type="text" name="<%= name %>" class="form-control" placeholder="">\
+                            <p data-label="<%= name %>" class="help-block" style="display:none"></p>\
+                        </div></div>'
+                    );
+                    contract.abi
+                        .filter(function(method) { return method.type === 'function'; })
+                        .forEach(function(method) {
+                            var $method = $(require('text!./contract_method.html'));
+                            $method.find('[data-name=name]').text(method.name);
+
+                            var $args = $method.find('[data-name=args]');
+                            method.inputs.forEach(function(input) {
+                                $args.append(argsForm({
+                                    name : input.name,
+                                    type: getTypeLabel(input.type)
+                                }));
                             });
 
-                            if (env[address].pkey) callContract(env[address].pkey);
-                            else {
-                                pkeyDialog.ask(callContract);
-                            }
+                            $method.find('[data-name=call]').click(function(e) {
+                                e.preventDefault();
+                                var args = _(method.inputs).indexBy('name').mapValues(function(arg) {
+                                    return $method.find('input[name=' + arg.name + ']').val(); 
+                                }).value();
+                                call(contract, method, args, $method);
+                            });
                             
-                            function callContract(pkey) {
-                                contract.call(sandbox, address, pkey, method.name, args, function(errors, results) {
-                                    if (errors) {
-                                        if (errors.hasOwnProperty('general'))
-                                            $container.find('[data-name=error]').text(errors.general);
-                                        
-                                        Object.keys(errors).forEach(function(name) {
-                                            $method.find('[data-label=' + name + ']').text(errors[name]);
-                                        });
-                                    } else {
-                                        if (method.outputs.length > 0) {
-                                            $method.find('[data-name=returnValue]')
-                                                .text(formatter.findFormatter(method.outputs[0].type).format(results.returnValue))
-                                                .parent().show();
-                                            folder.init($method);
-                                        }
-                                    }
+                            $methods.append($method);
+                        });
+                    
+                    cb();
+                }
+                function call(contract, method, args, $method) {
+                    $error.empty();
+                    $root.find('[data-label]').hide();
+                    $root.find('.has-error').removeClass('has-error');
+
+                    var value = parse($value, 'value');
+                    var gasPrice = parse($gasPrice, 'gasPrice');
+                    var gasLimit = parse($gasLimit, 'gasLimit');
+
+                    if (value === null || gasPrice == null || gasLimit == null)
+                        return showAdvanced();
+                    
+                    function parse($from, name) {
+                        try {
+                            return toHex($from.val());
+                        } catch (e) {
+                            $from.parent().parent().addClass('has-error');
+                            $advanced.find('[data-label=' + name + ']').text(e).show();
+                            return null;
+                        }
+                    }
+
+                    var sender = $sender.val();
+                    sandbox.env(function(err, env) {
+                        if (err) return showError(err);
+                        if (env[sender].pkey) invoke(env[sender].pkey);
+                        else pkeyDialog.ask(invoke);
+                    });
+
+                    
+                    function invoke(pkey) {
+                        contract.call(sandbox, {
+                            from: sender,
+                            pkey: pkey,
+                            name: method.name,
+                            args: args,
+                            value: toHex($value.val()),
+                            gasPrice: toHex($gasPrice.val()),
+                            gasLimit: toHex($gasLimit.val())
+                        }, function(errors, results) {
+                            if (errors) {
+                                if (errors.hasOwnProperty('general'))
+                                    $error.text(errors.general);
+                                _.each(errors, function(error, name) {
+                                    $method.find('input[name=' + name + ']')
+                                        .parent().parent().addClass('has-error');
+                                    $method.find('[data-label=' + name + ']')
+                                        .text(error).show();
                                 });
+                            } else {
+                                if (method.outputs.length > 0) {
+                                    $method.find('[data-name=ret]')
+                                        .text(
+                                            formatter
+                                                .findFormatter(method.outputs[0].type)
+                                                .format(results.returnValue)
+                                        )
+                                        .parent().show();
+                                    folder.init($method);
+                                }
                             }
                         });
-                        
-                        $methods.append($method);
-                    });
-                });
-            });
+                    }
+                }
+            }
         }
         
         dialog.on('hide', function() {
@@ -129,14 +230,17 @@ define(function(require) {
             if (type.indexOf('bytes') > -1) return 'string';
             return 'number';
         }
+
+        function toHex(val) {
+            if (!/^\d+$/.test(val)) throw 'Should be a number';
+            return utils.pad(parseInt(val, 10).toString(16));
+        }
         
         function hideDialog() {
             dialog.hide();
         }
         
-        dialog.on('load', function() {
-            ui.insertCss(require('text!./contract.css'), false, dialog);
-        });
+        ui.insertCss(require('text!./contract.css'), false, dialog);
         
         dialog.freezePublicAPI({
             showContract: showContract

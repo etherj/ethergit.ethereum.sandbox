@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui'];
+    main.consumes = ['Dialog', 'ui', 'ethergit.libs'];
     main.provides = ['ethergit.ethereum.sandbox.dialog.transaction'];
     
     return main;
@@ -7,8 +7,9 @@ define(function(require) {
     function main(options, imports, register) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
+        var libs = imports['ethergit.libs'];
         var folder = require('./folder');
-        var $ = require('./jquery');
+        var $ = libs.jquery();
 
         var displayFields = [
             'from',

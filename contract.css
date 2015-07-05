@@ -1,14 +1,6 @@
-.contract {
+.contract-container {
     max-height: 500px;
     overflow-y: scroll;
-}
-
-.contract .method {
-    padding: 5px;
-}
-
-.contract .method-name {
-    font-size: x-large;
 }
 
 .contract .button {
@@ -29,4 +21,30 @@
 
 .contract .error {
     color: red;
+}
+
+.contract .ret-container {
+    margin-top: 15px;
+}
+
+.advanced-btn {
+    background-color: white;
+    display: inline-block;
+    padding: 5px;
+    border: solid 1px;
+    border-bottom: 0;
+    cursor: pointer;
+    float: left;
+}
+
+.advanced-container {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+.advanced {
+    background-color: white;
+    border-top: solid 1px;
+    padding-top: 10px;
 }
