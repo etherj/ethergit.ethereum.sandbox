@@ -1,14 +1,7 @@
 .contract-container {
     max-height: 500px;
+    min-height: 250px;
     overflow-y: scroll;
-}
-
-.contract .button {
-    color: gray;
-    border-top: 1px dotted grey;
-    border-bottom: 1px dotted grey;
-    padding: 2px;
-    text-decoration: none;
 }
 
 .contract .long-string {
@@ -17,10 +10,6 @@
 
 .contract .folder {
     cursor: pointer;
-}
-
-.contract .error {
-    color: red;
 }
 
 .contract .ret-container {
