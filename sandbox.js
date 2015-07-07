@@ -4,7 +4,9 @@ define(function(require, exports, module) {
         'ethergit.solidity.compiler',
         'ethergit.sandbox',
         'ethergit.ethereum.sandbox.panel',
-        'ethergit.ethereum.sandbox.dialog.transactions'
+        'ethergit.ethereum.sandbox.dialog.transactions',
+        'ethereum-console',
+        'ethergit.libs'
     ];
     main.provides = ['ethergit.ethereum.sandbox'];
     return main;
@@ -20,9 +22,15 @@ define(function(require, exports, module) {
         var sandboxPanel = imports['ethergit.ethereum.sandbox.panel'];
         var compiler = imports['ethergit.solidity.compiler'];
         var transactionsDialog = imports['ethergit.ethereum.sandbox.dialog.transactions'];
+        var ethConsole = imports['ethereum-console'];
+        var libs = imports['ethergit.libs'];
         
         var async = require('async');
         var utils = require('./utils');
+        var formatter = require('./formatter');
+        var Contract = require('./contract');
+
+        var _ = libs.lodash();
         
         var plugin = new Plugin('Ethergit', main.consumes);
         
@@ -100,6 +108,45 @@ define(function(require, exports, module) {
                     btnSandbox.setAttribute('caption', 'Stopping Sandbox...');
                     btnTransactions.setAttribute('disabled', false);
                     btnTransactions.setAttribute('caption', 'Transactions');
+                }
+            });
+
+            sandbox.on('log', function(entry) {
+                sandbox.contracts(function(err, contracts) {
+                    if (err) return console.error(err);
+
+                    var contract = contracts.hasOwnProperty(entry.address) ?
+                            Object.create(Contract).init(entry.address, contracts[entry.address]) :
+                            null;
+                    if (entry.topics.length > 0 && entry.topics[0].length === 64) {
+                        var event = contract.findEvent(entry.topics[0]);
+                        ethConsole.log(
+                            event ?
+                                showEvent(contract, event, entry) :
+                                log(contract, entry)
+                        );
+                    } else {
+                        ethConsole.log(log(contract, entry));
+                    }
+                });
+
+                function showEvent(contract, event, entry) {
+                    entry.topics.shift(); // skip event hash
+                    return 'Sandbox Event (' + contract.name + '.' + event.name + '): ' +
+                        _(event.inputs).map(function(input) {
+                            var val = input.indexed ?
+                                    entry.topics.shift() : entry.data.shift();
+                            return _.escape(formatter.findFormatter(input.type).format(val));
+                        }).join(', ');
+                }
+                
+                function log(contract, entry) {
+                    return 'Sandbox LOG (' + contract.name + '): ' +
+                        _(entry.data).concat(entry.topics)
+                        .map(function(val) {
+                            return _.escape(formatter.detectType(val).format(val));
+                        })
+                        .join(', ');
                 }
             });
         }

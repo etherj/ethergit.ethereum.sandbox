@@ -4,7 +4,7 @@ define(function() {
             {
                 type: 'data',
                 format: function(val) {
-                    return val;
+                    return parseInt(val, 16);
                 }
             },
             {
