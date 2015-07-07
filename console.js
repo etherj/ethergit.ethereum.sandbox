@@ -26,7 +26,9 @@ define(function(require) {
                 var content = e.htmlNode;
                 ui.insertHtml(
                     content,
-                    '<ul class="ethereum-console list-unstyled" data-name="ethereum-console"></ul>',
+                    '<div class="ethereum-console-container">\
+                        <ul class="ethereum-console list-unstyled" data-name="ethereum-console"></ul>\
+                    </div>',
                     ethConsole
                 );
                 container = content.querySelector('ul[data-name=ethereum-console]');
