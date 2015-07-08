@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        'Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error',
+        'Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error', 'find',
         'ethergit.solidity.compiler',
         'ethergit.sandbox',
         'ethergit.ethereum.sandbox.panel',
@@ -18,6 +18,7 @@ define(function(require, exports, module) {
         var layout = imports.layout;
         var fs = imports.fs;
         var errorDialog = imports['dialog.error'];
+        var find = imports['find'];
         var sandbox = imports['ethergit.sandbox'];
         var sandboxPanel = imports['ethergit.ethereum.sandbox.panel'];
         var compiler = imports['ethergit.solidity.compiler'];
@@ -278,44 +279,29 @@ define(function(require, exports, module) {
 
         function compileContracts(cb) {
             async.waterfall([
-                readRootDir,
-                getFileNames,
-                filterSolFiles,
-                readFiles,
-                workaroundWrongFileContent,
-                compileTexts
+                findSolidityFiles,
+                compile
             ], cb);
-            
-            function readRootDir(cb) {
-                fs.readdir('/', function(err, files) { cb(err, files); });
-            }
-            function getFileNames(fileStats, cb) {
-                async.map(fileStats, function(stat, cb) {
-                    cb(null, stat.name);
-                }, cb);
-            }
-            function filterSolFiles(fileNames, cb) {
-                async.filter(fileNames, function(name, cb) {
-                    cb(name.match(/\.sol$/));
-                }, cb.bind(undefined, null));
-            }
-            function readFiles(fileNames, cb) {
-                async.map(fileNames, function(file, cb) {
-                    fs.readFile('/' + file, cb);
-                }, cb);
-            }
-            // Workaround for https://github.com/c9/core/issues/71
-            function workaroundWrongFileContent(texts, cb) {
-                async.map(texts, function(text, cb) {
-                    cb(null, removeMetaInfo(text));
-                }, cb);
-            }
-            function compileTexts(texts, cb) {
-                async.map(texts, compiler.binaryAndABI.bind(compiler), function(err, compiled) {
-                    if (err) return cb(err);
-                    // flatten the array of arrays of contracts
-                    cb(null, [].concat.apply([], compiled));
+
+            function findSolidityFiles(cb) {
+                find.findFiles({
+                    path: '',
+                    pattern : '*.sol',
+                    buffer  : true
+                }, function(err, result) {
+                    cb(null, result
+                       .match(/.+(?=:)/g)
+                       .map(function(path) { return '.' + path; }));
                 });
+            }
+            function compile(files, cb) {
+                if (files.length === 0) cb(null, []);
+                else
+                    compiler.binaryAndABI(files, function(err, compiled) {
+                        if (err) return cb(err);
+                        // flatten the array of arrays of contracts
+                        cb(null, [].concat.apply([], compiled));
+                    });
             }
         }
 
