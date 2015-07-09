@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        'Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error', 'find',
+        'Plugin', 'commands', 'ui', 'layout', 'fs', 'dialog.error', 'find', 'tabManager',
         'ethergit.solidity.compiler',
         'ethergit.sandbox',
         'ethergit.ethereum.sandbox.panel',
@@ -18,7 +18,8 @@ define(function(require, exports, module) {
         var layout = imports.layout;
         var fs = imports.fs;
         var errorDialog = imports['dialog.error'];
-        var find = imports['find'];
+        var find = imports.find;
+        var tabs = imports.tabManager;
         var sandbox = imports['ethergit.sandbox'];
         var sandboxPanel = imports['ethergit.ethereum.sandbox.panel'];
         var compiler = imports['ethergit.solidity.compiler'];
@@ -40,8 +41,12 @@ define(function(require, exports, module) {
                 name: 'runSandbox',
                 exec: function() {
                     sandboxPanel.show();
-                    runOrStopSandbox(sandbox, function(err, sandbox) {
-                         if (err) return errorDialog.show(err);
+                    ethConsole.logger(function(err, logger) {
+                        if (err) return console.error(err);
+                        logger.clear();
+                        runOrStopSandbox(sandbox, function(err, sandbox) {
+                            if (err) logger.error('<pre>' + err + '</pre>');
+                        });
                     });
                 }
             }, plugin);
@@ -113,27 +118,37 @@ define(function(require, exports, module) {
             });
 
             sandbox.on('log', function(entry) {
-                sandbox.contracts(function(err, contracts) {
+                async.parallel({
+                    contracts: sandbox.contracts,
+                    logger: ethConsole.logger
+                }, showLog);
+                
+                function showLog(err, options) {
                     if (err) return console.error(err);
 
+                    var contracts = options.contracts;
+                    var logger = options.logger;
+                    
                     var contract = contracts.hasOwnProperty(entry.address) ?
                             Object.create(Contract).init(entry.address, contracts[entry.address]) :
                             null;
-                    if (entry.topics.length > 0 && entry.topics[0].length === 64) {
+                    if (!contract) {
+                        logger.log(log('Unknown', entry));
+                    } else if (entry.topics.length > 0 && entry.topics[0].length === 64) {
                         var event = contract.findEvent(entry.topics[0]);
-                        ethConsole.log(
+                        logger.log(
                             event ?
-                                showEvent(contract, event, entry) :
-                                log(contract, entry)
+                                showEvent(contract.name, event, entry) :
+                                log(contract.name, entry)
                         );
                     } else {
-                        ethConsole.log(log(contract, entry));
+                        logger.log(log(contract.name, entry));
                     }
-                });
+                }
 
-                function showEvent(contract, event, entry) {
+                function showEvent(contractName, event, entry) {
                     entry.topics.shift(); // skip event hash
-                    return 'Sandbox Event (' + contract.name + '.' + event.name + '): ' +
+                    return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
                         _(event.inputs).map(function(input) {
                             var val = input.indexed ?
                                     entry.topics.shift() : entry.data.shift();
@@ -141,8 +156,8 @@ define(function(require, exports, module) {
                         }).join(', ');
                 }
                 
-                function log(contract, entry) {
-                    return 'Sandbox LOG (' + contract.name + '): ' +
+                function log(contractName, entry) {
+                    return 'Sandbox LOG (' + contractName + '): ' +
                         _(entry.data).concat(entry.topics)
                         .map(function(val) {
                             return _.escape(formatter.detectType(val).format(val));
@@ -298,9 +313,19 @@ define(function(require, exports, module) {
                 if (files.length === 0) cb(null, []);
                 else
                     compiler.binaryAndABI(files, function(err, compiled) {
-                        if (err) return cb(err);
-                        // flatten the array of arrays of contracts
-                        cb(null, [].concat.apply([], compiled));
+                        if (err) {
+                            if (err.type === 'SYNTAX') {
+                                tabs.open({
+                                    path: err.file,
+                                    focus: true
+                                }, function(error, tab){
+                                    if (error) return console.error(error);
+                                    tab.editor.ace.gotoLine(err.line, err.column);
+                                });
+                            }
+                            cb(err.message);
+                        }
+                        else cb(null, compiled);
                     });
             }
         }
@@ -311,7 +336,7 @@ define(function(require, exports, module) {
             if (jsonAtTheEnd === -1) jsonAtTheEnd = text.indexOf('{"filter"');
             return jsonAtTheEnd !== -1 ? text.substr(0, jsonAtTheEnd) : text;
         }
-        
+
         plugin.on('load', function() {
             load();
         });

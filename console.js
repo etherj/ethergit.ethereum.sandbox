@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['editors', 'Editor', 'ui', 'tabManager'];
+    main.consumes = ['editors', 'Editor', 'ui', 'tabManager', 'ethergit.libs'];
     main.provides = ['ethereum-console'];
 
     return main;
@@ -9,29 +9,31 @@ define(function(require) {
         var Editor = imports.Editor;
         var ui = imports.ui;
         var tabs = imports.tabManager;
+        var libs = imports['ethergit.libs'];
+
+        var $ = libs.jquery();
 
         function EthereumConsole() {
             var ethConsole = new Editor('Ethergit', main.consumes, []);
 
             ethConsole.freezePublicAPI({
-                log: log
+                log: log,
+                error: error,
+                clear: clear
             });
 
             ui.insertCss(require('text!./console.css'), false, ethConsole);
             
             ethConsole.load(null, 'ethereum-console');
 
-            var container;
+            var $log;
             ethConsole.on('draw', function(e) {
-                var content = e.htmlNode;
-                ui.insertHtml(
-                    content,
+                var $root = $(e.htmlNode).html(            
                     '<div class="ethereum-console-container">\
                         <ul class="ethereum-console list-unstyled" data-name="ethereum-console"></ul>\
-                    </div>',
-                    ethConsole
+                    </div>'
                 );
-                container = content.querySelector('ul[data-name=ethereum-console]');
+                $log = $root.find('ul[data-name=ethereum-console]');
             });
 
             ethConsole.on('documentLoad', function(e) {
@@ -41,26 +43,29 @@ define(function(require) {
             return ethConsole;
 
             function log(entry) {
-                ui.insertHtml(container, '<li>' + entry + '</li>', ethConsole);
+                $log.append('<li>' + entry + '</li>');
+            }
+
+            function error(entry) {
+                $log.append('<li class="text-danger">' + entry + '</li>');
+            }
+
+            function clear() {
+                $log.empty();
             }
         }
         
         var handle = editors.register('ethereum-console', 'Ethereum Console', EthereumConsole, []);
 
         handle.freezePublicAPI({
-            log: function(entry) {
-                showLog(function(err, tab) {
-                    if (err) console.error(err);
-                    else tab.editor.log(entry);
-                });
-            }
+            logger: show
         });
         
         register(null, {
             'ethereum-console': handle
         });
 
-        function showLog(cb) {
+        function show(cb) {
             var pane = tabs.getPanes().length > 1 ?
                     tabs.getPanes()[1] :
                     tabs.getPanes()[0].vsplit(true);
@@ -72,8 +77,9 @@ define(function(require) {
                 pane: pane,
                 demandExisting: true
             }, function(err, tab) {
+                if (err) return cb(err);
                 if (!tab.classList.names.contains('dark')) tab.classList.add('dark');
-                cb(err, tab);
+                cb(null, tab.editor);
             });
         }
     }
