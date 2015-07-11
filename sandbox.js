@@ -44,7 +44,7 @@ define(function(require, exports, module) {
                     ethConsole.logger(function(err, logger) {
                         if (err) return console.error(err);
                         logger.clear();
-                        runOrStopSandbox(sandbox, function(err, sandbox) {
+                        runOrStopSandbox(sandbox, function(err) {
                             if (err) logger.error('<pre>' + err + '</pre>');
                         });
                     });
@@ -178,58 +178,72 @@ define(function(require, exports, module) {
                     createContracts
                 ], cb);
             } else if (sandbox.state() === 'ACTIVE') {
-                sandbox.stop(function(err) {
-                    cb(err, sandbox);
-                });
+                sandbox.stop(cb);
             } else cb('Wait until Sandbox finish initialization.');
             
             function readConfig(contracts, cb) {
-                fs.readFile('/sandbox.json', function(err, content) {
+                fs.readFile('/ethereum.json', function(err, content) {
                     if (err) return cb(err);
-
-                    content = removeMetaInfo(content);
-                    
                     try {
-                        var config = JSON.parse(content);
+                        var config = JSON.parse(removeMetaInfo(content));
                     } catch(e) {
-                        return cb('Could not parse sandbox.json: ' + e.message);
+                        return cb('Could not parse ethereum.json: ' + e.message);
                     }
-                    
                     cb(null, config, contracts);
                 });
             }
             function parseValues(config, contracts, cb) {
-                if (!config.hasOwnProperty('env') || Object.keys(config.env) === 0) {
-                    return cb('Please, add initial account(s) to sandbox.json');
+                if (!config.hasOwnProperty('env') || !config.env.hasOwnProperty('accounts') ||
+                    Object.keys(config.env).length === 0) {
+                    return cb('Please, add initial account(s) to ethereum.json');
                 }
 
                 try {
-                    Object.keys(config.env).forEach(function(address) {
-                        var account = config.env[address];
-                        ['balance', 'nonce'].forEach(function(field) {
+                    if (config.env.hasOwnProperty('block')) {
+                        var block = config.env.block;
+                        if (block.hasOwnProperty('coinbase'))
+                            try {
+                                block.coinbase = address(block.coinbase);
+                            } catch (e) {
+                                throw 'Could not parse block.address: ' + e;
+                            }
+                        _.each(
+                            ['difficulty', 'gasLimit', 'number', 'timestamp'],
+                            function(field) {
+                                if (block.hasOwnProperty(field)) {
+                                    try {
+                                        block[field] = value(block[field]);
+                                    } catch (e) {
+                                        throw 'Could not parse block.' + field + ': ' + e;
+                                    }
+                                }
+                            }
+                        );
+                    }
+
+                    _.each(config.env.accounts, function(account) {
+                        _.each(['balance', 'nonce'], function(field) {
                             if (account.hasOwnProperty(field)) {
                                 try {
                                     account[field] = value(account[field]);
                                 } catch (e) {
-                                    throw 'Could not parse ' + field + ': ' + e;
+                                    throw 'Could not parse account.' + field + ': ' + e;
                                 }
                             }
                         });
                         if (account.hasOwnProperty('storage')) {
-                            var parsedStorage = {};
-                            Object.keys(account.storage).forEach(function(key) {
+                            account.storage = _(account.storage).map(function(val, key) {
                                 try {
                                     var parsedKey = value(key);
                                 } catch (e) {
                                     throw 'Could not parse key of storage entry: ' + e;
                                 }
                                 try {
-                                    parsedStorage[parsedKey] = value(account.storage[key]);
+                                    return [parsedKey, value(val)];
                                 } catch (e) {
                                     throw 'Could not parse value of storage entry: ' + e;
                                 }
-                            });
-                            account.storage = parsedStorage;
+                            }).object().value();
                         }
                     });
                 } catch (e) {
@@ -256,15 +270,18 @@ define(function(require, exports, module) {
                     }
                     return res;
                 }
+                function address(val) {
+                    if (typeof val !== 'string' || val.length !== 40)
+                        throw 'Address should be a string with 40 characters';
+                    return val;
+                }
             }
             function calcPrivateKeys(config, contracts, cb) {
                 try {
-                    Object.keys(config.env).forEach(function(address) {
-                        var account = config.env[address];
+                    _.each(config.env.accounts, function(account) {
                         if (account.hasOwnProperty('pkey')) {
                             if (typeof account.pkey != 'string') {
-                                throw 'Private key should be a hexadecimal hash (64 symbols) or a string';
-                            }
+                                throw 'Private key should be a hexadecimal hash (64 symbols) or a string';                            }
                             if (account.pkey.length !== 64) {
                                 account.pkey = utils.sha3(account.pkey);
                             }
