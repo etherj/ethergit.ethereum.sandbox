@@ -28,11 +28,18 @@ define(function(require) {
         var panel = new Panel('Ethergit', main.consumes, {
             index: 300,
             width: 400,
-            caption: 'Ethergit Sandbox',
+            caption: 'Ethereum Sandbox',
             minWidth: 300,
             where: 'right'
         });
 
+        panel.on('load', function() {
+            sandbox.on('stateChanged', function(state) {
+                if (state === 'ACTIVE') panel.show();
+                panel.render();
+            });
+        });
+        
         var $sandbox = null;
 
         panel.on('draw', function(e) {
@@ -53,9 +60,9 @@ define(function(require) {
             if ($sandbox === null) return;
             
             if (sandbox.state() === 'CLEAN') {
-                $sandbox.html('<div class="accounts-container"><h3>Start Ethereum Sandbox to run your contracts.<h3></div>');
-            } else if (sandbox.state() === 'INITIALIZING') {
-                $sandbox.html('<div class="accounts-container"><h3>Initializing...<h3></div>');
+                $sandbox.html('<div class="accounts-container"><h4>Start Ethereum Sandbox to run your contracts.<h4></div>');
+            } else if (sandbox.state() === 'STARTING') {
+                $sandbox.html('<div class="accounts-container"><h3>Starting the sandbox...<h4></div>');
             } else if (sandbox.state() === 'ACTIVE') {
                 renderAccounts(
                     $sandbox.html('<div class="accounts-container">').children(),

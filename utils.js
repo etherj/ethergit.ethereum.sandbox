@@ -54,6 +54,12 @@ define(function(require) {
         },
         calcNewAddress: function(from, nonce) {
             return ethereumjsUtil.generateAddress(from, nonce + 1);
+        },
+        // Workaround for https://github.com/c9/core/issues/71
+        removeMetaInfo: function(text) {
+            var jsonAtTheEnd = text.indexOf('{"changed"');
+            if (jsonAtTheEnd === -1) jsonAtTheEnd = text.indexOf('{"filter"');
+            return jsonAtTheEnd !== -1 ? text.substr(0, jsonAtTheEnd) : text;
         }
     };
 });

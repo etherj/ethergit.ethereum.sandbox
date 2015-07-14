@@ -1,5 +1,9 @@
 define(function(require) {
-    main.consumes = ['editors', 'Editor', 'ui', 'tabManager', 'ethergit.libs'];
+    main.consumes = [
+        'editors', 'Editor', 'ui', 'tabManager',
+        'ethergit.libs',
+        'ethergit.sandbox'
+    ];
     main.provides = ['ethereum-console'];
 
     return main;
@@ -10,7 +14,12 @@ define(function(require) {
         var ui = imports.ui;
         var tabs = imports.tabManager;
         var libs = imports['ethergit.libs'];
+        var sandbox = imports['ethergit.sandbox'];
 
+        var async = require('async');
+        var Contract = require('./contract');
+        var formatter = require('./formatter');
+        
         var $ = libs.jquery();
 
         function EthereumConsole() {
@@ -57,6 +66,57 @@ define(function(require) {
         
         var handle = editors.register('ethereum-console', 'Ethereum Console', EthereumConsole, []);
 
+        handle.on('load', function() {
+            sandbox.on('log', function(entry) {
+                async.parallel({
+                    contracts: sandbox.contracts,
+                    logger: show
+                }, showLog);
+                
+                function showLog(err, options) {
+                    if (err) return console.error(err);
+
+                    var contracts = options.contracts;
+                    var logger = options.logger;
+                    
+                    var contract = contracts.hasOwnProperty(entry.address) ?
+                            Object.create(Contract).init(entry.address, contracts[entry.address]) :
+                            null;
+                    if (!contract) {
+                        logger.log(log('Unknown', entry));
+                    } else if (entry.topics.length > 0 && entry.topics[0].length === 64) {
+                        var event = contract.findEvent(entry.topics[0]);
+                        logger.log(
+                            event ?
+                                showEvent(contract.name, event, entry) :
+                                log(contract.name, entry)
+                        );
+                    } else {
+                        logger.log(log(contract.name, entry));
+                    }
+                }
+
+                function showEvent(contractName, event, entry) {
+                    entry.topics.shift(); // skip event hash
+                    return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
+                        _(event.inputs).map(function(input) {
+                            var val = input.indexed ?
+                                    entry.topics.shift() : entry.data.shift();
+                            return _.escape(formatter.findFormatter(input.type).format(val));
+                        }).join(', ');
+                }
+                
+                function log(contractName, entry) {
+                    return 'Sandbox LOG (' + contractName + '): ' +
+                        _(entry.data).concat(entry.topics)
+                        .map(function(val) {
+                            return _.escape(formatter.detectType(val).format(val));
+                        })
+                        .join(', ');
+                }
+            });
+        });
+        
         handle.freezePublicAPI({
             logger: show
         });

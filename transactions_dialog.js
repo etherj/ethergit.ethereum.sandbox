@@ -1,9 +1,10 @@
 define(function(require) {
     main.consumes = [
-        'Dialog', 'ui', 'dialog.error', 'http', 'tabManager',
+        'Dialog', 'ui', 'dialog.error', 'http', 'tabManager', 'commands', 'layout',
         'ethergit.libs',
         'ethergit.ethereum.sandbox.dialog.transaction',
-        'ethergit.ethereum.sandbox.dialog.new.tx'
+        'ethergit.ethereum.sandbox.dialog.new.tx',
+        'ethergit.sandbox'
     ];
     main.provides = ['ethergit.ethereum.sandbox.dialog.transactions'];
     
@@ -15,9 +16,12 @@ define(function(require) {
         var errorDialog = imports['dialog.error'];
         var http = imports.http;
         var tabs = imports.tabManager;
+        var commands = imports.commands;
+        var layout = imports.layout;
         var libs = imports['ethergit.libs'];
         var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
         var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
+        var sandbox = imports['ethergit.sandbox'];
         var async = require('async');
         var utils = require('./utils');
 
@@ -48,17 +52,50 @@ define(function(require) {
                 }
             ]
         });
-        
-        var sandbox;
+
+        dialog.on('load', function() {
+            commands.addCommand({
+                name: 'showTransactions',
+                exec: dialog.show.bind(dialog)
+            }, dialog);
+
+            var btnTransactions = ui.insertByIndex(
+                layout.getElement('barTools'),
+                new ui.button({
+                    id: 'btnTransactions',
+                    skin: 'c9-toolbarbutton-glossy',
+                    command: 'showTransactions',
+                    caption: 'Transactions',
+                    disabled: true
+                }),
+                400, dialog
+            );
+
+            sandbox.on('stateChanged', function() {
+                var state = sandbox.state();
+                if (state === 'ACTIVE') {
+                    btnTransactions.setAttribute('disabled', false);
+                } else {
+                    btnTransactions.setAttribute('caption', 'Transactions');
+                    btnTransactions.setAttribute('disabled', true);
+                }
+            });
+
+            sandbox.on('changed', function() {
+                sandbox.transactions(function(err, transactions) {
+                    if (err) console.error(err);
+                    else btnTransactions.setAttribute(
+                        'caption', 'Transactions (' + transactions.length + ')'
+                    );
+                });
+            });
+        });
         
         dialog.on('draw', function(e) {
             e.html.innerHTML = require('text!./transactions.html');
-//            dialog.aml.setAttribute('zindex', dialog.aml.zindex - 890000);            
         });
 
-        function showSandbox(targetSandbox) {
-            dialog.show();
-            sandbox = targetSandbox;
+        dialog.on('show', function() {
             render();
             sandbox.on('changed', render, dialog);
             
@@ -68,7 +105,7 @@ define(function(require) {
                     transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
                 }
             });
-        }
+        });
         
         function render() {
             var $container = $('[data-name=transactions]').empty();
@@ -234,9 +271,7 @@ define(function(require) {
             ui.insertCss(require('text!./transactions.css'), false, dialog);
         });
         
-        dialog.freezePublicAPI({
-            showSandbox: showSandbox
-        });
+        dialog.freezePublicAPI({ });
         
         register(null, {
             'ethergit.ethereum.sandbox.dialog.transactions': dialog
