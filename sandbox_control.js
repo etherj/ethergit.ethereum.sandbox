@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands',
+        'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save',
         'ethergit.libs',
         'ethergit.sandbox',
         'ethergit.solidity.compiler',
@@ -17,6 +17,7 @@ define(function(require, exports, module) {
         var find = imports.find;
         var tabs = imports.tabManager;
         var commands = imports.commands;
+        var save = imports.save;
         var libs = imports['ethergit.libs'];
         var sandbox = imports['ethergit.sandbox'];
         var compiler = imports['ethergit.solidity.compiler'];
@@ -110,18 +111,25 @@ define(function(require, exports, module) {
 
         function run(cb) {
             if (sandbox.state() !== 'CLEAN') return cb('Sandbox is running already');
-            
+
             async.series({
+                save: saveAll,
                 config: loadConfig,
                 contracts: compileContracts
             }, function(err, params) {
-                if (err) cb(err);
+                if (err) cb(err === 'CANCEL' ? null : err);
                 else async.series([
                     startSandbox.bind(this, params.config),
                     createContracts.bind(this, params.contracts)
                 ], cb);
             });
 
+            function saveAll(cb) {
+                save.saveAllInteractive(tabs.getTabs(), function(result) {
+                    cb(result === 0 ? 'CANCEL' : null);
+                });
+            }
+            
             function loadConfig(cb) {
                 async.waterfall([
                     read,
