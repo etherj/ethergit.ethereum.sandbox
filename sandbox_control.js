@@ -32,20 +32,55 @@ define(function(require, exports, module) {
         var control = new Plugin('Ethergit', main.consumes);
         
         control.on('load', function() {
-            /*ui.insertByIndex(
+            var runCommands = {
+                'runAllContracts': 'Run All Contracts',
+                'runCurrentContract': 'Run Active Contract',
+                'stopSandbox': 'Stop Sandbox'
+            };
+            var choosenCommand = 'runAllContracts';
+            var command = choosenCommand;
+            
+            ui.insertByIndex(
                 layout.getElement('barTools'),
-                //require('text!./sandbox_control.html'),
-                '<div>test</div>',
-                320, ui
-            );*/
+                '<application>' + require('text!./sandbox_control.html') + '</application>',
+                320, control
+            );
 
+            var $widget = $('[data-name=startSandbox]');
+            var $run = $widget.find('[data-name=run]');
+            $run.click(function() {
+                commands.exec(command, tabs.focussedTab.editor);
+            });
+
+            var $runAll = $widget.find('[data-name=runAll]');
+            $runAll.click(function() {
+                if (sandbox.state() !== 'CLEAN') stopSandbox(run);
+                else run();
+                
+                function run() {
+                    choosenCommand = 'runAllContracts';
+                    commands.exec(choosenCommand, tabs.focussedTab.editor);
+                }
+            });
+
+            var $runCurrent = $widget.find('[data-name=runCurrent]');
+            $runCurrent.click(function() {
+                if (sandbox.state() !== 'CLEAN') stopSandbox(run);
+                else run();
+                
+                function run() {
+                    choosenCommand = 'runCurrentContract';
+                    commands.exec(choosenCommand, tabs.focussedTab.editor);
+                }
+            });
+            
             commands.addCommand({
-                name: 'runSandbox',
+                name: 'runAllContracts',
                 exec: function() {
                     ethConsole.logger(function(err, logger) {
                         if (err) return console.err(err);
                         logger.clear();
-                        run(function(err) {
+                        run(false, function(err) {
                             if (err) logger.error('<pre>' + err + '</pre>');
                         });
                     });
@@ -53,43 +88,46 @@ define(function(require, exports, module) {
             }, control);
 
             commands.addCommand({
-                name: 'stopSandbox',
+                name: 'runCurrentContract',
                 exec: function() {
                     ethConsole.logger(function(err, logger) {
                         if (err) return console.err(err);
-                        stop(function(err) {
-                            if (err) logger.error(err);
+                        logger.clear();
+                        run(true, function(err) {
+                            if (err) logger.error('<pre>' + err + '</pre>');
                         });
                     });
                 }
+            }, control);            
+
+            commands.addCommand({
+                name: 'stopSandbox',
+                exec: stopSandbox
             }, control);
 
-            var btnSandbox = ui.insertByIndex(
-                layout.getElement('barTools'),
-                new ui.button({
-                    id: 'btnSandbox',
-                    skin: 'c9-toolbarbutton-glossy',
-                    command: 'runSandbox',
-                    caption: 'Run Contracts',
-                    disabled: false,
-                    icon: 'run.png'
-                }),
-                300, control
-            );
+            function stopSandbox(cb) {
+                ethConsole.logger(function(err, logger) {
+                    if (err) return console.err(err);
+                    stop(function(err) {
+                        if (err) logger.error(err);
+                        if (typeof cb === 'function') cb(err);
+                    });
+                });
+            }
 
             sandbox.on('stateChanged', function() {
                 var config = {
                     CLEAN: {
-                        caption: 'Run Contracts',
+                        caption: runCommands[choosenCommand],
                         disabled: false,
-                        command: 'runSandbox'
+                        command: choosenCommand
                     },
                     STARTING: {
                         caption: 'Starting...',
                         disabled: true
                     },
                     ACTIVE: {
-                        caption: 'Stop Sandbox',
+                        caption: runCommands['stopSandbox'],
                         disabled: false,
                         command: 'stopSandbox'
                     },
@@ -102,20 +140,28 @@ define(function(require, exports, module) {
                 update(config[sandbox.state()]);
                 
                 function update(config) {
-                    btnSandbox.setAttribute('caption', config.caption);
-                    btnSandbox.setAttribute('disabled', config.disabled);
-                    btnSandbox.setAttribute('command', config.command);
+                    $run.text(config.caption);
+                    
+                    if (config.disabled) $run.addClass('disabled');
+                    else $run.removeClass('disabled');
+                    
+                    if (config.command === 'stopSandbox')
+                        $run.removeClass('stopped').addClass('started');
+                    else
+                        $run.removeClass('started').addClass('stopped');
+                    
+                    command = config.command;
                 }
             });
         });
 
-        function run(cb) {
+        function run(current, cb) {
             if (sandbox.state() !== 'CLEAN') return cb('Sandbox is running already');
 
             async.series({
                 save: saveAll,
                 config: loadConfig,
-                contracts: compileContracts
+                contracts: compileContracts.bind(null, current)
             }, function(err, params) {
                 if (err) cb(err === 'CANCEL' ? null : err);
                 else async.series([
@@ -250,22 +296,29 @@ define(function(require, exports, module) {
                 }
             }
 
-            function compileContracts(cb) {
+            function compileContracts(current, cb) {
                 async.waterfall([
-                    findSolidityFiles,
+                    getFiles.bind(null, current),
                     compile
                 ], cb);
+
+                function getFiles(current, cb) {
+                    if (current) {
+                        if (!tabs.focussedTab) cb('Open a Solidity file to run it.');
+                        else cb(null, ['.' + tabs.focussedTab.path]);
+                    } else findSolidityFiles(cb);
                 
-                function findSolidityFiles(cb) {
-                    find.findFiles({
-                        path: '',
-                        pattern : '*.sol',
-                        buffer  : true
-                    }, function(err, result) {
-                        cb(null, result
-                           .match(/.+(?=:)/g)
-                           .map(function(path) { return '.' + path; }));
-                    });
+                    function findSolidityFiles(cb) {
+                        find.findFiles({
+                            path: '',
+                            pattern : '*.sol',
+                            buffer  : true
+                        }, function(err, result) {
+                            cb(null, result
+                               .match(/.+(?=:)/g)
+                               .map(function(path) { return '.' + path; }));
+                        });
+                    }
                 }
                 function compile(files, cb) {
                     if (files.length === 0) cb(null, []);
@@ -309,6 +362,8 @@ define(function(require, exports, module) {
             if (sandbox.state() !== 'ACTIVE') cb('Sandbox is not running');
             else sandbox.stop(cb);
         }
+
+        ui.insertCss(require('text!./sandbox_control.css'), false, control);
         
         register(null, { 'ethergit.sandbox.control': control });
     }
