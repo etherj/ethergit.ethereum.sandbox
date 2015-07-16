@@ -1,5 +1,5 @@
 /* a hack for "sandbox settings" dropdown */
-.c9-menu-bar .c9-mbar-cont {
+.c9-menu-bar #q2.c9-mbar-cont {
     overflow: visible;
 }
 

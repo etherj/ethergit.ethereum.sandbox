@@ -52,8 +52,7 @@ define(function(require, exports, module) {
                 commands.exec(command, tabs.focussedTab.editor);
             });
 
-            var $runAll = $widget.find('[data-name=runAll]');
-            $runAll.click(function() {
+            $widget.find('[data-name=runAll]').click(function() {
                 if (sandbox.state() !== 'CLEAN') stopSandbox(run);
                 else run();
                 
@@ -63,8 +62,7 @@ define(function(require, exports, module) {
                 }
             });
 
-            var $runCurrent = $widget.find('[data-name=runCurrent]');
-            $runCurrent.click(function() {
+            $widget.find('[data-name=runCurrent]').click(function() {
                 if (sandbox.state() !== 'CLEAN') stopSandbox(run);
                 else run();
                 
@@ -73,7 +71,7 @@ define(function(require, exports, module) {
                     commands.exec(choosenCommand, tabs.focussedTab.editor);
                 }
             });
-            
+
             commands.addCommand({
                 name: 'runAllContracts',
                 exec: function() {
@@ -304,7 +302,8 @@ define(function(require, exports, module) {
 
                 function getFiles(current, cb) {
                     if (current) {
-                        if (!tabs.focussedTab) cb('Open a Solidity file to run it.');
+                        if (!tabs.focussedTab || tabs.focussedTab.editorType !== 'ace')
+                            cb('Focussed tab is not a text file');
                         else cb(null, ['.' + tabs.focussedTab.path]);
                     } else findSolidityFiles(cb);
                 
