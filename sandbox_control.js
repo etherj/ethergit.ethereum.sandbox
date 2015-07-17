@@ -309,13 +309,12 @@ define(function(require, exports, module) {
                 
                     function findSolidityFiles(cb) {
                         find.findFiles({
-                            path: '',
+                            path: 'dapp/contracts',
                             pattern : '*.sol',
                             buffer  : true
                         }, function(err, result) {
-                            cb(null, result
-                               .match(/.+(?=:)/g)
-                               .map(function(path) { return '.' + path; }));
+                            var files = result.match(/.+(?=:)/g);
+                            cb(null, files ? files.map(function(path) { return '.' + path; }) : []);
                         });
                     }
                 }
