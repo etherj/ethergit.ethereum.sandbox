@@ -54,7 +54,7 @@ define(function(require) {
             $contract = $root.find('[data-name=contract]');
             $name = $contract.find('[data-name=name]');
             $methods = $contract.find('[data-name=methods]');
-            
+
             $contract.click(folder.foldOrUnfold);
             
             var showOrHideAdvanced = (function() {
@@ -220,10 +220,6 @@ define(function(require) {
                 }
             }
         }
-        
-        dialog.on('hide', function() {
-            $('[data-name=contract]').off('click');
-        });
         
         function getTypeLabel(type) {
             if (type === 'address') return 'address';
