@@ -156,11 +156,11 @@ define(function(require, exports, module) {
         function run(current, cb) {
             if (sandbox.state() !== 'CLEAN') return cb('Sandbox is running already');
 
-            async.series({
-                save: saveAll,
-                config: loadConfig,
-                contracts: compileContracts.bind(null, current)
-            }, function(err, params) {
+            async.waterfall([
+                saveAll,
+                loadConfig,
+                compileContracts.bind(null, current)
+            ], function(err, params) {
                 if (err) cb(err === 'CANCEL' ? null : err);
                 else async.series([
                     startSandbox.bind(this, params.config),
@@ -196,6 +196,13 @@ define(function(require, exports, module) {
                     if (!config.hasOwnProperty('env') || !config.env.hasOwnProperty('accounts') ||
                         Object.keys(config.env).length === 0) {
                         return cb('Please, add initial account(s) to ethereum.json');
+                    }
+
+                    if (!config.hasOwnProperty('contracts')) {
+                        return cb('Please, specify contracts directory in ethereum.json');
+                    }
+                    if (typeof config.contracts != 'string') {
+                        return cb('Field contracts in ethereum.json should be a string');
                     }
 
                     try {
@@ -294,11 +301,13 @@ define(function(require, exports, module) {
                 }
             }
 
-            function compileContracts(current, cb) {
+            function compileContracts(current, config, cb) {
                 async.waterfall([
                     getFiles.bind(null, current),
                     compile
-                ], cb);
+                ], function(err, contracts) {
+                    cb(err, { contracts: contracts, config: config });
+                });
 
                 function getFiles(current, cb) {
                     if (current) {
@@ -309,7 +318,7 @@ define(function(require, exports, module) {
                 
                     function findSolidityFiles(cb) {
                         find.findFiles({
-                            path: 'dapp/contracts',
+                            path: config.contracts,
                             pattern : '*.sol',
                             buffer  : true
                         }, function(err, result) {
