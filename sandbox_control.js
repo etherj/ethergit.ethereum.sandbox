@@ -189,7 +189,13 @@ define(function(require, exports, module) {
                     if (current) {
                         if (!tabs.focussedTab || tabs.focussedTab.editorType !== 'ace')
                             cb('Focussed tab is not a text file');
-                        else cb(null, ['.' + tabs.focussedTab.path]);
+                        else {
+                            var path = tabs.focussedTab.path;
+                            if (!_.startsWith(path, config.contracts))
+                                cb('Contract should be placed in the directory ' + config.contracts);
+                            else
+                                cb(null, [path.substr(config.contracts.length)]);
+                        }
                     } else findSolidityFiles(cb);
                 
                     function findSolidityFiles(cb) {
