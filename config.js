@@ -46,6 +46,10 @@ define(function(require, exports, module) {
                 if (typeof config.contracts != 'string') {
                     return cb('Field contracts in ethereum.json should be a string');
                 }
+                config.contracts = _.startsWith(config.contracts, './') ?
+                    '/' + config.contracts.substr(2) :
+                    '/' + config.contracts;
+                if (!_.endsWith(config.contracts, '/')) config.contracts += '/';
 
                 try {
                     adjustBlock();
@@ -115,7 +119,7 @@ define(function(require, exports, module) {
                             else
                                 account.source = './' + account.source;
                         }
-                        compiler.binaryAndABI([account.source], function(err, compiled) {
+                        compiler.binaryAndABI([account.source], '/', function(err, compiled) {
                             if (err) return cb(err.message);
                             if (compiled.length !== 1)
                                 return cb('File specified in source property of ethereum.json should contain only one contract');

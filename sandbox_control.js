@@ -194,19 +194,20 @@ define(function(require, exports, module) {
                 
                     function findSolidityFiles(cb) {
                         find.findFiles({
-                            path: config.contracts,
+                            path: '',
+                            base: find.basePath + config.contracts,
                             pattern : '*.sol',
                             buffer  : true
                         }, function(err, result) {
                             var files = result.match(/.+(?=:)/g);
-                            cb(null, files ? files.map(function(path) { return '.' + path; }) : []);
+                            cb(null, files ? files.map(function(path) { return path; }) : []);
                         });
                     }
                 }
                 function compile(files, cb) {
                     if (files.length === 0) cb(null, []);
                     else {
-                        compiler.binaryAndABI(files, function(err, compiled) {
+                        compiler.binaryAndABI(files, config.contracts, function(err, compiled) {
                             if (err) {
                                 if (err.type === 'SYNTAX') gotoLine(err);
                                 cb(err.message);
@@ -217,7 +218,7 @@ define(function(require, exports, module) {
 
                     function gotoLine(err) {
                         tabs.open({
-                            path: err.file,
+                            path: config.contracts + err.file,
                             focus: true
                         }, function(error, tab){
                             if (error) console.error(error);
