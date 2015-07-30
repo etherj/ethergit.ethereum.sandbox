@@ -16,6 +16,7 @@ define(function(require) {
         var libs = imports['ethergit.libs'];
         var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
         var sandbox = imports['ethergit.sandbox'];
+
         var accountTemplate = require('text!./account.html');
         var async = require('async');
         var folder = require('./folder');
@@ -33,17 +34,14 @@ define(function(require) {
             where: 'right'
         });
 
-        panel.on('load', function() {
-            sandbox.on('stateChanged', function(state) {
-                if (state === 'ACTIVE') panel.show();
-                panel.render();
-            });
-        });
-        
-        var $sandbox = null;
+        var $id;
+        var $sandbox;
 
         panel.on('draw', function(e) {
-            $sandbox = $(e.html);
+            var $root = $(e.html);
+            $root.append(require('text!./sandbox_panel.html'));
+            $id = $root.find('[data-name=sandbox-id]');
+            $sandbox = $root.find('[data-name=accounts-container]');
             $sandbox.click(folder.foldOrUnfold);
             $sandbox.click(formatter.format.bind(formatter));
             $sandbox.click(function(e) {
@@ -58,21 +56,17 @@ define(function(require) {
         
         panel.render = function() {
             if ($sandbox === null) return;
-            
-            if (sandbox.state() === 'CLEAN') {
-                $sandbox.html('<div class="accounts-container"><h4>Start Ethereum Sandbox to run your contracts.<h4></div>');
-            } else if (sandbox.state() === 'STARTING') {
-                $sandbox.html('<div class="accounts-container"><h3>Starting the sandbox...<h4></div>');
-            } else if (sandbox.state() === 'ACTIVE') {
-                renderAccounts(
-                    $sandbox.html('<div class="accounts-container">').children(),
-                    sandbox,
-                    function(err) {
-                        if (err) return console.error(err);
-                        
-                        folder.init($sandbox);
-                    }
-                );
+
+            if (!sandbox.getId()) {
+                $id.text('Not started');
+                $sandbox.empty();
+            } else {
+                $id.text(sandbox.getId());
+                $sandbox.empty();
+                renderAccounts($sandbox, sandbox, function(err) {
+                    if (err) return console.error(err);
+                    folder.init($sandbox);
+                });
             }
         };
         
@@ -83,6 +77,10 @@ define(function(require) {
                 hint: 'Ethereum Sandbox Panel',
                 bindKey: { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
             });
+            sandbox.on('select', function() {
+                panel.show();
+                panel.render();
+            });
             sandbox.on('changed', panel.render.bind(panel), panel);
         }
         
@@ -92,7 +90,6 @@ define(function(require) {
                 getAccounts(sandbox, showAccount.bind(undefined, $container, sandbox, contracts), cb);
             });
             
-            // TODO: accountHandler might be asynchronous functions, then cb will be called before the rendering really finished.
             function getAccounts(sandbox, accountHandler, cb) {
                 sandbox.accounts(function(err, accounts) {
                     if (err) return cb(err);

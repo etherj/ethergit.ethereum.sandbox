@@ -66,10 +66,10 @@ define(function(require) {
             if (!/^\d+$/.test(options.value)) {
                 form.getElement('error').setAttribute('caption', 'Value must be a digit.');
             } else {
-                sandbox.env(function(err, env) {
+                sandbox.predefinedAccounts(function(err, accounts) {
                     if (err) return console.err(err);
                     
-                    var pkey = env[options.from].pkey;
+                    var pkey = accounts[options.from].pkey;
                     if (pkey !== null) sendTx(pkey);
                     else {
                         pkeyDialog.ask(sendTx);
@@ -111,12 +111,12 @@ define(function(require) {
         dialog.on('show', function() {
             form.reset();
 
-            sandbox.env(function(err, env) {
+            sandbox.predefinedAccounts(function(err, accounts) {
                 if (err) return console.error(err);
                 
                 var items = [];
-                Object.keys(env).forEach(function(address) {
-                    var pkey = env[address].pkey;
+                Object.keys(accounts).forEach(function(address) {
+                    var pkey = accounts[address].pkey;
                     items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
                 });
                 form.update([{

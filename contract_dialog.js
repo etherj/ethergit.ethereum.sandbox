@@ -92,7 +92,7 @@ define(function(require) {
                 async.waterfall([ load, show ], cb);
 
                 function load(cb) {
-                    sandbox.env(cb);
+                    sandbox.predefinedAccounts(cb);
                 }
                 function show(accounts, cb) {
                     $sender.html(
@@ -177,9 +177,9 @@ define(function(require) {
                     }
 
                     var sender = $sender.val();
-                    sandbox.env(function(err, env) {
+                    sandbox.predefinedAccounts(function(err, accounts) {
                         if (err) return showError(err);
-                        if (env[sender].pkey) invoke(env[sender].pkey);
+                        if (accounts[sender].pkey) invoke(accounts[sender].pkey);
                         else pkeyDialog.ask(invoke);
                     });
 

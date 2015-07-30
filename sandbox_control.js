@@ -55,7 +55,7 @@ define(function(require, exports, module) {
             });
 
             $widget.find('[data-name=runAll]').click(function() {
-                if (sandbox.state() !== 'CLEAN') stopSandbox(run);
+                if (sandbox.getId()) stopSandbox(run);
                 else run();
                 
                 function run() {
@@ -65,7 +65,7 @@ define(function(require, exports, module) {
             });
 
             $widget.find('[data-name=runCurrent]').click(function() {
-                if (sandbox.state() !== 'CLEAN') stopSandbox(run);
+                if (sandbox.getId()) stopSandbox(run);
                 else run();
                 
                 function run() {
@@ -98,7 +98,7 @@ define(function(require, exports, module) {
                         });
                     });
                 }
-            }, control);            
+            }, control);      
 
             commands.addCommand({
                 name: 'stopSandbox',
@@ -115,49 +115,26 @@ define(function(require, exports, module) {
                 });
             }
 
-            sandbox.on('stateChanged', function() {
-                var config = {
-                    CLEAN: {
-                        caption: runCommands[choosenCommand],
-                        disabled: false,
-                        command: choosenCommand
-                    },
-                    STARTING: {
-                        caption: 'Starting...',
-                        disabled: true
-                    },
-                    ACTIVE: {
-                        caption: runCommands['stopSandbox'],
-                        disabled: false,
-                        command: 'stopSandbox'
-                    },
-                    STOPPING: {
-                        caption: 'Stopping...',
-                        disabled: true
-                    }
-                };
-
-                update(config[sandbox.state()]);
-                
-                function update(config) {
-                    $run.text(config.caption);
-                    
-                    if (config.disabled) $run.addClass('disabled');
-                    else $run.removeClass('disabled');
-                    
-                    if (config.command === 'stopSandbox')
-                        $run.removeClass('stopped').addClass('started');
-                    else
-                        $run.removeClass('started').addClass('stopped');
-                    
-                    command = config.command;
+            sandbox.on('process', function() {
+                $run.text('Processing...');
+                $run.addClass('disabled');
+            });
+            
+            sandbox.on('select', function() {
+                if (sandbox.getId()) {
+                    $run.text(runCommands['stopSandbox']);
+                    $run.removeClass('stopped').addClass('started');
+                    command = 'stopSandbox';
+                } else {
+                    $run.text(runCommands[choosenCommand]);
+                    $run.removeClass('started').addClass('stopped');
+                    command = choosenCommand;
                 }
+                $run.removeClass('disabled');
             });
         });
 
         function run(current, cb) {
-            if (sandbox.state() !== 'CLEAN') return cb('Sandbox is running already');
-
             async.waterfall([
                 saveAll,
                 config.parse.bind(config),
@@ -175,7 +152,6 @@ define(function(require, exports, module) {
                     cb(result === 0 ? 'CANCEL' : null);
                 });
             }
-            
 
             function compileContracts(current, config, cb) {
                 async.waterfall([
@@ -241,6 +217,7 @@ define(function(require, exports, module) {
             function createContracts(contracts, cb) {
                 async.eachSeries(contracts, function(contract, cb) {
                     sandbox.runTx({
+                      //value: '01',
                         data: contract.binary,
                         contract: contract
                     }, cb);
@@ -249,8 +226,7 @@ define(function(require, exports, module) {
         }
 
         function stop(cb) {
-            if (sandbox.state() !== 'ACTIVE') cb('Sandbox is not running');
-            else sandbox.stop(cb);
+            sandbox.stop(cb);
         }
 
         ui.insertCss(require('text!./sandbox_control.css'), false, control);

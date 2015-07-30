@@ -1,7 +1,14 @@
-.accounts-container {
-    color: white;
+.sandbox-panel {
     height: 100%;
-    overflow-y: scroll;
+    overflow: auto;
+    color: white;
+}
+
+.sandbox-id {
+    padding: 10px;
+}
+
+.accounts-container {
     padding: 10px;
 }
 

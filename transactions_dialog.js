@@ -71,9 +71,8 @@ define(function(require) {
                 400, dialog
             );
 
-            sandbox.on('stateChanged', function() {
-                var state = sandbox.state();
-                if (state === 'ACTIVE') {
+            sandbox.on('select', function() {
+                if (sandbox.getId()) {
                     btnTransactions.setAttribute('disabled', false);
                 } else {
                     btnTransactions.setAttribute('caption', 'Transactions');
