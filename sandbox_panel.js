@@ -74,12 +74,13 @@ define(function(require) {
             redraw: false,
             interval: undefined,
             start: function() {
-                this.interval = setInterval(function() {
+                clearInterval(this.interval);
+                this.interval = setInterval((function() {
                     if (this.redraw) {
                         this.redraw = false;
                         panel.render();
                     }
-                }, 1000);
+                }).bind(this), 1000);
             },
             stop: function() {
                 clearInterval(this.interval);
