@@ -18,7 +18,7 @@ define(function(require, exports, module) {
         
         var plugin = new Plugin('Ethergit', main.consumes);
         var emit = plugin.getEmitter();
-        var id, filter;
+        var id, filter, sandboxUrl = 'http://' + window.location.hostname + ':8555/sandbox/';
         
         web3._extend({
             property: 'sandbox',
@@ -73,7 +73,7 @@ define(function(require, exports, module) {
                 create,
                 function(cb) {
                     web3.setProvider(
-                        new web3.providers.HttpProvider('http://localhost:8555/sandbox/' + id)
+                        new web3.providers.HttpProvider(sandboxUrl + id)
                     );
                     cb();
                 },
@@ -87,14 +87,10 @@ define(function(require, exports, module) {
             });
 
             function create(cb) {
-                http.request(
-                    'http://localhost:8555/sandbox',
-                    { method: 'POST' },
-                    function(err, data) {
-                        id = data.id;
-                        cb();
-                    }
-                );
+                http.request(sandboxUrl, { method: 'POST' }, function(err, data) {
+                    id = data.id;
+                    cb();
+                });
             }
             function setupFilter(cb) {
                 filter = web3.eth.filter('pending');
@@ -108,15 +104,11 @@ define(function(require, exports, module) {
         function stop(cb) {
             emit('process');
             filter.stopWatching();
-            http.request(
-                'http://localhost:8555/sandbox/' + id,
-                { method: 'DELETE' },
-                function(err, data) {
-                    id = null;
-                    emit('select');
-                    cb();
-                }
-            );
+            http.request(sandboxUrl + id, { method: 'DELETE' }, function(err, data) {
+                id = null;
+                emit('select');
+                cb();
+            });
         }
         
         plugin.freezePublicAPI({
