@@ -34,8 +34,24 @@ define(function(require) {
             where: 'right'
         });
 
-        var $id;
-        var $sandbox;
+        var $id, $sandbox;
+
+        
+        panel.on('load', function() {
+            ui.insertCss(require('text!./style.css'), false, panel);
+            panel.setCommand({
+                name: 'sandboxPanel',
+                hint: 'Ethereum Sandbox Panel',
+                bindKey: { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
+            });
+            sandbox.on('select', function() {
+                panel.show();
+                panel.render();
+                if (sandbox.getId()) watcher.start();
+                else watcher.stop();
+            }, panel);
+            sandbox.on('changed', function() { watcher.redraw = true; });
+        });
 
         panel.on('draw', function(e) {
             var $root = $(e.html);
@@ -53,13 +69,27 @@ define(function(require) {
             });
             panel.render();
         });
+
+        var watcher = {
+            redraw: false,
+            interval: undefined,
+            start: function() {
+                this.interval = setInterval(function() {
+                    if (this.redraw) {
+                        this.redraw = false;
+                        panel.render();
+                    }
+                }, 1000);
+            },
+            stop: function() {
+                clearInterval(this.interval);
+            }
+        };
         
         panel.render = function() {
             if ($sandbox === null) return;
-
             if (!sandbox.getId()) {
                 $id.text('Not started');
-                $sandbox.empty();
             } else {
                 $id.text(sandbox.getId());
                 $sandbox.empty();
@@ -69,21 +99,7 @@ define(function(require) {
                 });
             }
         };
-        
-        function load() {
-            ui.insertCss(require('text!./style.css'), false, panel);
-            panel.setCommand({
-                name: 'sandboxPanel',
-                hint: 'Ethereum Sandbox Panel',
-                bindKey: { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
-            });
-            sandbox.on('select', function() {
-                panel.show();
-                panel.render();
-            });
-            sandbox.on('changed', panel.render.bind(panel), panel);
-        }
-        
+                
         function renderAccounts($container, sandbox, cb) {
             sandbox.contracts(function(err, contracts) {
                 if (err) return cb(err);
@@ -93,7 +109,7 @@ define(function(require) {
             function getAccounts(sandbox, accountHandler, cb) {
                 sandbox.accounts(function(err, accounts) {
                     if (err) return cb(err);
-                    
+
                     Object.keys(accounts).forEach(function(key) {
                         accountHandler(key, accounts[key]);
                     });
@@ -141,10 +157,6 @@ define(function(require) {
                 }
             }
         }
-        
-        panel.on('load', function() {
-            load();
-        });
         
         panel.freezePublicAPI({
         });
