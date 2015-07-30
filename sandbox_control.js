@@ -77,6 +77,7 @@ define(function(require, exports, module) {
             commands.addCommand({
                 name: 'runAllContracts',
                 exec: function() {
+                    disableButton();
                     ethConsole.logger(function(err, logger) {
                         if (err) return console.err(err);
                         logger.clear();
@@ -90,6 +91,7 @@ define(function(require, exports, module) {
             commands.addCommand({
                 name: 'runCurrentContract',
                 exec: function() {
+                    disableButton();
                     ethConsole.logger(function(err, logger) {
                         if (err) return console.err(err);
                         logger.clear();
@@ -98,7 +100,7 @@ define(function(require, exports, module) {
                         });
                     });
                 }
-            }, control);      
+            }, control);
 
             commands.addCommand({
                 name: 'stopSandbox',
@@ -106,6 +108,7 @@ define(function(require, exports, module) {
             }, control);
 
             function stopSandbox(cb) {
+                disableButton();
                 ethConsole.logger(function(err, logger) {
                     if (err) return console.err(err);
                     stop(function(err) {
@@ -115,10 +118,10 @@ define(function(require, exports, module) {
                 });
             }
 
-            sandbox.on('process', function() {
+            function disableButton() {
                 $run.text('Processing...');
                 $run.addClass('disabled');
-            });
+            }
             
             sandbox.on('select', function() {
                 if (sandbox.getId()) {
