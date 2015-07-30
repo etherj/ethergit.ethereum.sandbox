@@ -99,10 +99,11 @@ define(function(require) {
             } else {
                 rendering = true;
                 $id.text(sandbox.getId());
-                $sandbox.empty();
-                renderAccounts($sandbox, sandbox, function(err) {
+                var $container = $('<div></div>');
+                renderAccounts($container, sandbox, function(err) {
                     rendering = false;
                     if (err) return console.error(err);
+                    $sandbox.html($container);
                     folder.init($sandbox);
                 });
             }
