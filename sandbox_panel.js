@@ -35,7 +35,6 @@ define(function(require) {
         });
 
         var $id, $sandbox;
-
         
         panel.on('load', function() {
             ui.insertCss(require('text!./style.css'), false, panel);
@@ -45,10 +44,15 @@ define(function(require) {
                 bindKey: { mac: 'Command-Shift-E', win: 'Ctrl-Shift-E' }
             });
             sandbox.on('select', function() {
-                panel.show();
-                panel.render();
-                if (sandbox.getId()) watcher.start();
-                else watcher.stop();
+                if (sandbox.getId()) {
+                    panel.show();
+                    panel.render();
+                    watcher.start();
+                } else {
+                    panel.hide();
+                    panel.render();
+                    watcher.stop();
+                }
             }, panel);
             sandbox.on('changed', function() { watcher.redraw = true; });
         });
@@ -67,7 +71,6 @@ define(function(require) {
                     contractDialog.showContract(address);
                 }
             });
-            panel.render();
         });
 
         var watcher = {
@@ -76,7 +79,7 @@ define(function(require) {
             start: function() {
                 clearInterval(this.interval);
                 this.interval = setInterval((function() {
-                    if (this.redraw) {
+                    if (this.redraw && !rendering) {
                         this.redraw = false;
                         panel.render();
                     }
@@ -86,15 +89,19 @@ define(function(require) {
                 clearInterval(this.interval);
             }
         };
-        
+
+        var rendering = false;
         panel.render = function() {
             if ($sandbox === null) return;
             if (!sandbox.getId()) {
                 $id.text('Not started');
+                $sandbox.empty();
             } else {
+                rendering = true;
                 $id.text(sandbox.getId());
                 $sandbox.empty();
                 renderAccounts($sandbox, sandbox, function(err) {
+                    rendering = false;
                     if (err) return console.error(err);
                     folder.init($sandbox);
                 });
