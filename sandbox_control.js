@@ -82,7 +82,10 @@ define(function(require, exports, module) {
                         if (err) return console.err(err);
                         logger.clear();
                         run(false, function(err) {
-                            if (err) logger.error('<pre>' + err + '</pre>');
+                            if (err) {
+                                enableButton();
+                                logger.error('<pre>' + err + '</pre>');
+                            }
                         });
                     });
                 }
@@ -96,7 +99,10 @@ define(function(require, exports, module) {
                         if (err) return console.err(err);
                         logger.clear();
                         run(true, function(err) {
-                            if (err) logger.error('<pre>' + err + '</pre>');
+                            if (err) {
+                                enableButton();
+                                logger.error('<pre>' + err + '</pre>');
+                            }
                         });
                     });
                 }
@@ -112,7 +118,10 @@ define(function(require, exports, module) {
                 ethConsole.logger(function(err, logger) {
                     if (err) return console.err(err);
                     stop(function(err) {
-                        if (err) logger.error(err);
+                        if (err) {
+                            enableButton();
+                            logger.error('<pre>' + err + '</pre>');
+                        }
                         if (typeof cb === 'function') cb(err);
                     });
                 });
@@ -121,6 +130,11 @@ define(function(require, exports, module) {
             function disableButton() {
                 $run.text('Processing...');
                 $run.addClass('disabled');
+            }
+
+            function enableButton() {
+                $run.text(runCommands[choosenCommand]);
+                $run.removeClass('disabled');
             }
             
             sandbox.on('select', function() {

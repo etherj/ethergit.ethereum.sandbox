@@ -21,6 +21,7 @@ define(function(require) {
         var formatter = require('./formatter');
         
         var $ = libs.jquery();
+        var _ = libs.lodash();
 
         function EthereumConsole() {
             var ethConsole = new Editor('Ethergit', main.consumes, []);
@@ -78,37 +79,42 @@ define(function(require) {
 
                     var contracts = options.contracts;
                     var logger = options.logger;
-                    
-                    var contract = contracts.hasOwnProperty(entry.address) ?
-                            Object.create(Contract).init(entry.address, contracts[entry.address]) :
+
+                    var address = entry.address.substr(2);
+                    var data = split(entry.data.substr(2));
+                    var topics = _.invoke(entry.topics, 'substr', 2);
+                    var contract = contracts.hasOwnProperty(address) ?
+                            Object.create(Contract).init(entry.address, contracts[address]) :
                             null;
                     if (!contract) {
-                        logger.log(log('Unknown', entry));
-                    } else if (entry.topics.length > 0 && entry.topics[0].length === 64) {
-                        var event = contract.findEvent(entry.topics[0]);
+                        logger.log(log(address, data, topics));
+                    } else if (topics.length > 0 && topics[0].length === 64) {
+                        var event = contract.findEvent(topics[0]);
                         logger.log(
                             event ?
-                                showEvent(contract.name, event, entry) :
-                                log(contract.name, entry)
+                                showEvent(contract.name, event, data, topics) :
+                                log(contract.name, data, topics)
                         );
                     } else {
-                        logger.log(log(contract.name, entry));
+                        logger.log(log(contract.name, data, topics));
+                    }
+                    function split(str) {
+                        return str.match(/.{64}/g);
                     }
                 }
 
-                function showEvent(contractName, event, entry) {
-                    entry.topics.shift(); // skip event hash
+                function showEvent(contractName, event, data, topics) {
+                    topics.shift(); // skip event hash
                     return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
                         _(event.inputs).map(function(input) {
-                            var val = input.indexed ?
-                                    entry.topics.shift() : entry.data.shift();
+                            var val = input.indexed ? topics.shift() : data.shift();
                             return _.escape(formatter.findFormatter(input.type).format(val));
                         }).join(', ');
                 }
                 
-                function log(contractName, entry) {
+                function log(contractName, data, topics) {
                     return 'Sandbox LOG (' + contractName + '): ' +
-                        _(entry.data).concat(entry.topics)
+                        _(data).concat(topics)
                         .map(function(val) {
                             return _.escape(formatter.detectType(val).format(val));
                         })

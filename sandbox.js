@@ -19,7 +19,7 @@ define(function(require, exports, module) {
         
         var plugin = new Plugin('Ethergit', main.consumes);
         var emit = plugin.getEmitter();
-        var id, filter;
+        var id, filters = {};
         var sandboxUrl = 'http://' + window.location.hostname + ':8555/sandbox/';
         
         web3._extend({
@@ -71,14 +71,14 @@ define(function(require, exports, module) {
 
         function select(sandboxId) {
             if (id) {
-                filter.stopWatching();
+                _.invoke(filters, 'stopWatching');
                 connectionWatcher.stop();
             }
             if (sandboxId != id) {
                 id = sandboxId;
                 if (id) {
                     web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
-                    setupFilter();
+                    setupFilters();
                     connectionWatcher.start();
                 }
                 emit('select');
@@ -96,7 +96,7 @@ define(function(require, exports, module) {
                 },
                 web3.sandbox.setBlock.bind(web3.sandbox, env.block),
                 web3.sandbox.createAccounts.bind(web3.sandbox, env.accounts),
-                async.asyncify(setupFilter),
+                async.asyncify(setupFilters),
                 async.asyncify(connectionWatcher.start.bind(connectionWatcher))
             ], function(err) {
                 if (err) id = null;
@@ -113,11 +113,16 @@ define(function(require, exports, module) {
             }
         }
         
-        function setupFilter() {
-            filter = web3.eth.filter('pending');
-            filter.watch(function(err, result) {
-                if (err) return console.error(err);
-                emit('changed', result);
+        function setupFilters() {
+            filters['pending'] = web3.eth.filter('pending');
+            filters['pending'].watch(function(err, result) {
+                if (err) console.error(err);
+                else emit('changed', result);
+            });
+            filters['log'] = web3.eth.filter({});
+            filters['log'].watch(function(err, result) {
+                if (err) console.error(err);
+                else emit('log', result);
             });
         }
 
@@ -144,7 +149,7 @@ define(function(require, exports, module) {
         };
 
         function stop(cb) {
-            filter.stopWatching();
+            _.invoke(filters, 'stopWatching');
             connectionWatcher.stop();
             http.request(sandboxUrl + id, { method: 'DELETE' }, function(err, data) {
                 if (err) console.error(err);
