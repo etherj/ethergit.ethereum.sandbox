@@ -9,6 +9,8 @@
 }
 
 .sandbox-id {
+    position: relative;
+    float: left;
     min-width: 270px;
 }
 
