@@ -74,20 +74,23 @@ define(function(require) {
             sandbox.on('select', function() {
                 if (sandbox.getId()) {
                     btnTransactions.setAttribute('disabled', false);
+                    updateTxCounter();
                 } else {
                     btnTransactions.setAttribute('caption', 'Transactions');
                     btnTransactions.setAttribute('disabled', true);
                 }
             });
 
-            sandbox.on('changed', function() {
+            sandbox.on('changed', updateTxCounter);
+
+            function updateTxCounter() {
                 sandbox.transactions(function(err, transactions) {
                     if (err) console.error(err);
                     else btnTransactions.setAttribute(
                         'caption', 'Transactions (' + transactions.length + ')'
                     );
                 });
-            });
+            }
         });
         
         dialog.on('draw', function(e) {
