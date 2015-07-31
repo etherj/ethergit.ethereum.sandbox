@@ -1,11 +1,12 @@
 define(function(require, exports, module) {
-    main.consumes = ['Plugin', 'http', 'ethergit.libs'];
+    main.consumes = ['Plugin', 'http', 'dialog.error', 'ethergit.libs'];
     main.provides = ['ethergit.sandbox'];
     return main;
 
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
         var http = imports.http;
+        var showError = imports['dialog.error'].show;
         var libs = imports['ethergit.libs'];
         
         var async = require('async');
@@ -69,12 +70,16 @@ define(function(require, exports, module) {
         });
 
         function select(sandboxId) {
-            if (id) filter.stopWatching();
+            if (id) {
+                filter.stopWatching();
+                connectionWatcher.stop();
+            }
             if (sandboxId != id) {
                 id = sandboxId;
                 if (id) {
                     web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
                     setupFilter();
+                    connectionWatcher.start();
                 }
                 emit('select');
             }
@@ -91,7 +96,8 @@ define(function(require, exports, module) {
                 },
                 web3.sandbox.setBlock.bind(web3.sandbox, env.block),
                 web3.sandbox.createAccounts.bind(web3.sandbox, env.accounts),
-                async.asyncify(setupFilter)
+                async.asyncify(setupFilter),
+                async.asyncify(connectionWatcher.start.bind(connectionWatcher))
             ], function(err) {
                 if (err) id = null;
                 emit('select');
@@ -100,6 +106,7 @@ define(function(require, exports, module) {
 
             function create(cb) {
                 http.request(sandboxUrl, { method: 'POST' }, function(err, data) {
+                    if (err) return cb(err);
                     id = data.id;
                     cb();
                 });
@@ -109,13 +116,38 @@ define(function(require, exports, module) {
         function setupFilter() {
             filter = web3.eth.filter('pending');
             filter.watch(function(err, result) {
+                if (err) return console.error(err);
                 emit('changed', result);
             });
         }
 
+        var connectionWatcher = {
+            handler: undefined,
+            start: function() {
+                this.handler = setInterval(function() {
+                    try {
+                        web3.net.getListening(function(err, result) {
+                            if (err || !result) stopSandbox();
+                        });
+                    } catch (e) {
+                        stopSandbox();
+                    }
+                    function stopSandbox() {
+                        showError('The sandbox has been stopped.');
+                        select();
+                    }
+                }, 5000);
+            },
+            stop: function() {
+               clearInterval(this.handler);
+            }
+        };
+
         function stop(cb) {
             filter.stopWatching();
+            connectionWatcher.stop();
             http.request(sandboxUrl + id, { method: 'DELETE' }, function(err, data) {
+                if (err) console.error(err);
                 id = null;
                 emit('select');
                 cb();
