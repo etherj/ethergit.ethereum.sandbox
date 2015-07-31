@@ -4,10 +4,15 @@
     color: white;
 }
 
-.sandbox-id {
-    padding: 10px;
+.select-sandbox {
+    padding-top: 5px;
 }
 
+.sandbox-id {
+    min-width: 270px;
+}
+
+.sandbox-id,
 .accounts-container {
     padding: 10px;
 }

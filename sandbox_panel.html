@@ -1,4 +1,13 @@
-<div class="sandbox-panel">
-<div class="sandbox-id">Sandbox ID: <span data-name="sandbox-id">Not started</span></div>
-<div class="accounts-container" data-name="accounts-container"></div>
+<div class="bs-root sandbox-panel">
+  <div class="sandbox-id">Sandbox ID: <span data-name="sandbox-id">Not started</span></div>
+  <div class="btn-group select-sandbox">
+    <a id="selectSandbox" class="btn pull-right eci-btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <span class="caret"></span>
+      <span class="sr-only">Select sandbox</span>
+    </a>
+    <ul data-name="select-sandbox" class="dropdown-menu eci-dropdown-menu" aria-labelledby="selectSandbox">
+      <li data-id="notSelected">Not selected</li>
+    </ul>
+  </div>
+  <div class="accounts-container" data-name="accounts-container"></div>
 </div>

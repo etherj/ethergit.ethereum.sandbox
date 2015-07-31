@@ -18,7 +18,8 @@ define(function(require, exports, module) {
         
         var plugin = new Plugin('Ethergit', main.consumes);
         var emit = plugin.getEmitter();
-        var id, filter, sandboxUrl = 'http://' + window.location.hostname + ':8555/sandbox/';
+        var id, filter;
+        var sandboxUrl = 'http://' + window.location.hostname + ':8555/sandbox/';
         
         web3._extend({
             property: 'sandbox',
@@ -67,8 +68,19 @@ define(function(require, exports, module) {
             ]
         });
 
+        function select(sandboxId) {
+            if (id) filter.stopWatching();
+            if (sandboxId != id) {
+                id = sandboxId;
+                if (id) {
+                    web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
+                    setupFilter();
+                }
+                emit('select');
+            }
+        }
+        
         function start(env, cb) {
-            emit('process');
             async.series([
                 create,
                 function(cb) {
@@ -79,7 +91,7 @@ define(function(require, exports, module) {
                 },
                 web3.sandbox.setBlock.bind(web3.sandbox, env.block),
                 web3.sandbox.createAccounts.bind(web3.sandbox, env.accounts),
-                setupFilter
+                async.asyncify(setupFilter)
             ], function(err) {
                 if (err) id = null;
                 emit('select');
@@ -92,17 +104,16 @@ define(function(require, exports, module) {
                     cb();
                 });
             }
-            function setupFilter(cb) {
-                filter = web3.eth.filter('pending');
-                filter.watch(function(err, result) {
-                    emit('changed', result);
-                });
-                cb();
-            }
+        }
+        
+        function setupFilter() {
+            filter = web3.eth.filter('pending');
+            filter.watch(function(err, result) {
+                emit('changed', result);
+            });
         }
 
         function stop(cb) {
-            emit('process');
             filter.stopWatching();
             http.request(sandboxUrl + id, { method: 'DELETE' }, function(err, data) {
                 id = null;
@@ -110,11 +121,17 @@ define(function(require, exports, module) {
                 cb();
             });
         }
+
+        function list(cb) {
+            http.request(sandboxUrl, { method: 'GET' }, cb);
+        }
         
         plugin.freezePublicAPI({
             getId: function() { return id; },
+            select: select,
             start: start,
             stop: stop,
+            list: list,
             runTx: web3.sandbox.runTx.bind(web3.sandbox),
             accounts: web3.sandbox.accounts.bind(web3.sandbox),
             predefinedAccounts: web3.sandbox.predefinedAccounts.bind(web3.sandbox),

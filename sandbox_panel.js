@@ -23,6 +23,7 @@ define(function(require) {
         var formatter = require('./formatter');
 
         var $ = libs.jquery();
+        var _ = libs.lodash();
 
         apf.config.setProperty('allow-select', true);
 
@@ -34,7 +35,7 @@ define(function(require) {
             where: 'right'
         });
 
-        var $id, $sandbox;
+        var $id, $sandbox, $sandboxes;
         
         panel.on('load', function() {
             ui.insertCss(require('text!./style.css'), false, panel);
@@ -46,13 +47,13 @@ define(function(require) {
             sandbox.on('select', function() {
                 if (sandbox.getId()) {
                     panel.show();
-                    panel.render();
                     watcher.start();
                 } else {
                     panel.hide();
-                    panel.render();
                     watcher.stop();
                 }
+                panel.render();
+                updateSandboxes();
             }, panel);
             sandbox.on('changed', function() { watcher.redraw = true; });
         });
@@ -61,6 +62,11 @@ define(function(require) {
             var $root = $(e.html);
             $root.append(require('text!./sandbox_panel.html'));
             $id = $root.find('[data-name=sandbox-id]');
+            $sandboxes = $root.find('[data-name=select-sandbox]');
+            $sandboxes.click(function(e) {
+                var id = $(e.target).data('id');
+                sandbox.select(id === 'notSelected' ? null : id);
+            });
             $sandbox = $root.find('[data-name=accounts-container]');
             $sandbox.click(folder.foldOrUnfold);
             $sandbox.click(formatter.format.bind(formatter));
@@ -71,7 +77,28 @@ define(function(require) {
                     contractDialog.showContract(address);
                 }
             });
+            updateSandboxes();
         });
+
+        function watchSandboxes() {
+            var prevSandboxes;
+            setInterval(updateSandboxes, 10000);
+            updateSandboxes();
+        }
+        var prevSandboxes = [];
+        function updateSandboxes() {
+            sandbox.list(function(err, sandboxes) {
+                if (err) return console.error(err);
+                if (!_.eq(prevSandboxes, sandboxes)) {
+                    prevSandboxes = sandboxes;
+                    $sandboxes.empty().append('<li data-id="notSelected">Not selected</li>');
+                    _.each(sandboxes, function(id) {
+                        $sandboxes.append('<li data-id="' + id + '">' + id + '</li>');
+                    });
+                    $sandboxes.val(sandbox.getId() || 'not_selected');
+                }
+            });
+        }
 
         var watcher = {
             redraw: false,
