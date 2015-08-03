@@ -57,7 +57,7 @@ define(function(require) {
             }
 
             function error(entry) {
-                $log.append('<li class="text-danger">' + entry + '</li>');
+                $log.append('<li class="ethereum-console-warning">' + entry + '</li>');
             }
 
             function clear() {
