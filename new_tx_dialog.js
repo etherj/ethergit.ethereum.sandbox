@@ -68,12 +68,8 @@ define(function(require) {
             } else {
                 sandbox.predefinedAccounts(function(err, accounts) {
                     if (err) return console.err(err);
-                    
-                    var pkey = accounts[options.from].pkey;
-                    if (pkey !== null) sendTx(pkey);
-                    else {
-                        pkeyDialog.ask(sendTx);
-                    }
+                    if (accounts[options.from]) sendTx(accounts[options.from]);
+                    else pkeyDialog.ask(sendTx);
                 });
             }
             

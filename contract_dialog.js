@@ -179,10 +179,9 @@ define(function(require) {
                     var sender = $sender.val();
                     sandbox.predefinedAccounts(function(err, accounts) {
                         if (err) return showError(err);
-                        if (accounts[sender].pkey) invoke(accounts[sender].pkey);
+                        if (accounts[sender]) invoke(accounts[sender]);
                         else pkeyDialog.ask(invoke);
                     });
-
                     
                     function invoke(pkey) {
                         contract.call(sandbox, {
