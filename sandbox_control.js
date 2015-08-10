@@ -5,7 +5,8 @@ define(function(require, exports, module) {
         'ethergit.sandbox',
         'ethergit.solidity.compiler',
         'ethereum-console',
-        'ethergit.sandbox.config'
+        'ethergit.sandbox.config',
+        'ethergit.dialog.contract.constructor'
     ];
     main.provides = ['ethergit.sandbox.control'];
     return main;
@@ -24,6 +25,7 @@ define(function(require, exports, module) {
         var compiler = imports['ethergit.solidity.compiler'];
         var ethConsole = imports['ethereum-console'];
         var config = imports['ethergit.sandbox.config'];
+        var contractConstructorDialog = imports['ethergit.dialog.contract.constructor'];
 
         var async = require('async');
         var utils = require('./utils');
@@ -233,12 +235,23 @@ define(function(require, exports, module) {
 
             function createContracts(config, contracts, cb) {
                 async.eachSeries(contracts, function(contract, cb) {
-                    sandbox.runTx({
-                        gasPrice: config.transaction.gasPrice,
-                        gasLimit: config.transaction.gasLimit,
-                        data: contract.binary,
-                        contract: contract
-                    }, cb);
+                    var ctor = _.findWhere(contract.abi, { type: 'constructor' });
+                    if (ctor && ctor.inputs.length > 0) {
+                        contractConstructorDialog.askArgs(contract, function(err, args) {
+                            if (err) cb(err);
+                            else sendTx(args);
+                        });
+                    } else sendTx([]);
+                    
+                    function sendTx(args) {
+                        console.log(config.transaction);
+                        sandbox.runTx({
+                            gasPrice: config.transaction.gasPrice,
+                            gasLimit: config.transaction.gasLimit,
+                            data: contract.binary + args.join(''),
+                            contract: contract
+                        }, cb);
+                    }
                 }, cb);
             }
         }
