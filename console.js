@@ -99,7 +99,7 @@ define(function(require) {
                         logger.log(log(contract.name, data, topics));
                     }
                     function split(str) {
-                        return str.match(/.{64}/g);
+                        return str.match(/.{1,64}/g);
                     }
                 }
 
@@ -116,7 +116,7 @@ define(function(require) {
                     return 'Sandbox LOG (' + contractName + '): ' +
                         _(data).concat(topics)
                         .map(function(val) {
-                            return _.escape(formatter.detectType(val).format(val));
+                            return _.escape(formatter.getFormatter('data').format(val));
                         })
                         .join(', ');
                 }

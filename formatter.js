@@ -4,7 +4,7 @@ define(function() {
             {
                 type: 'data',
                 format: function(val) {
-                    return parseInt(val, 16);
+                    return val;
                 }
             },
             {
@@ -127,7 +127,8 @@ define(function() {
         findFormatter: function(realType) {
             if (realType === 'address') return this.getFormatter('address');
             if (realType.indexOf('bytes') > -1) return this.getFormatter('string');
-            return this.getFormatter('number');
+            if (realType.indexOf('int') > -1) return this.getFormatter('number');
+            else return this.getFormatter('data');
         },
         getFormatter: function(type) {
             for (var i = 0; i < this.formatters.length; i++) {
