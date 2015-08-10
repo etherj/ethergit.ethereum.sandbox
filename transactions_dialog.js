@@ -26,6 +26,9 @@ define(function(require) {
         var utils = require('./utils');
 
         var $ = libs.jquery();
+        var _ = libs.lodash();
+        var web3 = libs.web3();
+
         
         var stablenetUrl = 'http://stablenet.blockapps.net';
         var sendTxUrl = stablenetUrl + '/includetransaction';
@@ -46,6 +49,10 @@ define(function(require) {
                     type: 'button', id: 'transactionsDialogSendToNetwork', color: 'red',
                     caption: 'Send to Network', 'default': false, onclick: sendToNetwork
                 },
+                {
+                    type: 'button', id: 'transactionsDialobSendToTestNet', colur: 'red',
+                    caption: 'Send to TestNet', 'default': false, onclick: sendToTestNetFE
+                }, 
                 {
                     type: 'button', id: 'transactionsDialogClose', color: 'blue',
                     caption: 'Close', 'default': true, onclick: hideDialog
@@ -244,6 +251,46 @@ define(function(require) {
             });
         }
 
+        function sendToTestNet() {
+            sandbox.transactions(function(err, transactions) {
+                if (err) return errorDialog.show(err);
+
+                web3.setProvider(new web3.providers.HttpProvider('http://peer-1.ether.camp:8082'));
+                
+                web3.eth.getAccounts(function(err, result) {
+                    console.log(result);
+                });
+                
+                _.each(transactions, function(tx) {
+                    web3.eth.sendTransaction({
+                        from: tx.from,
+                        data: tx.data,
+                        nonce: tx.nonce
+                    }, function(err, result) {
+                        if (err) console.log(err);
+                        else console.log(result);
+                    });
+                });
+            });
+        }
+
+        function sendToTestNetFE() {
+            var txSubmitUrl = 'http://state.ether.camp:8080/api/v1/transaction/submit';
+            sandbox.transactions(function(err, transactions) {
+                if (err) return errorDialog.show(err);
+
+                _.each(transactions, function(tx) {
+                    $.post(txSubmitUrl, { rlp: tx.rlp })
+                        .done(function(data) {
+                            console.log(data);
+                        })
+                        .fail(function(data) {
+                            console.log(data);
+                        });
+                });
+            });
+        }
+        
         function openLog(cb) {
             var pane = tabs.getPanes().length > 1 ?
                     tabs.getPanes()[1] :
