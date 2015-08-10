@@ -180,7 +180,7 @@ define(function(require) {
                     Object.keys(storage).forEach(function(key) {
                         $container.append(
                             '<tr><td><a href="#" class="button" data-formatter="key">number</button></td>'
-                                + '<td data-name="key">' + key + '</td>'
+                                + '<td data-folder data-name="key" class="folder">' + key + '</td>'
                                 + '<td data-folder data-name="value" class="folder">' + storage[key] + '</td>'
                                 + '<td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
                         );
