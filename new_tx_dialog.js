@@ -112,7 +112,7 @@ define(function(require) {
                 
                 var items = [];
                 Object.keys(accounts).forEach(function(address) {
-                    var pkey = accounts[address].pkey;
+                    var pkey = accounts[address];
                     items.push({ caption: address + (pkey ? ' (' + pkey + ')' : ''), value: address });
                 });
                 form.update([{
