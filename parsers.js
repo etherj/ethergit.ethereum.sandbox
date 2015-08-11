@@ -9,12 +9,37 @@ define(function(require) {
                         var errors = [];
                         if (!value.match(/^\d+$/))
                             errors.push('Value must contain only digits.');
-                        if (value >= Math.pow(2, size))
-                            errors.push('Value must be less than ' + Math.pow(2, size) + '.');
+                        var max = new BigNumber(2).pow(size),
+                            val = new BigNumber(value, 10);
+                        if (!val.lessThan(max))
+                            errors.push('Value must be less than 10^' + size + '.');
                         return errors;
                     },
                     parse: function(value) {
-                        return utils.fillWithZeroes(parseInt(value, 10).toString(16), 64);
+                        return utils.fillWithZeroes(new BigNumber(value, 10).toString(16), 64);
+                    }
+                };
+            },
+            int: function(size) {
+                return {
+                    validate: function(value) {
+                        var errors = [];
+                        if (!value.match(/^-?\d+$/))
+                            errors.push('Value must contain only sign and digits.');
+                        var max = new BigNumber(2).pow(size),
+                            val = new BigNumber(value, 10);
+                        if (!val.lessThan(max))
+                            errors.push('Value must be less than 10^' + size + '.');
+                        return errors;
+                    },
+                    parse: function(value) {
+                        var val = new BigNumber(value, 10);
+                        return utils.fillWithZeroes(
+                            val.isNegative() && !val.isZero() ?
+                                new BigNumber(2).pow(size).plus(val).toString(16) :
+                                val.toString(16),
+                            64
+                        );
                     }
                 };
             },
@@ -31,6 +56,15 @@ define(function(require) {
                     }
                 };
             },
+            string: {
+                validate: function(value) {
+                    return [];
+                },
+                parse: function(value) {
+                    return utils.fillWithZeroes(value.length.toString(16), 64) +
+                        utils.fillWithZeroes(utils.pad(utils.strToHex(value)), 64, true);
+                }
+            },
             address: {
                 validate: function(value) {
                     var errors = [];
@@ -43,15 +77,34 @@ define(function(require) {
                 parse: function(value) {
                     return utils.fillWithZeroes(value, 64);
                 }
+            },
+            bool: {
+                validate: function(value) {
+                    var errors = [];
+                    if (value !== 'true' && value !== 'false')
+                        errors.push('Boolean must be true or false.');
+                    return errors;
+                },
+                parse: function(value) {
+                    return utils.fillWithZeroes(value === 'true' ? '1' : '0', 64);
+                }
             }
         },
         parser: function(type) {
             if (type.indexOf('uint') === 0) {
                 return parser.parsers['uint'](parseInt(type.substr(4), 10));
+            } else if (type.indexOf('int') === 0) {
+                return parser.parsers['int'](parseInt(type.substr(3), 10));
+            } else if (type === 'bytes') {
+                console.error('Type bytes is not supported yet.');
             } else if (type.indexOf('bytes') === 0) {
                 return parser.parsers['bytes'](parseInt(type.substr(5), 10));
+            } else if (type === 'string') {
+                return parser.parsers['string'];
             } else if (type === 'address') {
                 return parser.parsers['address'];
+            } else if (type === 'bool') {
+                return parser.parsers['bool'];
             } else
                 console.error('Could not find validator for type ' + type);
         }

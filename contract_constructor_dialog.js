@@ -29,10 +29,6 @@ define(function(require) {
                 {
                     type: 'button', id: 'submitContractConstructorDialog', color: 'green',
                     caption: 'Submit', 'default': true, onclick: submit
-                },
-                {
-                    type: 'button', id: 'closeContractConstructorDialog', color: 'blue',
-                    caption: 'Close', 'default': false, onclick: hide
                 }
             ]
         });

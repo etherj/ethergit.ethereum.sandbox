@@ -244,11 +244,26 @@ define(function(require, exports, module) {
                     } else sendTx([]);
                     
                     function sendTx(args) {
-                        console.log(config.transaction);
+                        var encArgs = '';
+                        if (args.length > 0) {
+                            var dynArgs = '';
+                            _.each(args, function(arg) {
+                                if (arg.length == 64) {
+                                    encArgs += arg;
+                                } else {
+                                    encArgs += utils.fillWithZeroes(
+                                        (args.length * 32 + dynArgs.length / 2).toString(16),
+                                        64
+                                    );
+                                    dynArgs += arg;
+                                }
+                            });
+                            encArgs += dynArgs;
+                        }
                         sandbox.runTx({
                             gasPrice: config.transaction.gasPrice,
                             gasLimit: config.transaction.gasLimit,
-                            data: contract.binary + args.join(''),
+                            data: contract.binary + encArgs,
                             contract: contract
                         }, cb);
                     }

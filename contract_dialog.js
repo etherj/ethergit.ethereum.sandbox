@@ -137,7 +137,7 @@ define(function(require) {
                             method.inputs.forEach(function(input) {
                                 $args.append(argsForm({
                                     name : input.name,
-                                    type: getTypeLabel(input.type)
+                                    type: input.type
                                 }));
                             });
 
@@ -220,12 +220,6 @@ define(function(require) {
             }
         }
         
-        function getTypeLabel(type) {
-            if (type === 'address') return 'address';
-            if (type.indexOf('bytes') > -1) return 'string';
-            return 'number';
-        }
-
         function toHex(val) {
             if (!/^\d+$/.test(val)) throw 'Should be a number';
             return utils.pad(parseInt(val, 10).toString(16));

@@ -2,35 +2,7 @@ define(function(require) {
     var SHA3Hash = require('./sha3').SHA3Hash;
     var ethereumjsUtil = require('./ethereumjs-util');
     
-    function arrayFindPolyfill() {
-        if (!Array.prototype.find) {
-            Array.prototype.find = function(predicate) {
-                if (this == null) {
-                    throw new TypeError('Array.prototype.find called on null or undefined');
-                }
-                if (typeof predicate !== 'function') {
-                    throw new TypeError('predicate must be a function');
-                }
-                var list = Object(this);
-                var length = list.length >>> 0;
-                var thisArg = arguments[1];
-                var value;
-                
-                for (var i = 0; i < length; i++) {
-                    value = list[i];
-                    if (predicate.call(thisArg, value, i, list)) {
-                        return value;
-                    }
-                }
-                return undefined;
-            };
-        }
-    }
-    
     return {
-        loadPolyfills: function() {
-            arrayFindPolyfill();
-        },
         strToHex: function(str) {
             var hex = "";
             for (var i = 0; i < str.length; i++) {
@@ -41,7 +13,7 @@ define(function(require) {
         },
         fillWithZeroes: function(str, length, right) {
             if (str.length >= length) return str;
-            var zeroes = '0'.repeat(length - str.length);
+            var zeroes = _.repeat('0', length - str.length);
             return right ? str + zeroes : zeroes + str;
         },
         sha3: function(str) {

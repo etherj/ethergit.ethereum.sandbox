@@ -1,7 +1,6 @@
 define(function(require) {
     var Parsers = require('./parsers');
     var utils = require('./utils');
-    utils.loadPolyfills();
     
     var Contract = {
         init: function(address, details) {
@@ -23,14 +22,25 @@ define(function(require) {
                 return errors;
             }, {});
             if (Object.keys(errors).length > 0) return cb(errors);
-            
-            var encArgs = method.inputs.map(function(input) {
-                return Parsers.parser(input.type).parse(options.args[input.name]);
+
+            var encArgs = '', dynArgs = '';
+            _.each(method.inputs, function(input) {
+                var val = Parsers.parser(input.type).parse(options.args[input.name]);
+                if (val.length == 64) {
+                    encArgs += val;
+                } else {
+                    encArgs += utils.fillWithZeroes(
+                        (method.inputs.length * 32 + dynArgs.length / 2).toString(16),
+                        64
+                    );
+                    dynArgs += val;
+                }
             });
+            encArgs += dynArgs;
 
             sandbox.runTx({
                 to: this.address,
-                data: encodeMethod(method) + encArgs.join(''),
+                data: encodeMethod(method) + encArgs,
                 from: options.from,
                 pkey: options.pkey,
                 value: options.value,
@@ -52,9 +62,7 @@ define(function(require) {
             }
         },
         findMethod: function(name) {
-            return this.abi.find(function(method) {
-                return method.type == 'function' && method.name === name;
-            });
+            return _.findWhere(this.abi, { type: 'function', name: name });
         },
         findEvent: function(hash) {
             return _(this.abi).filter({ type: 'event' }).find(function(field) {
