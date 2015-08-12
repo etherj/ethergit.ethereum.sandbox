@@ -84,10 +84,8 @@ define(function(require, exports, module) {
                         if (err) return console.err(err);
                         logger.clear();
                         run(false, function(err) {
-                            if (err) {
-                                enableButton();
-                                logger.error('<pre>' + err + '</pre>');
-                            }
+                            enableButton();
+                            if (err) logger.error('<pre>' + err + '</pre>');
                         });
                     });
                 }
@@ -101,10 +99,8 @@ define(function(require, exports, module) {
                         if (err) return console.err(err);
                         logger.clear();
                         run(true, function(err) {
-                            if (err) {
-                                enableButton();
-                                logger.error('<pre>' + err + '</pre>');
-                            }
+                            enableButton();
+                            if (err) logger.error('<pre>' + err + '</pre>');
                         });
                     });
                 }
