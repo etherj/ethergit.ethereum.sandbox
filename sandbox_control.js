@@ -84,8 +84,10 @@ define(function(require, exports, module) {
                         if (err) return console.err(err);
                         logger.clear();
                         run(false, function(err) {
-                            enableButton();
-                            if (err) logger.error('<pre>' + err + '</pre>');
+                            if (err) {
+                                enableButton();
+                                logger.error('<pre>' + err + '</pre>');
+                            }
                         });
                     });
                 }
@@ -99,8 +101,10 @@ define(function(require, exports, module) {
                         if (err) return console.err(err);
                         logger.clear();
                         run(true, function(err) {
-                            enableButton();
-                            if (err) logger.error('<pre>' + err + '</pre>');
+                            if (err) {
+                                enableButton();
+                                logger.error('<pre>' + err + '</pre>');
+                            }
                         });
                     });
                 }
@@ -155,7 +159,7 @@ define(function(require, exports, module) {
                 config.parse.bind(config),
                 compileContracts.bind(null, current)
             ], function(err, params) {
-                if (err) cb(err === 'CANCEL' ? null : err);
+                if (err) cb(err);
                 else async.series([
                     startSandbox.bind(this, params.config),
                     createContracts.bind(this, params.config, params.contracts)
@@ -164,7 +168,7 @@ define(function(require, exports, module) {
 
             function saveAll(cb) {
                 save.saveAllInteractive(tabs.getTabs(), function(result) {
-                    cb(result === 0 ? 'CANCEL' : null);
+                    cb(result === 0 ? 'Compilation has been canceled.' : null);
                 });
             }
 
