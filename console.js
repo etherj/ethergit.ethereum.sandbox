@@ -19,6 +19,7 @@ define(function(require) {
         var async = require('async');
         var Contract = require('./contract');
         var formatter = require('./formatter');
+        var utils = require('./utils');
         
         var $ = libs.jquery();
         var _ = libs.lodash();
@@ -116,9 +117,30 @@ define(function(require) {
                     return 'Sandbox LOG (' + contractName + '): ' +
                         _(data).concat(topics)
                         .map(function(val) {
-                            return _.escape(formatter.getFormatter('data').format(val));
+                            var str = parseString(val);
+                            var data = formatter.getFormatter('data').format(val);
+                            return str ? _.escape(str) : data;
                         })
                         .join(', ');
+
+                    function parseString(value) {
+                        var codes = _.map(
+                            split(utils.removeTrailingZeroes(value)),
+                            function(code) {
+                                return parseInt(code, 16);
+                            }
+                        );
+                        console.log(codes);
+                        var isAscii = _.every(codes, function(code) {
+                            return code >= 32 && code <= 126;
+                        });
+                        if (isAscii) return String.fromCharCode.apply(null, codes);
+                        else return null;
+                        
+                        function split(str) {
+                            return str.match(/.{2}/g);
+                        }
+                    }
                 }
             });
         });
