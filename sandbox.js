@@ -162,6 +162,13 @@ define(function(require, exports, module) {
         function list(cb) {
             http.request(sandboxUrl, { method: 'GET' }, cb);
         }
+
+        function coinbase(cb) {
+            web3.eth.getCoinbase(function(err, result) {
+                if (err) cb(err);
+                else cb(null, result.substr(2));
+            });
+        }
         
         plugin.freezePublicAPI({
             getId: function() { return id; },
@@ -173,7 +180,8 @@ define(function(require, exports, module) {
             accounts: web3.sandbox.accounts.bind(web3.sandbox),
             predefinedAccounts: web3.sandbox.predefinedAccounts.bind(web3.sandbox),
             contracts: web3.sandbox.contracts.bind(web3.sandbox),
-            transactions: web3.sandbox.transactions.bind(web3.sandbox)
+            transactions: web3.sandbox.transactions.bind(web3.sandbox),
+            coinbase: coinbase
         });
         
         register(null, {

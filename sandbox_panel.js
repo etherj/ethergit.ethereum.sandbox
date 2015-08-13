@@ -137,61 +137,67 @@ define(function(require) {
         };
                 
         function renderAccounts($container, sandbox, cb) {
-            sandbox.contracts(function(err, contracts) {
+            async.parallel({
+                accounts: sandbox.accounts.bind(sandbox),
+                coinbase: sandbox.coinbase.bind(sandbox),
+                contracts: sandbox.contracts.bind(sandbox)
+            }, function(err, results) {
                 if (err) return cb(err);
-                getAccounts(sandbox, showAccount.bind(undefined, $container, sandbox, contracts), cb);
-            });
-            
-            function getAccounts(sandbox, accountHandler, cb) {
-                sandbox.accounts(function(err, accounts) {
-                    if (err) return cb(err);
 
-                    Object.keys(accounts).forEach(function(key) {
-                        accountHandler(key, accounts[key]);
-                    });
-                    cb();
+                var contracts = results.contracts,
+                    coinbase = results.coinbase;
+
+                _.each(results.accounts, function(account, address) {
+                    showAccount(address, account);
                 });
-            }
-            function showAccount($container, sandbox, contracts, address, account) {
-                var $account = $(accountTemplate);
+
+                cb();
                 
-                async.parallel([
-                    showAccountFields.bind(undefined, $account, sandbox, address, account, contracts),
-                    showStorage.bind(undefined, $account.find('[data-name=storage]'), account.storage),
-                    showCode.bind(undefined, $account.find('[data-name=code]'), account.code)
-                ], function(err) {
-                    if (err) return cb(err);
-                    formatter.init($account.find('[data-name=storage]'));
-                    $container.append($account);
-                });
-
-                function showAccountFields($container, sandbox, address, account, contracts, cb) {
-                    $container.find('[data-name=address]').text(address);
-                    if (contracts.hasOwnProperty(address)) {
-                        $container.find('[data-name=contract]').text(contracts[address].name).show();
-                    }
-                    $container.find('[data-name=nonce]').text(account.nonce.toString('hex'));
-                    $container.find('[data-name=balance]').text(
-                        formatter.getFormatter('number').format(account.balance.toString('hex'))
-                    );
-                    cb();
-                }
-                function showStorage($container, storage, cb) {
-                    Object.keys(storage).forEach(function(key) {
-                        $container.append(
-                            '<tr><td><a href="#" class="button" data-formatter="key">number</button></td>'
-                                + '<td data-folder data-name="key" class="folder">' + key + '</td>'
-                                + '<td data-folder data-name="value" class="folder">' + storage[key] + '</td>'
-                                + '<td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
-                        );
+                function showAccount(address, account) {
+                    var $account = $(accountTemplate);
+                    
+                    async.parallel([
+                        showAccountFields,
+                        showStorage,
+                        showCode,
+                    ], function(err) {
+                        if (err) return cb(err);
+                        formatter.init($account.find('[data-name=storage]'));
+                        $container.append($account);
                     });
-                    cb();
+                    
+                    function showAccountFields(cb) {
+                        $account.find('[data-name=address]').text(address);
+                        if (coinbase === address) {
+                            $account.find('[data-name=miner]').show();
+                        }
+                        if (contracts.hasOwnProperty(address)) {
+                            $account.find('[data-name=contract]').text(contracts[address].name).show();
+                        }
+                        $account.find('[data-name=nonce]').text(account.nonce);
+                        $account.find('[data-name=balance]').text(
+                            formatter.getFormatter('number').format(account.balance.toString('hex'))
+                        );
+                        cb();
+                    }
+                    function showStorage(cb) {
+                        var $container = $account.find('[data-name=storage]');
+                        _.each(account.storage, function(value, key) {
+                            $container.append(
+                                '<tr><td><a href="#" class="button" data-formatter="key">number</button></td>'
+                                    + '<td data-folder data-name="key" class="folder">' + key + '</td>'
+                                    + '<td data-folder data-name="value" class="folder">' + value + '</td>'
+                                    + '<td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
+                            );
+                        });
+                        cb();
+                    }
+                    function showCode(cb) {
+                        $account.find('[data-name=code]').text(account.code);
+                        cb();
+                    }
                 }
-                function showCode($container, code, cb) {
-                    $container.text(code);
-                    cb();
-                }
-            }
+            });
         }
         
         panel.freezePublicAPI({

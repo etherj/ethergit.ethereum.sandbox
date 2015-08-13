@@ -130,7 +130,6 @@ define(function(require) {
                                 return parseInt(code, 16);
                             }
                         );
-                        console.log(codes);
                         var isAscii = _.every(codes, function(code) {
                             return code >= 32 && code <= 126;
                         });
