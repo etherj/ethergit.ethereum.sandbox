@@ -133,23 +133,39 @@ define(function(require) {
                             var $method = $(require('text!./contract_method.html'));
                             $method.find('[data-name=name]').text(method.name);
 
-                            var $args = $method.find('[data-name=args]');
-                            method.inputs.forEach(function(input) {
-                                $args.append(argsForm({
-                                    name : input.name,
-                                    type: input.type
-                                }));
-                            });
+                            if (!areTypesSupported()) {
+                                $method.find('[data-name=error]').text(
+                                    'Method has arguments with unsupported type. '
+                                        + 'IDE supports uintN, intN, bytesN, bool, address, and string types.'
+                                );
+                                $method.find('[data-name=call]').hide();
+                            } else {
+                                var $args = $method.find('[data-name=args]');
+                                method.inputs.forEach(function(input) {
+                                    $args.append(argsForm({
+                                        name : input.name,
+                                        type: input.type
+                                    }));
+                                });
 
-                            $method.find('[data-name=call]').click(function(e) {
-                                e.preventDefault();
-                                var args = _(method.inputs).indexBy('name').mapValues(function(arg) {
-                                    return $method.find('input[name=' + arg.name + ']').val(); 
-                                }).value();
-                                call(contract, method, args, $method);
-                            });
-                            
+                                $method.find('[data-name=call]').click(function(e) {
+                                    e.preventDefault();
+                                    var args = _(method.inputs).indexBy('name').mapValues(function(arg) {
+                                        return $method.find('input[name=' + arg.name + ']').val(); 
+                                    }).value();
+                                    call(contract, method, args, $method);
+                                });
+                            }
                             $methods.append($method);
+
+                            function areTypesSupported() {
+                                var types = [/^uint\d+$/, /^int\d+$/, /^bytes\d+$/, /^bool$/, /^address$/, /^string$/];
+                                return _.every(method.inputs, function(arg) {
+                                    return _.some(types, function(type) {
+                                        return type.test(arg.type);
+                                    });
+                                });
+                            }
                         });
                     
                     cb();

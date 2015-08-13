@@ -49,7 +49,7 @@ define(function(require) {
                 ethConsole.logger(function(err, logger) {
                     if (err) console.error(err);
                     else logger.error(
-                        'Only uintN, intN, bytesN, bool, and string types are supported in constructors.'
+                        'Only uintN, intN, bytesN, bool, address, and string types are supported in constructors.'
                             + 'The contract <b>' + contract.name + '</b> has been created with empty args.'
                     );
                 });
@@ -73,7 +73,7 @@ define(function(require) {
             callback = cb;
 
             function areTypesSupported() {
-                var types = [/^uint\d+$/, /^int\d+$/, /^bytes\d+$/, /^bool$/, /^string$/];
+                var types = [/^uint\d+$/, /^int\d+$/, /^bytes\d+$/, /^bool$/, /^address$/, /^string$/];
                 return _.every(args, function(arg) {
                     return _.some(types, function(type) {
                         return type.test(arg.type);
