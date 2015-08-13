@@ -81,7 +81,7 @@ define(function(require, exports, module) {
                 exec: function() {
                     disableButton();
                     ethConsole.logger(function(err, logger) {
-                        if (err) return console.err(err);
+                        if (err) return console.error(err);
                         logger.clear();
                         run(false, function(err) {
                             if (err) {
@@ -98,7 +98,7 @@ define(function(require, exports, module) {
                 exec: function() {
                     disableButton();
                     ethConsole.logger(function(err, logger) {
-                        if (err) return console.err(err);
+                        if (err) return console.error(err);
                         logger.clear();
                         run(true, function(err) {
                             if (err) {

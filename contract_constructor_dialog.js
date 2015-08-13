@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui', 'ethergit.libs'];
+    main.consumes = ['Dialog', 'ui', 'ethergit.libs', 'ethereum-console'];
     main.provides = ['ethergit.dialog.contract.constructor'];
 
     return main;
@@ -8,6 +8,7 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var libs = imports['ethergit.libs'];
+        var ethConsole = imports['ethereum-console'];
 
         var async = require('async');
         var Contract = require('./contract');
@@ -42,10 +43,22 @@ define(function(require) {
         });
 
         function askArgs(contract, cb) {
+            args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
+            
+            if (!areTypesSupported()) {
+                ethConsole.logger(function(err, logger) {
+                    if (err) console.error(err);
+                    else logger.error(
+                        'Only uintN, intN, bytesN, bool, and string types are supported in constructors.'
+                            + 'The contract <b>' + contract.name + '</b> has been created with empty args.'
+                    );
+                });
+                return cb(null, []);
+            }
+            
             dialog.show();
             $name.text(contract.name);
             $args.empty();
-            args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
             var argField = _.template(
                 '<div class="form-group">\
                     <label for="<%= name %>" class="col-sm-4 control-label"><%= name %> : <%= type %></label>\
@@ -58,6 +71,15 @@ define(function(require) {
                 $args.append(argField({ name: arg.name, type: arg.type }));
             });
             callback = cb;
+
+            function areTypesSupported() {
+                var types = [/^uint\d+$/, /^int\d+$/, /^bytes\d+$/, /^bool$/, /^string$/];
+                return _.every(args, function(arg) {
+                    return _.some(types, function(type) {
+                        return type.test(arg.type);
+                    });
+                });
+            }
         }
 
         function submit() {
