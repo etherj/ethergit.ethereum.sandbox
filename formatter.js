@@ -29,6 +29,13 @@ define(function() {
                 }
             },
             {
+                type: 'bool',
+                format: function(val) {
+                    val = parseInt(val);
+                    return val === 1 ? 'true' : 'false';
+                }
+            },
+            {
                 type: 'string',
                 format: function(val) {
                     return String.fromCharCode.apply(null, toArray(removeTrailingZeroBytes(val)));
@@ -128,6 +135,7 @@ define(function() {
             if (realType === 'address') return this.getFormatter('address');
             if (realType.indexOf('bytes') > -1) return this.getFormatter('string');
             if (realType.indexOf('int') > -1) return this.getFormatter('number');
+            if (realType === 'bool') return this.getFormatter('bool');
             else return this.getFormatter('data');
         },
         getFormatter: function(type) {

@@ -68,12 +68,20 @@ define(function(require) {
         
         var handle = editors.register('ethereum-console', 'Ethereum Console', EthereumConsole, []);
 
+        var inProcess = false, pendingEntries = [];
         handle.on('load', function() {
-            sandbox.on('log', function(entry) {
+            sandbox.on('log', function printLog(entry) {
+                if (inProcess) return pendingEntries.push(entry);
+                inProcess = true;
+                
                 async.parallel({
                     contracts: sandbox.contracts,
                     logger: show
-                }, showLog);
+                }, function(err, options) {
+                    showLog(err, options);
+                    inProcess = false;
+                    if (pendingEntries.length != 0) printLog(pendingEntries.shift());
+                });
                 
                 function showLog(err, options) {
                     if (err) return console.error(err);
@@ -106,20 +114,40 @@ define(function(require) {
 
                 function showEvent(contractName, event, data, topics) {
                     topics.shift(); // skip event hash
-                    return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
+                    var hasUnsupportedTypes = false;
+                    var message = 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
                         _(event.inputs).map(function(input) {
-                            var val = input.indexed ? topics.shift() : data.shift();
-                            return _.escape(formatter.findFormatter(input.type).format(val));
+                            if (isTypeSupported(input.type)) {
+                                var val = input.indexed ? topics.shift() : data.shift();
+                                return _.escape(formatter.findFormatter(input.type).format(val));
+                            } else {
+                                hasUnsupportedTypes = true;
+                                return '[' + input.type + ' is not supported]';
+                            }
                         }).join(', ');
+                    return !hasUnsupportedTypes ?
+                        message :
+                        message + '</br>Sorry, we support only uintN, bytesN, bool, and address types for now.';
+
+                    function isTypeSupported(argType) {
+                        var types = [/^uint\d+$/, /^bytes\d+$/, /^bool$/, /^address$/];
+                        return _.some(types, function(type) {
+                            return type.test(argType);
+                        });
+                    }
                 }
                 
                 function log(contractName, data, topics) {
                     return 'Sandbox LOG (' + contractName + '): ' +
                         _(data).concat(topics)
                         .map(function(val) {
-                            var str = parseString(val);
                             var data = formatter.getFormatter('data').format(val);
-                            return str ? _.escape(str) : data;
+                            if (val.length <= 4) {
+                                return parseInt(val, 16).toString() + ' [' + data + ']';
+                            } else {
+                                var str = parseString(val);
+                                return str ? _.escape(str) : data;
+                            }
                         })
                         .join(', ');
 
