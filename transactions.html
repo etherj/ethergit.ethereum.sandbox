@@ -1,11 +1,28 @@
-<div class="ethereum-sandbox-transactions-dialog">
-    <table>
-        <thead>
+<div class="ethereum-sandbox-transactions-dialog bs-root">
+  <div class="container" style="width:100%">
+    <div class="row">
+      <div class="col-sm-12">
+        <table>
+          <thead>
             <td>From</td>
             <td>Nonce</td>
             <td>To</td>
-        </thead>
-        <tbody data-name="transactions">
-        </tbody>
-    </table>
+          </thead>
+          <tbody data-name="transactions">
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-6">
+        <form class="form-horizontal" style="margin-top:20px">
+          <div class="checkbox">
+            <label style="line-height:1.8;">
+              <input data-name="customAccount" type="checkbox"> Send transactions from another account
+            </label>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>

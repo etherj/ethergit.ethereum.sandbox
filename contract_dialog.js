@@ -196,7 +196,7 @@ define(function(require) {
                     sandbox.predefinedAccounts(function(err, accounts) {
                         if (err) return showError(err);
                         if (accounts[sender]) invoke(accounts[sender]);
-                        else pkeyDialog.ask(invoke);
+                        else pkeyDialog.ask(sender, invoke);
                     });
                     
                     function invoke(pkey) {

@@ -1,5 +1,5 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui', 'Form'];
+    main.consumes = ['Dialog', 'ui', 'Form', 'ethergit.libs'];
     main.provides = ['ethergit.ethereum.sandbox.dialog.pkey'];
     
     return main;
@@ -8,7 +8,12 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var Form = imports.Form;
+        var libs = imports['ethergit.libs'];
         var utils = require('./utils');
+
+        var $ = libs.jquery();
+        
+        var $pkey, $address;
         
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-pkey',
@@ -26,51 +31,34 @@ define(function(require) {
                 }
             ]
         });
-        
-        var form = new Form({
-            rowheight: 30,
-            colwidth: 100,
-            edge: "0 0 0 0",
-            form: [
-                {   
-                    title: 'Private key',
-                    name: 'pkey',
-                    type: 'textbox'
-                }
-            ]
+
+        dialog.on('draw', function(e) {
+            e.html.innerHTML = require('text!./pkey.html');
+            var $root = $(e.html);
+            $address = $root.find('[data-name=address]');
+            $pkey = $root.find('[data-name=pkey]');
         });
         
         function hideDialog() {
             dialog.hide();
         }
         
-        function ask(cb) {
+        function ask(address, cb) {
+            dialog.show();
+            $address.text(address);
+            $pkey.val('');
             dialog.update([
                 {
                     id: 'privateKeyDialogOk',
                     onclick: function() {
-                        var pkey = form.toJson().pkey;
+                        var pkey = $pkey.val();
                         if (pkey.length !== 64) pkey = utils.sha3(pkey);
                         cb(pkey);
                         hideDialog();
                     }
                 }
             ]);
-            dialog.show();
-        }
-        
-        dialog.on('draw', function(e) {
-            ui.insertCss('.bk-container .label { color: #222222; }', false, dialog);
-            form.attachTo(e.html);
-        });
-        
-        dialog.on('show', function() {
-            form.reset();
-        });
-        
-        dialog.on('load', function() {
-
-        });
+        }        
         
         dialog.freezePublicAPI({
             ask: ask

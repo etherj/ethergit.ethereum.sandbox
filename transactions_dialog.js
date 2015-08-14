@@ -4,7 +4,10 @@ define(function(require) {
         'ethergit.libs',
         'ethergit.ethereum.sandbox.dialog.transaction',
         'ethergit.ethereum.sandbox.dialog.new.tx',
-        'ethergit.sandbox'
+        'ethergit.sandbox',
+        'ethereum-console',
+        'ethergit.ethereum.sandbox.dialog.pkey',
+        'ethergit.dialog.account'
     ];
     main.provides = ['ethergit.ethereum.sandbox.dialog.transactions'];
     
@@ -22,18 +25,23 @@ define(function(require) {
         var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
         var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
         var sandbox = imports['ethergit.sandbox'];
+        var ethConsole = imports['ethereum-console'];
+        var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
+        var accountDialog = imports['ethergit.dialog.account'];
+        
         var async = require('async');
         var utils = require('./utils');
 
         var $ = libs.jquery();
         var _ = libs.lodash();
         var web3 = libs.web3();
-
         
         var stablenetUrl = 'http://stablenet.blockapps.net';
         var sendTxUrl = stablenetUrl + '/includetransaction';
         var showTxUrl = stablenetUrl + '/query/transaction?hash=';
         var showAccountUrl = stablenetUrl + '/query/account?address=';
+
+        var $customAccount;
         
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-transactions',
@@ -47,12 +55,8 @@ define(function(require) {
                 },
                 {
                     type: 'button', id: 'transactionsDialogSendToNetwork', color: 'red',
-                    caption: 'Send to Network', 'default': false, onclick: sendToNetwork
+                    caption: 'Send to Network', 'default': false, onclick: sendToStableNetWeb3// sendToNetwork
                 },
-                {
-                    type: 'button', id: 'transactionsDialobSendToTestNet', colur: 'red',
-                    caption: 'Send to TestNet', 'default': false, onclick: sendToTestNetFE
-                }, 
                 {
                     type: 'button', id: 'transactionsDialogClose', color: 'blue',
                     caption: 'Close', 'default': true, onclick: hideDialog
@@ -102,6 +106,7 @@ define(function(require) {
         
         dialog.on('draw', function(e) {
             e.html.innerHTML = require('text!./transactions.html');
+            $customAccount = $(e.html).find('[data-name=customAccount]');
         });
 
         dialog.on('show', function() {
@@ -290,7 +295,85 @@ define(function(require) {
                 });
             });
         }
-        
+
+        function sendToStableNetWeb3() {
+            async.series([
+                function(cb) {
+                    if ($customAccount.is(":checked")) accountDialog.ask(cb);
+                    else cb();
+                },
+                ethConsole.logger.bind(ethConsole),
+                sandbox.predefinedAccounts.bind(sandbox),
+                sandbox.transactions.bind(sandbox),
+                sandbox.stop
+            ], function(err, results) {
+                if (err) return console.error(err);
+
+                hideDialog();
+                
+                var account = results[0],
+                    logger = results[1],
+                    accounts = results[2],
+                    transactions = results[3];
+
+                logger.log('<b>Sending transactions to Stablenet...</b>');
+                logger.log('We have to stop the sandbox because of current limitations.');
+                
+                var provider = new BlockAppsWeb3Provider({
+                    keyprovider: function(address, cb) {
+                        if (account && account.address == address) {
+                            cb(null, account.pkey);
+                        } else if (accounts.hasOwnProperty(address) && accounts[address]) {
+                            cb(null, accounts[address]);
+                        } else {
+                            pkeyDialog.ask(address, cb.bind(null, null));
+                        }
+                    }
+                });
+                web3.setProvider(provider);
+
+                async.eachSeries(transactions, function(tx, cb) {
+                    var from = account ? account.address : tx.from;
+                    var txInfo = {
+                        from: '0x' +  from,
+                        to: tx.to.length === 0 ? '' : '0x' + tx.to,
+                        gasPrice: tx.gasPrice,
+                        gasLimit: tx.gasLimit,
+                        value: tx.value,
+                        data: tx.data.length === 0 ? '' : '0x' + tx.data
+                    };
+                    logger.log('Sending transaction: ' + JSON.stringify(txInfo));
+                    web3.eth.sendTransaction(txInfo, function(err, hash) {
+                        if (err) cb(err);
+                        async.retry({ times: 10, interval: 1000 }, check, function(err, result) {
+                            if (err) cb(err);
+                            else if (result.hasOwnProperty('error')) cb(result.error);
+                            else {
+                                logger.log('Transaction receipt: ' + JSON.stringify(result));
+                                cb();
+                            }
+                        });
+
+                        function check(cb) {
+                            provider.sendAsync({
+                                id: new Date().getTime(),
+                                jsonrpc: '2.0',
+                                method: 'eth_getTransactionReceipt',
+                                params: [ hash ]
+                            }, function(err, result) {
+                                if (err) return cb(null, { error: err.message });
+                                var tx = result.result;
+                                cb(tx == null ? 'Could not send the transaction.' : null, tx);
+                            });
+                        }
+                    });
+                }, function(err) {
+                    if (err) logger.error(err);
+                    else logger.log('<b>Transactions have been sent successfully.</b>');
+                });
+            });
+        }
+
         function openLog(cb) {
             var pane = tabs.getPanes().length > 1 ?
                     tabs.getPanes()[1] :
