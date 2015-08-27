@@ -3,7 +3,7 @@ define(function(require) {
     
     var parser = {
         parsers: {
-            uint: function(size) {
+            uintN: function(size) {
                 return {
                     validate: function(value) {
                         var errors = [];
@@ -20,7 +20,7 @@ define(function(require) {
                     }
                 };
             },
-            int: function(size) {
+            intN: function(size) {
                 return {
                     validate: function(value) {
                         var errors = [];
@@ -43,7 +43,7 @@ define(function(require) {
                     }
                 };
             },
-            bytes: function(size) {
+            bytesN: function(size) {
                 return {
                     validate: function(value) {
                         var errors = [];
@@ -92,13 +92,13 @@ define(function(require) {
         },
         parser: function(type) {
             if (type.indexOf('uint') === 0) {
-                return parser.parsers['uint'](parseInt(type.substr(4), 10));
+                return parser.parsers['uintN'](parseInt(type.substr(4), 10));
             } else if (type.indexOf('int') === 0) {
-                return parser.parsers['int'](parseInt(type.substr(3), 10));
+                return parser.parsers['intN'](parseInt(type.substr(3), 10));
             } else if (type === 'bytes') {
                 console.error('Type bytes is not supported yet.');
-            } else if (type.indexOf('bytes') === 0) {
-                return parser.parsers['bytes'](parseInt(type.substr(5), 10));
+            } else if (type.indexOf('bytesN') === 0) {
+                return parser.parsers['bytesN'](parseInt(type.substr(5), 10));
             } else if (type === 'string') {
                 return parser.parsers['string'];
             } else if (type === 'address') {

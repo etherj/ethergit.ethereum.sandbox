@@ -19,14 +19,15 @@ define(function(require) {
         var async = require('async');
         var formatter = require('./formatter');
         var folder = require('./folder');
-        var Contract = require('./contract');
         var utils = require('./utils');
+        var widgets = require('./ui/widgets');
 
         var $ = libs.jquery();
         var _ = libs.lodash();
+        var web3 = libs.web3();
 
         // Cached elements
-        var $root, $error, $advanced, $sender, $value, $gasPrice, $gasLimit,
+        var $root, $advanced, $sender, $value, $gasPrice, $gasLimit,
             $contract, $name, $methods;
         
         var dialog = new Dialog('Ethergit', main.consumes, {
@@ -45,7 +46,6 @@ define(function(require) {
         dialog.on('draw', function(e) {
             e.html.innerHTML = require('text!./contract.html');
             $root = $(e.html);
-            $error = $root.find('[data-name=error]');
             $advanced = $root.find('[data-name=advanced]');
             $sender = $advanced.find('select[name=sender]');
             $value = $advanced.find('input[name=value]');
@@ -115,66 +115,47 @@ define(function(require) {
                     });
                 }
                 function show(contractRaw, cb) {
-                    var contract = Object.create(Contract).init(address, contractRaw);
-                    $name.text(contract.name);
+                    var contract = web3.eth.contract(contractRaw.abi).at('0x' + address);
+                    $name.text(contractRaw.name);
                     $methods.empty();
 
-                    var argsForm = _.template(
-                        '<div class="form-group">\
-                            <label for="<%= name %>" class="col-sm-4 control-label"><%= name %> : <%= type %></label>\
-                            <div class="col-sm-8">\
-                            <input type="text" name="<%= name %>" class="form-control" placeholder="">\
-                            <p data-label="<%= name %>" class="help-block" style="display:none"></p>\
-                        </div></div>'
-                    );
-                    contract.abi
+                    var argHtml = function(name, type, widget) {
+                        var $html = $(
+                            '<div class="form-group">\
+                                <label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
+                                <div class="col-sm-8" data-name="field"></div>\
+                            </div>'
+                        );
+                        $html.find('[data-name=field]').append(widget.html());
+                        return $html;
+                    };
+                    contractRaw.abi
                         .filter(function(method) { return method.type === 'function'; })
                         .forEach(function(method) {
                             var $method = $(require('text!./contract_method.html'));
                             $method.find('[data-name=name]').text(method.name);
 
-                            if (!areTypesSupported()) {
-                                $method.find('[data-name=error]').text(
-                                    'Method has arguments with unsupported type. '
-                                        + 'IDE supports uintN, intN, bytesN, bool, address, and string types.'
-                                );
-                                $method.find('[data-name=call]').hide();
-                            } else {
-                                var $args = $method.find('[data-name=args]');
-                                method.inputs.forEach(function(input) {
-                                    $args.append(argsForm({
-                                        name : input.name,
-                                        type: input.type
-                                    }));
+                            var argWidgets = [];
+                            var $args = $method.find('[data-name=args]');
+                            method.inputs.forEach(function(input) {
+                                argWidgets[input.name] = widgets(input.type);
+                                $args.append(argHtml(input.name, input.type, argWidgets[input.name]));
+                            });
+                            $method.find('[data-name=call]').click(function(e) {
+                                e.preventDefault();
+                                var args = _.map(method.inputs, function(arg) {
+                                    return argWidgets[arg.name].value();
                                 });
-
-                                $method.find('[data-name=call]').click(function(e) {
-                                    e.preventDefault();
-                                    var args = _(method.inputs).indexBy('name').mapValues(function(arg) {
-                                        return $method.find('input[name=' + arg.name + ']').val(); 
-                                    }).value();
+                                if (!_.some(args, _.isNull))
                                     call(contract, method, args, $method);
-                                });
-                            }
+                            });
                             $methods.append($method);
-
-                            function areTypesSupported() {
-                                var types = [/^uint\d+$/, /^int\d+$/, /^bytes\d+$/, /^bool$/, /^address$/, /^string$/];
-                                return _.every(method.inputs, function(arg) {
-                                    return _.some(types, function(type) {
-                                        return type.test(arg.type);
-                                    });
-                                });
-                            }
                         });
-                    
                     cb();
                 }
                 function call(contract, method, args, $method) {
+                    var $error = $method.find('[data-name=error]');
                     $error.empty();
-                    $root.find('[data-label]').hide();
-                    $root.find('.has-error').removeClass('has-error');
-
                     var value = parse($value, 'value');
                     var gasPrice = parse($gasPrice, 'gasPrice');
                     var gasLimit = parse($gasLimit, 'gasLimit');
@@ -184,7 +165,7 @@ define(function(require) {
                     
                     function parse($from, name) {
                         try {
-                            return toHex($from.val());
+                            return parseInt($from.val());
                         } catch (e) {
                             $from.parent().parent().addClass('has-error');
                             $advanced.find('[data-label=' + name + ']').text(e).show();
@@ -193,49 +174,60 @@ define(function(require) {
                     }
 
                     var sender = $sender.val();
+                    invoke();
+                    /*
                     sandbox.predefinedAccounts(function(err, accounts) {
                         if (err) return showError(err);
                         if (accounts[sender]) invoke(accounts[sender]);
                         else pkeyDialog.ask(sender, invoke);
                     });
+                     */
                     
-                    function invoke(pkey) {
-                        contract.call(sandbox, {
-                            from: sender,
-                            pkey: pkey,
-                            name: method.name,
-                            args: args,
-                            value: toHex($value.val()),
-                            gasPrice: toHex($gasPrice.val()),
-                            gasLimit: toHex($gasLimit.val())
-                        }, function(errors, results) {
-                            if (errors) {
-                                if (errors.hasOwnProperty('general'))
-                                    $error.text(errors.general);
-                                _.each(errors, function(error, name) {
-                                    $method.find('input[name=' + name + ']')
-                                        .parent().parent().addClass('has-error');
-                                    $method.find('[data-label=' + name + ']')
-                                        .text(error).show();
-                                });
-                            } else {
-                                if (method.outputs.length > 0) {
-                                    $method.find('[data-name=ret]')
-                                        .text(
-                                            formatter
-                                                .findFormatter(method.outputs[0].type)
-                                                .format(results.returnValue)
-                                        )
-                                        .parent().show();
-                                    folder.init($method);
-                                }
+                    function invoke() {
+                        var $ret = $method.find('[data-name=ret]');
+                        var txHash;
+                        
+                        args.push({
+                            value: value,
+                            gas: gasLimit,
+                            gasPrice: gasPrice,
+                            from: '0x' + sender
+                        });
+                        args.push(function(error, result) {
+                            if (error) $error.text(error.message);
+                            else {
+                                $method.find('[data-name=ret]').text(
+                                    'Waiting for mining of the transaction with hash ' + result
+                                ).parent().show();
+                                folder.init($method);
                             }
                         });
+                        watchBlocks();
+                        contract[method.name].apply(this, args);
+
+                        function watchBlocks() {
+                            var latestBlock = web3.eth.filter('latest');
+                            latestBlock.watch(function(err, result) {
+                                if (!txHash) return;
+                                web3.sandbox.getTransactionReceipt(txHash, function(err, receipt) {
+                                    if (err) console.error(err);
+                                    else if (!receipt) return;
+                                    else {
+                                        window.clearTimeout(timeout);
+                                        $ret.text('Returned value: ' + receipt.return);
+                                    }
+                                });
+                            });
+                            var timeout = window.setTimeout(function() {
+                                latestBlock.stopWatching.bind(latestBlock);
+                                $ret.text('Got no transaction receipt in 5 secs');
+                            }, 5000);
+                        }
                     }
                 }
             }
         }
-        
+
         function toHex(val) {
             if (!/^\d+$/.test(val)) throw 'Should be a number';
             return utils.pad(parseInt(val, 10).toString(16));
