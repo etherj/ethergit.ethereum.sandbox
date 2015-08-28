@@ -1,6 +1,6 @@
 define(function() {
     return function(type) {
-        var size = parseInt(type.substr(5));
+        var size = parseInt(type.substr(5)) * 2;
         return {
             length: size,
             validate: function(value) {
