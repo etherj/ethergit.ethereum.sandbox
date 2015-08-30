@@ -12,15 +12,22 @@ define(['ace/ace', '../validator/validators'], function(ace, validators) {
                 return $el;
             },
             validate: function() {
-                try {
-                    var value = $.parseJSON(editor.getValue());
-                } catch (e) {
-                    $error.text(e.message);
-                    return false;
-                }
-                
-                var errors = validator.validate(value);
-                $error.html(_.map(errors, 'message').join('<br/>'));
+                var errors = validator.validate(editor.getValue());
+                var annotations = [], errorInfo = '';
+                _.each(errors, function(error) {
+                    if (typeof error === 'object') {
+                        annotations.push({
+                            row: error.row,
+                            column: 0,
+                            text: error.text,
+                            type: 'error'
+                        });
+                    } else {
+                        errorInfo += error + '<br/>';
+                    }
+                });
+                editor.getSession().setAnnotations(annotations);
+                $error.html(errorInfo);
                 return errors.length === 0;
             },
             value: function() {
