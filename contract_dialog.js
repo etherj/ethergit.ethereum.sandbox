@@ -203,7 +203,7 @@ define(function(require) {
                             }
                         });
                         watchBlocks();
-                        contract[method.name].apply(this, args);
+                        contract[method.name][getTypes(method.inputs)].apply(this, args);
 
                         function watchBlocks() {
                             var latestBlock = web3.eth.filter('latest');
@@ -222,6 +222,9 @@ define(function(require) {
                                 latestBlock.stopWatching.bind(latestBlock);
                                 $ret.text('Got no transaction receipt in 5 secs');
                             }, 5000);
+                        }
+                        function getTypes(inputs) {
+                            return _.map(inputs, 'type').join(',');
                         }
                     }
                 }
