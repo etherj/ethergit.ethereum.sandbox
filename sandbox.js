@@ -36,6 +36,11 @@ define(function(require, exports, module) {
                     params: 1
                 }),
                 new web3._extend.Method({
+                    name: 'defaultAccount',
+                    call: 'sandbox_defaultAccount',
+                    params: 0
+                }),
+                new web3._extend.Method({
                     name: 'predefinedAccounts',
                     call: 'sandbox_predefinedAccounts',
                     params: 0
@@ -78,11 +83,14 @@ define(function(require, exports, module) {
                 id = sandboxId;
                 if (id) {
                     web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
+                    setDefaultAccount();
                     setupFilters();
                     connectionWatcher.start();
                 }
                 emit('select');
             }
+
+            
         }
         
         function start(env, cb) {
@@ -148,6 +156,15 @@ define(function(require, exports, module) {
             }
         };
 
+        plugin.on('select', setDefaultAccount);
+
+        function setDefaultAccount() {
+            web3.sandbox.defaultAccount(function(err, address) {
+                if (err) console.error(err);
+                web3.eth.defaultAccount = address;
+            });
+        }
+        
         function stop(cb) {
             _.invoke(filters, 'stopWatching');
             connectionWatcher.stop();
@@ -171,6 +188,7 @@ define(function(require, exports, module) {
         }
         
         plugin.freezePublicAPI({
+            get web3() { return web3 },
             getId: function() { return id; },
             select: select,
             start: start,

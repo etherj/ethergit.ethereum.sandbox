@@ -8,18 +8,15 @@ define(function(require) {
         var Dialog = imports.Dialog;
         var ui = imports.ui;
         var libs = imports['ethergit.libs'];
-        var ethConsole = imports['ethereum-console'];
 
         var async = require('async');
-        var Contract = require('./contract');
-        var Parsers = require('./parsers');
+        var widgets = require('./ui/widgets');
 
         var $ = libs.jquery();
         var _ = libs.lodash();
 
         // Cached elements
-        var $name, $error, $args;
-        var callback, args;
+        var $name, $args;
 
         var dialog = new Dialog('Ethergit', main.consumes, {
             name: 'sandbox-contract-constructor',
@@ -29,7 +26,7 @@ define(function(require) {
             elements: [
                 {
                     type: 'button', id: 'submitContractConstructorDialog', color: 'green',
-                    caption: 'Submit', 'default': true, onclick: submit
+                    caption: 'Submit', 'default': true
                 }
             ]
         });
@@ -38,79 +35,41 @@ define(function(require) {
             e.html.innerHTML = require('text!./contract_constructor.html');
             var $root = $(e.html);
             $name = $root.find('[data-name=name]');
-            $error = $root.find('[data-name=error]');
             $args = $root.find('[data-name=args]');
         });
 
         function askArgs(contract, cb) {
             args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
-            
-            if (!areTypesSupported()) {
-                ethConsole.logger(function(err, logger) {
-                    if (err) console.error(err);
-                    else logger.error(
-                        'Only uintN, intN, bytesN, bool, address, and string types are supported in constructors.'
-                            + 'The contract <b>' + contract.name + '</b> has been created with empty args.'
-                    );
-                });
-                return cb(null, []);
-            }
-            
             dialog.show();
             $name.text(contract.name);
             $args.empty();
-            var argField = _.template(
-                '<div class="form-group">\
-                    <label for="<%= name %>" class="col-sm-4 control-label"><%= name %> : <%= type %></label>\
-                    <div class="col-sm-8">\
-                    <input type="text" name="<%= name %>" class="form-control" placeholder="">\
-                    <p data-label="<%= name %>" class="help-block" style="display:none"></p>\
-                </div></div>'
-            );
+            var argHtml = function(name, type, widget) {
+                var $html = $(
+                    '<div class="form-group">\
+                        <label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
+                        <div class="col-sm-8" data-name="field"></div>\
+                    </div>'
+                );
+                $html.find('[data-name=field]').append(widget.html());
+                return $html;
+            };
+            var argWidgets = [];
             _.each(args, function(arg) {
-                $args.append(argField({ name: arg.name, type: arg.type }));
+                argWidgets[arg.name] = widgets(arg.type);
+                $args.append(argHtml(arg.name, arg.type, argWidgets[arg.name]));
             });
-            callback = cb;
-
-            function areTypesSupported() {
-                var types = [/^uint\d+$/, /^int\d+$/, /^bytes\d+$/, /^bool$/, /^address$/, /^string$/];
-                return _.every(args, function(arg) {
-                    return _.some(types, function(type) {
-                        return type.test(arg.type);
+            dialog.update([{
+                id: 'submitContractConstructorDialog',
+                onclick: function() {
+                    var values = _.map(args, function(arg) {
+                        return argWidgets[arg.name].value();
                     });
-                });
-            }
-        }
-
-        function submit() {
-            $error.empty();
-            $args.find('[data-label]').hide();
-            $args.find('.has-error').removeClass('has-error');
-
-            var inputs = _($args.find('input')).map(function(input) {
-                var $input = $(input);
-                return [$input.attr('name'), $input.val()];
-            }).zipObject().value();
-
-            var errors = _.reduce(args, function(result, arg) {
-                var errs = Parsers.parser(arg.type).validate(inputs[arg.name]);
-                if (errs.length > 0) result[arg.name] = errs;
-                return result;
-            }, {});
-
-            if (_.size(errors) == 0) {
-                hide();
-                callback(null, _.map(args, function(arg) {
-                    return Parsers.parser(arg.type).parse(inputs[arg.name]);
-                }));
-            } else {
-                _.each(errors, function(error, name) {
-                    $args.find('input[name=' + name + ']')
-                        .parent().parent().addClass('has-error');
-                    $args.find('[data-label=' + name + ']')
-                        .text(error).show();
-                });
-            }
+                    if (!_.some(args, _.isNull)) {
+                        hide();
+                        cb(null, values);
+                    }
+                }
+            }]);
         }
 
         function hide() {
