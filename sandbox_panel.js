@@ -138,7 +138,7 @@ define(function(require) {
                 
         function renderAccounts($container, sandbox, cb) {
             async.parallel({
-                accounts: sandbox.accounts.bind(sandbox),
+                accounts: sandbox.accounts.bind(sandbox, true),
                 coinbase: sandbox.coinbase.bind(sandbox),
                 contracts: sandbox.contracts.bind(sandbox)
             }, function(err, results) {

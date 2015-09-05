@@ -48,7 +48,7 @@ define(function(require, exports, module) {
                 new web3._extend.Method({
                     name: 'accounts',
                     call: 'sandbox_accounts',
-                    params: 0
+                    params: 1
                 }),
                 new web3._extend.Method({
                     name: 'runTx',
@@ -89,8 +89,6 @@ define(function(require, exports, module) {
                 }
                 emit('select');
             }
-
-            
         }
         
         function start(env, cb) {
@@ -104,6 +102,7 @@ define(function(require, exports, module) {
                 },
                 web3.sandbox.setBlock.bind(web3.sandbox, env.block),
                 web3.sandbox.createAccounts.bind(web3.sandbox, env.accounts),
+                setDefaultAccount,
                 async.asyncify(setupFilters),
                 async.asyncify(connectionWatcher.start.bind(connectionWatcher))
             ], function(err) {
@@ -158,10 +157,15 @@ define(function(require, exports, module) {
 
         plugin.on('select', setDefaultAccount);
 
-        function setDefaultAccount() {
+        function setDefaultAccount(cb) {
             web3.sandbox.defaultAccount(function(err, address) {
-                if (err) console.error(err);
-                web3.eth.defaultAccount = address;
+                if (err) {
+                    if (cb) cb(err);
+                    else console.error(err);
+                } else {
+                    web3.eth.defaultAccount = address;
+                    if (cb) cb();
+                }
             });
         }
         
