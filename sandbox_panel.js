@@ -171,8 +171,8 @@ define(function(require) {
                         if (coinbase === address) {
                             $account.find('[data-name=miner]').show();
                         }
-                        if (contracts.hasOwnProperty(address)) {
-                            $account.find('[data-name=contract]').text(contracts[address].name).show();
+                        if (contracts.hasOwnProperty('0x' + address)) {
+                            $account.find('[data-name=contract]').text(contracts['0x' + address].name).show();
                         }
                         $account.find('[data-name=nonce]').text(account.nonce);
                         $account.find('[data-name=balance]').text(

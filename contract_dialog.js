@@ -109,9 +109,9 @@ define(function(require) {
 
                 function load(cb) {
                     sandbox.contracts(function(err, contracts) {
-                        if (!contracts.hasOwnProperty(address))
-                            return cb('Could not find a contract with address ' + address);
-                        cb(null, contracts[address]);
+                        if (!contracts.hasOwnProperty('0x' + address))
+                            return cb('Could not find a contract with address 0x' + address);
+                        cb(null, contracts['0x' + address]);
                     });
                 }
                 function show(contractRaw, cb) {

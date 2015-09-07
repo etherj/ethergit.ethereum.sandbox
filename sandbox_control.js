@@ -245,7 +245,10 @@ define(function(require, exports, module) {
           
           function sendTx(args) {
             args.push({ contract: contract, data: '0x' + contract.binary });
-            args.push(cb);
+            args.push(function(err, contract) {
+              if (err) cb(err);
+              else if (contract.address) cb();
+            });
             var newContract = sandbox.web3.eth.contract(contract.abi);
             newContract.new.apply(newContract, args);
           }
