@@ -82,7 +82,7 @@ define(function(require) {
 
         function watchSandboxes() {
             var prevSandboxes;
-            setInterval(updateSandboxes, 10000);
+            setInterval(updateSandboxes, 5000);
             updateSandboxes();
         }
         var prevSandboxes = [];
