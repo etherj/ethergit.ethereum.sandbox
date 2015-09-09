@@ -3,7 +3,8 @@ define(function(require) {
     'Dialog', 'ui', 'dialog.error',
     'ethergit.libs',
     'ethergit.ethereum.sandbox.dialog.pkey',
-    'ethergit.sandbox'
+    'ethergit.sandbox',
+    'ethergit.dialog.abi'
   ];
   main.provides = ['ethergit.ethereum.sandbox.dialog.contract'];
   
@@ -16,6 +17,7 @@ define(function(require) {
     var libs = imports['ethergit.libs'];
     var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
     var sandbox = imports['ethergit.sandbox'];
+    var abiDialog = imports['ethergit.dialog.abi'];
     var async = require('async');
     var formatter = require('./formatter');
     var folder = require('./folder');
@@ -28,7 +30,7 @@ define(function(require) {
 
     // Cached elements
     var $root, $advanced, $sender, $value, $gasPrice, $gasLimit,
-        $contract, $name, $methods;
+        $contract, $name, $showAbi, $methods;
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'sandbox-contract',
@@ -52,6 +54,7 @@ define(function(require) {
       $gasPrice = $advanced.find('input[name=gasPrice]');
       $gasLimit = $advanced.find('input[name=gasLimit]');
       $contract = $root.find('[data-name=contract]');
+      $showAbi = $contract.find('[data-href=abi]');
       $name = $contract.find('[data-name=name]');
       $methods = $contract.find('[data-name=methods]');
 
@@ -115,6 +118,11 @@ define(function(require) {
           });
         }
         function show(contractRaw, cb) {
+          $showAbi.click(function(e) {
+            e.preventDefault();
+            abiDialog.showAbi(contractRaw);
+          });
+
           var contract = web3.eth.contract(contractRaw.abi).at('0x' + address);
           $name.text(contractRaw.name);
           $methods.empty();
@@ -122,9 +130,9 @@ define(function(require) {
           var argHtml = function(name, type, widget) {
             var $html = $(
               '<div class="form-group">\
-<label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
-<div class="col-sm-8" data-name="field"></div>\
-</div>'
+                <label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
+                <div class="col-sm-8" data-name="field"></div>\
+              </div>'
             );
             $html.find('[data-name=field]').append(widget.html());
             return $html;
@@ -239,6 +247,7 @@ define(function(require) {
     
     function hideDialog() {
       dialog.hide();
+      $showAbi.off('click');
     }
     
     ui.insertCss(require('text!./contract.css'), false, dialog);
