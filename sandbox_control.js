@@ -244,7 +244,10 @@ define(function(require, exports, module) {
           } else sendTx([]);
           
           function sendTx(args) {
-            args.push({ contract: contract, data: '0x' + contract.binary });
+            args.push({
+              contract: contract,
+              data: contract.binary.length == 0 ? '0x00' : '0x' + contract.binary
+            });
             args.push(function(err, contract) {
               if (err) cb(err);
               else if (contract.address) cb();
