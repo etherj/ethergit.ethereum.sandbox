@@ -31,6 +31,11 @@ define(function(require, exports, module) {
           params: 1
         }),
         new web3._extend.Method({
+          name: 'addAccounts',
+          call: 'sandbox_addAccounts',
+          params: 1
+        }),
+        new web3._extend.Method({
           name: 'setBlock',
           call: 'sandbox_setBlock',
           params: 1
@@ -38,11 +43,6 @@ define(function(require, exports, module) {
         new web3._extend.Method({
           name: 'defaultAccount',
           call: 'sandbox_defaultAccount',
-          params: 0
-        }),
-        new web3._extend.Method({
-          name: 'predefinedAccounts',
-          call: 'sandbox_predefinedAccounts',
           params: 0
         }),
         new web3._extend.Method({
@@ -97,6 +97,19 @@ define(function(require, exports, module) {
     }
     
     function start(env, cb) {
+      var accounts = _(env.accounts)
+          .pairs()
+          .filter(function(account) {
+            return account[1].hasOwnProperty('pkey');
+          })
+          .reduce(function(result, account) {
+            result[account[0]] = {
+              pkey: account[1].pkey,
+              'default': account[1]['default']
+            };
+            return result;
+          }, {});
+      
       async.series([
         create,
         function(cb) {
@@ -107,6 +120,7 @@ define(function(require, exports, module) {
         },
         web3.sandbox.setBlock.bind(web3.sandbox, env.block),
         web3.sandbox.createAccounts.bind(web3.sandbox, env.accounts),
+        web3.sandbox.addAccounts.bind(web3.sandbox, accounts),
         setDefaultAccount,
         async.asyncify(setupFilters),
         async.asyncify(connectionWatcher.start.bind(connectionWatcher))
@@ -189,13 +203,6 @@ define(function(require, exports, module) {
       http.request(sandboxUrl, { method: 'GET' }, cb);
     }
 
-    function coinbase(cb) {
-      web3.eth.getCoinbase(function(err, result) {
-        if (err) cb(err);
-        else cb(null, result.substr(2));
-      });
-    }
-    
     plugin.freezePublicAPI({
       get web3() { return web3 },
       getId: function() { return id; },
@@ -205,10 +212,9 @@ define(function(require, exports, module) {
       list: list,
       runTx: web3.sandbox.runTx.bind(web3.sandbox),
       accounts: web3.sandbox.accounts.bind(web3.sandbox),
-      predefinedAccounts: web3.sandbox.predefinedAccounts.bind(web3.sandbox),
       contracts: web3.sandbox.contracts.bind(web3.sandbox),
       transactions: web3.sandbox.transactions.bind(web3.sandbox),
-      coinbase: coinbase
+      coinbase: web3.eth.getCoinbase.bind(web3.eth)
     });
     
     register(null, {

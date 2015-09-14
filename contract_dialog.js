@@ -4,7 +4,8 @@ define(function(require) {
     'ethergit.libs',
     'ethergit.ethereum.sandbox.dialog.pkey',
     'ethergit.sandbox',
-    'ethergit.dialog.abi'
+    'ethergit.dialog.abi',
+    'ethergit.sandbox.config'
   ];
   main.provides = ['ethergit.ethereum.sandbox.dialog.contract'];
   
@@ -18,6 +19,7 @@ define(function(require) {
     var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
     var sandbox = imports['ethergit.sandbox'];
     var abiDialog = imports['ethergit.dialog.abi'];
+    var config = imports['ethergit.sandbox.config'];
     var async = require('async');
     var formatter = require('./formatter');
     var folder = require('./folder');
@@ -95,14 +97,20 @@ define(function(require) {
         async.waterfall([ load, show ], cb);
 
         function load(cb) {
-          sandbox.predefinedAccounts(cb);
+          sandbox.web3.eth.getAccounts(cb);
         }
-        function show(accounts, cb) {
+        function show(addresses, cb) {
           $sender.html(
-            Object.keys(accounts).reduce(function(html, address) {
+            _.reduce(addresses, function(html, address) {
               return html + '<option>' + address + '</option>';
             }, '')
           );
+
+          config.parse(function(err, parsed) {
+            if (err) return console.error(err);
+            $gasPrice.val(parsed.transaction.gasPrice);
+            $gasLimit.val(parsed.transaction.gasLimit);
+          });
           cb();
         }
       }
@@ -112,9 +120,9 @@ define(function(require) {
 
         function load(cb) {
           sandbox.contracts(function(err, contracts) {
-            if (!contracts.hasOwnProperty('0x' + address))
-              return cb('Could not find a contract with address 0x' + address);
-            cb(null, contracts['0x' + address]);
+            if (!contracts.hasOwnProperty(address))
+              return cb('Could not find a contract with address ' + address);
+            cb(null, contracts[address]);
           });
         }
         function show(contractRaw, cb) {
@@ -123,16 +131,16 @@ define(function(require) {
             abiDialog.showAbi(contractRaw);
           });
 
-          var contract = web3.eth.contract(contractRaw.abi).at('0x' + address);
+          var contract = web3.eth.contract(contractRaw.abi).at(address);
           $name.text(contractRaw.name);
           $methods.empty();
 
           var argHtml = function(name, type, widget) {
             var $html = $(
               '<div class="form-group">\
-                <label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
-                <div class="col-sm-8" data-name="field"></div>\
-              </div>'
+<label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
+<div class="col-sm-8" data-name="field"></div>\
+</div>'
             );
             $html.find('[data-name=field]').append(widget.html());
             return $html;
@@ -199,7 +207,7 @@ define(function(require) {
               value: value,
               gas: gasLimit,
               gasPrice: gasPrice,
-              from: '0x' + sender
+              from: sender
             });
             args.push(function(err, result) {
               if (err) $error.text(err.message);
@@ -218,7 +226,6 @@ define(function(require) {
               latestBlock.watch(function(err, result) {
                 if (!txHash) return;
                 web3.sandbox.receipt(txHash, function(err, receipt) {
-                  console.log(receipt);
                   if (err) console.error(err);
                   else if (!receipt) return;
                   else {
