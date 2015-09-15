@@ -13,8 +13,12 @@ define(function(require) {
     var commands = imports.commands;
     var sandbox = imports['ethergit.sandbox'];
     var libs = imports['ethergit.libs'];
+    var config = imports['ethergit.sandbox.config'];
 
     var $ = libs.jquery();
+    var _ = libs.lodash();
+
+    var $pkey, $gasLimit, $gasPrice, $error, $contracts;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -62,16 +66,36 @@ define(function(require) {
       $pkey = $root.find('[data-name=pkey]');
       $gasLimit = $root.find('[data-name=gasLimit]');
       $gasPrice = $root.find('[data-name=gasPrice]');
+      $error = $root.find('[data-name=error]');
+      $contracts = $root.find('[data-name=contracts]');
     });
 
     dialog.on('show', function() {
       setFormDefaults();
+      showContracts();
 
       function setFormDefaults() {
         $pkey.val('');
-        config.parse(function(parsed) {
+        $error.text('');
+        config.parse(function(err, parsed) {
+          if (err) return $error.text('Could not parse ethereum.json: ' + err);
           $gasLimit.val(parsed.transaction.gasLimit);
           $gasPrice.val(parsed.transaction.gasPrice);
+        });
+      }
+      function showContracts() {
+        sandbox.web3.sandbox.contracts(function(err, contracts) {
+          if (err) return $error.text('Could not get contracts: ' + err.message);
+          $contracts.html(
+            _.reduce(contracts, function(html, contract, address) {
+              html += '<div class="checkbox">\
+                <label style="line-height:1.8;">\
+                  <input data-contract="' + address + '" type="checkbox" checked>' + contract.name +
+                '</label>\
+                </div>';
+              return html;
+            }, '')
+          );
         });
       }
     });
