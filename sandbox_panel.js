@@ -46,6 +46,7 @@ define(function(require) {
       });
       sandbox.on('select', function() {
         if (sandbox.getId()) {
+          watcher.redraw = true;
           panel.show();
           watcher.start();
         } else {
