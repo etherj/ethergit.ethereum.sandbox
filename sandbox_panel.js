@@ -76,7 +76,7 @@ define(function(require) {
           contractDialog.showContract(address);
         }
       });
-      updateSandboxes();
+      watchSandboxes();
     });
 
     function watchSandboxes() {
@@ -113,6 +113,7 @@ define(function(require) {
       },
       stop: function() {
         clearInterval(this.interval);
+        panel.render();    
       }
     };
 
