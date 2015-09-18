@@ -28,7 +28,6 @@ define(function(require) {
 
     var $ = libs.jquery();
     var _ = libs.lodash();
-    var web3 = libs.web3();
 
     // Cached elements
     var $root, $advanced, $sender, $value, $gasPrice, $gasLimit,
@@ -131,16 +130,16 @@ define(function(require) {
             abiDialog.showAbi(contractRaw);
           });
 
-          var contract = web3.eth.contract(contractRaw.abi).at(address);
+          var contract = sandbox.web3.eth.contract(contractRaw.abi).at(address);
           $name.text(contractRaw.name);
           $methods.empty();
 
           var argHtml = function(name, type, widget) {
             var $html = $(
               '<div class="form-group">\
-<label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
-<div class="col-sm-8" data-name="field"></div>\
-</div>'
+              <label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
+              <div class="col-sm-8" data-name="field"></div>\
+              </div>'
             );
             $html.find('[data-name=field]').append(widget.html());
             return $html;
@@ -222,10 +221,10 @@ define(function(require) {
             contract[method.name][getTypes(method.inputs)].apply(this, args);
 
             function watchBlocks() {
-              var latestBlock = web3.eth.filter('latest');
+              var latestBlock = sandbox.web3.eth.filter('latest');
               latestBlock.watch(function(err, result) {
                 if (!txHash) return;
-                web3.sandbox.receipt(txHash, function(err, receipt) {
+                sandbox.web3.sandbox.receipt(txHash, function(err, receipt) {
                   if (err) console.error(err);
                   else if (!receipt) return;
                   else {

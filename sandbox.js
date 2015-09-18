@@ -15,7 +15,9 @@ define(function(require, exports, module) {
     var Contract = require('./contract');
 
     var _ = libs.lodash();
-    var web3 = libs.web3();
+    var Web3 = libs.web3();
+    var web3 = new Web3();
+    window.web3 = web3;
     
     var plugin = new Plugin('Ethergit', main.consumes);
     var emit = plugin.getEmitter();
@@ -173,8 +175,6 @@ define(function(require, exports, module) {
         clearInterval(this.handler);
       }
     };
-
-    plugin.on('select', setDefaultAccount);
 
     function setDefaultAccount(cb) {
       web3.sandbox.defaultAccount(function(err, address) {
