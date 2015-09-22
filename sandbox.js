@@ -89,7 +89,7 @@ define(function(require, exports, module) {
       if (sandboxId != id) {
         id = sandboxId;
         if (id) {
-          web3.setProvider(new web3.providers.HttpProvider(sandboxUrl + id));
+          web3.setGlobalProvider(new web3.providers.HttpProvider(sandboxUrl + id));
           setDefaultAccount();
           setupFilters();
           connectionWatcher.start();
@@ -115,7 +115,7 @@ define(function(require, exports, module) {
       async.series([
         create,
         function(cb) {
-          web3.setProvider(
+          web3.setGlobalProvider(
             new web3.providers.HttpProvider(sandboxUrl + id)
           );
           cb();

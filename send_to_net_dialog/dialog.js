@@ -17,23 +17,24 @@ define(function(require) {
 
     var async = require('async');
     var utils = require('../utils');
+    var widgets = require('../ui/widgets');
+
+    var url = 'http://peer-1.ether.camp:8082';
     
     var $ = libs.jquery();
     var _ = libs.lodash();
     var Web3 = libs.web3();
-    var web3 = new Web3(new Web3.prototype.providers.HttpProvider('http://' + window.location.hostname + ':8545'));
+    var web3 = new Web3(new Web3.prototype.providers.HttpProvider(url));
 
-    var contractTmpl = _.template(
-      '<tr>' +
-        '<td><input data-name="toSend" type="checkbox" checked></td>' +
-        '<td data-name="name"><%= name %></td>' +
-        '<td><input data-name="gasLimit" type="text" value="<%= gasLimit %>"></td>' +
-        '<td><input data-name="gasPrice" type="text" value="<%= gasPrice %>"></td>' +
-        '<input data-name="binary" type="hidden" value="<%= binary %>">' +
-        '</tr>'
-    );
+    var contractHtml = '<tr>' +
+        '<td data-name="toSend" style="padding-top:15px"></td>' +
+        '<td data-name="name" style="padding-top:15px"></td>' +
+        '<td data-name="value"></td>' +
+        '<td data-name="gasLimit"></td>' +
+        '<td data-name="gasPrice"></td>' +
+        '</tr>';
     
-    var $pkey, $error, $success, $contracts;
+    var $pkey, $error, $success, $contracts, $url;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -43,7 +44,7 @@ define(function(require) {
       elements: [
         {
           type: 'button', id: 'send', color: 'green',
-          caption: 'Send', 'default': true, onclick: send
+          caption: 'Send', 'default': true
         },
         {
           type: 'button', id: 'cancel', color: 'blue',
@@ -82,6 +83,8 @@ define(function(require) {
       $error = $root.find('[data-name=error]');
       $success = $root.find('[data-name=success]');
       $contracts = $root.find('[data-name=contracts]');
+      $url = $root.find('[data-name=url]');
+      $url.val(url);
     });
 
     dialog.on('show', function() {
@@ -92,56 +95,107 @@ define(function(require) {
         $pkey.val('');
         $error.text('');
         $success.text('');
+        $contracts.empty();
       }
       function showContracts() {
         async.parallel([
           sandbox.web3.sandbox.contracts.bind(sandbox.web3.sandbox),
           web3.eth1.gasPrice.bind(web3.eth1),
         ], function(err, results) {
-          if (err) return $error.text(err.message);
+          if (err) return $error.text('Could not get contracts: ' + err.message);
           var contracts = results[0];
           var gasPrice = results[1].toString();
-          if (err) return $error.text('Could not get contracts: ' + err.message);
-          $contracts.html(
-            _.reduce(contracts, function(html, contract, address) {
-              return html + contractTmpl({
-                address: address,
-                name: contract.name,
-                gasLimit: parseInt(contract.gasUsed.substr(2), 16),
-                gasPrice: gasPrice,
-                binary: contract.binary
+          var details = _.map(contracts, function(contract) {
+            return {
+              contract: contract,
+              toSend: widgets('bool', true),
+              value: widgets('uint256', 0),
+              gasLimit: widgets(
+                'uint256',
+                Math.floor(parseInt(contract.gasUsed.substr(2), 16) * 1.1)
+              ),
+              gasPrice: widgets('uint256', gasPrice)
+            };
+          });
+          _.each(details, function(contract) {
+            var $html = $(contractHtml);
+            $html.find('[data-name=name]').append(contract.contract.name);
+            $html.find('[data-name=toSend]').append(contract.toSend.html());
+            $html.find('[data-name=value]').append(contract.value.html());
+            $html.find('[data-name=gasLimit]').append(contract.gasLimit.html());
+            $html.find('[data-name=gasPrice]').append(contract.gasPrice.html());
+            $contracts.append($html);
+          });
+          dialog.update([{ id: 'send', onclick: send.bind(null, details) }]);
+
+          $url.off('change').on('change', updateUrl);
+
+          function updateUrl() {
+            $url.val($url.val().trim());
+            if (validate($url.val())) {
+              $error.text('JSON RPC URL is not valid.');
+            } else {
+              $error.text('');
+              url = $url.val();
+              web3.setProvider(new Web3.prototype.providers.HttpProvider(url));
+              updateGasPrice();
+            }
+
+            function validate(val) {
+              return /^(http|https):\/\/[^ ]+$/i.test(val);
+            }
+            function updateGasPrice() {
+              web3.eth1.gasPrice(function(err, gasPrice) {
+                if (err)
+                  return $error.text('Could not get gas price from ' + url + ': ' + err.message);
+                _.each(details, function(contract) {
+                  contract.gasPrice.setValue(gasPrice.toString());
+                });
               });
-            }, '')
-          );
+            }
+          }
         });
       }
     });
 
-    function send() {
+    function send(contracts) {
       $error.text('');
       $success.text('');
-      
-      var contracts = _.where($contracts.find('tr').map(function(n, row) {
-        var $row = $(row);
-        return {
-          toSend: $row.find('[data-name=toSend]').is(':checked'),
-          name: $row.find('[data-name=name]').text(),
-          gasLimit: parseInt($row.find('[data-name=gasLimit]').val()),
-          gasPrice: parseInt($row.find('[data-name=gasPrice]').val()),
-          binary: $row.find('[data-name=binary]').val(),
-        };
-      }), { toSend: true });
 
-      var pkey = processPkey($pkey.val());
-      var address = utils.toAddress(pkey);
-
-      async.series([
-        checkBalance,
-        sendContracts
-      ], function(err) {
-        if (err) $error.text(err);
-        else $success.text('Transactions have been sent successfully.');
+      var parsed = _(contracts)
+          .filter(function(contract) {
+            return contract.toSend.value();
+          })
+          .map(function(contract) {
+            return {
+              name: contract.contract.name,
+              value: contract.value.value(),
+              gasLimit: contract.gasLimit.value(),
+              gasPrice: contract.gasPrice.value(),
+              binary: contract.contract.binary
+            };
+          }).value();
+      var hasError = _.any(parsed, function(vals) {
+        return vals.value === null || vals.gasLimit === null || vals.gasPrice == null;
       });
+
+      if ($pkey.val() == '') {
+        $error.text('Please, specify a private key or a seed phrase.');
+        hasError = true;
+      }
+
+      if (!hasError) {
+        var pkey = processPkey($pkey.val());
+        var address = utils.toAddress(pkey);
+        
+        async.series([
+          checkBalance,
+          sendContracts
+        ], function(err) {
+          if (err) $error.text(err);
+          else $success.text('Transactions have been sent successfully.');
+        });
+      }
       
       function processPkey(pkey) {
         if (pkey.match(/^[\dabcdef]{64}$/)) return '0x' + pkey.substr;
@@ -151,9 +205,10 @@ define(function(require) {
       function checkBalance(cb) {
         web3.eth1.getBalance(address, function(err, balance) {
           if (err) return cb(err.message);
-          var total = _.reduce(contracts, function(sum, contract) {
+          var total = _.reduce(parsed, function(sum, vals) {
             return sum.plus(
-              new BigNumber(contract.gasLimit).times(new BigNumber(contract.gasPrice))
+              new BigNumber(vals.value).plus(
+                new BigNumber(vals.gasLimit).times(new BigNumber(vals.gasPrice)))
             );
           }, new BigNumber(0));
 
@@ -168,12 +223,13 @@ define(function(require) {
       function sendContracts(cb) {
         web3.eth1.getTransactionCount(address, function(err, nonce) {
           if (err) return cb(err);
-          async.eachSeries(contracts, function(contract, cb) {
+          async.eachSeries(parsed, function(vals, cb) {
             web3.eth1.sendRawTransaction(utils.createTx({
               nonce: nonce++,
-              data: '0x' + contract.binary,
-              gasLimit: contract.gasLimit,
-              gasPrice: contract.gasPrice,
+              value: vals.value,
+              data: '0x' + vals.binary,
+              gasLimit: vals.gasLimit,
+              gasPrice: vals.gasPrice,
               pkey: pkey
             }), function(err, result) {
               if (err) return cb(err.message);

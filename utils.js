@@ -55,6 +55,7 @@ define(function(require) {
     createTx: function(options) {
       var tx = new ethTx({
         nonce: options.nonce,
+        value: options.value,
         data: new Buffer(options.data.substr(2), 'hex'),
         gasLimit: options.gasLimit,
         gasPrice: options.gasPrice
