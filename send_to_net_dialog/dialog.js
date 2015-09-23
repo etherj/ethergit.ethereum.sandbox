@@ -172,7 +172,7 @@ define(function(require) {
               value: contract.value.value(),
               gasLimit: contract.gasLimit.value(),
               gasPrice: contract.gasPrice.value(),
-              binary: contract.contract.binary
+              data: contract.contract.data
             };
           }).value();
       var hasError = _.any(parsed, function(vals) {
@@ -227,7 +227,7 @@ define(function(require) {
             web3.eth1.sendRawTransaction(utils.createTx({
               nonce: nonce++,
               value: vals.value,
-              data: '0x' + vals.binary,
+              data: vals.data,
               gasLimit: vals.gasLimit,
               gasPrice: vals.gasPrice,
               pkey: pkey
