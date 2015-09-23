@@ -132,7 +132,7 @@ define(function(require) {
 
           function updateUrl() {
             $url.val($url.val().trim());
-            if (validate($url.val())) {
+            if (!validate($url.val())) {
               $error.text('JSON RPC URL is not valid.');
             } else {
               $error.text('');
