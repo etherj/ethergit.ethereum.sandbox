@@ -34,7 +34,7 @@ define(function(require) {
         '<td data-name="gasPrice"></td>' +
         '</tr>';
     
-    var $pkey, $error, $success, $contracts, $url;
+    var $pkey, $error, $success, $contracts, $url, $hidePKey;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -80,11 +80,16 @@ define(function(require) {
       e.html.innerHTML = require('text!./dialog.html');
       var $root = $(e.html);
       $pkey = $root.find('[data-name=pkey]');
+      $hidePkey = $root.find('[data-name=hidePKey]');
       $error = $root.find('[data-name=error]');
       $success = $root.find('[data-name=success]');
       $contracts = $root.find('[data-name=contracts]');
       $url = $root.find('[data-name=url]');
       $url.val(url);
+
+      $hidePkey.on('change', function() {
+        $pkey.attr('type', $hidePkey.is(':checked') ? 'password' : 'text');
+      });
     });
 
     dialog.on('show', function() {
@@ -93,6 +98,7 @@ define(function(require) {
 
       function setFormDefaults() {
         $pkey.val('');
+        $hidePkey.prop('checked', true);
         $error.text('');
         $success.text('');
         $contracts.empty();
