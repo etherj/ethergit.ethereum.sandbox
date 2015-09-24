@@ -97,6 +97,7 @@ define(function(require) {
       showContracts();
 
       function setFormDefaults() {
+        $pkey.attr('type', 'password');
         $pkey.val('');
         $hidePkey.prop('checked', true);
         $error.text('');
