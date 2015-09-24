@@ -1,7 +1,8 @@
 define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'layout', 'commands',
-    'ethergit.sandbox', 'ethergit.libs', 'ethergit.sandbox.config'
+    'ethergit.sandbox', 'ethergit.libs',
+    'ethergit.sandbox.config', 'ethergit.sent.txs.editor'
   ];
   main.provides = ['ethergit.dialog.send.to.net'];
   return main;
@@ -14,6 +15,7 @@ define(function(require) {
     var sandbox = imports['ethergit.sandbox'];
     var libs = imports['ethergit.libs'];
     var config = imports['ethergit.sandbox.config'];
+    var sentTxs = imports['ethergit.sent.txs.editor'];
 
     var async = require('async');
     var utils = require('../utils');
@@ -182,13 +184,18 @@ define(function(require) {
               data: contract.contract.data
             };
           }).value();
-      var hasError = _.any(parsed, function(vals) {
-        return vals.value === null || vals.gasLimit === null || vals.gasPrice == null;
-      });
-
-      if ($pkey.val() == '') {
-        $error.text('Please, specify a private key or a seed phrase.');
+      if (parsed.length === 0) {
+        $error.text('No contracts were selected.');
         hasError = true;
+      } else {
+        var hasError = _.any(parsed, function(vals) {
+          return vals.value === null || vals.gasLimit === null || vals.gasPrice == null;
+        });
+        
+        if ($pkey.val() == '') {
+          $error.text('Please, specify a private key or a seed phrase.');
+          hasError = true;
+        }
       }
 
       if (!hasError) {
@@ -200,7 +207,7 @@ define(function(require) {
           sendContracts
         ], function(err) {
           if (err) $error.text(err);
-          else $success.text('Transactions have been sent successfully.');
+          else hide();
         });
       }
       
@@ -239,7 +246,11 @@ define(function(require) {
               gasPrice: vals.gasPrice,
               pkey: pkey
             }), function(err, result) {
-              if (err) return cb(err.message);
+              if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
+              sentTxs.addTx({
+                hash: result,
+                web3: web3
+              });
               cb();
             });
           }, cb);
