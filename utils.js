@@ -27,7 +27,9 @@ define(function(require) {
       return str.length % 2 === 0 ? str : '0' + str;
     },
     calcNewAddress: function(from, nonce) {
-      return ethUtil.generateAddress(from, nonce + 1);
+      return '0x' + ethUtil
+        .generateAddress(new Buffer(from.substr(2), 'hex'), nonce + 1)
+        .toString('hex');
     },
     // Workaround for https://github.com/c9/core/issues/71
     removeMetaInfo: function(text) {

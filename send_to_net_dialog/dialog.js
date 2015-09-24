@@ -238,8 +238,9 @@ define(function(require) {
         web3.eth1.getTransactionCount(address, function(err, nonce) {
           if (err) return cb(err);
           async.eachSeries(parsed, function(vals, cb) {
+            var nextNonce = nonce++;
             web3.eth1.sendRawTransaction(utils.createTx({
-              nonce: nonce++,
+              nonce: nextNonce,
               value: vals.value,
               data: vals.data,
               gasLimit: vals.gasLimit,
@@ -249,6 +250,7 @@ define(function(require) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               sentTxs.addTx({
                 hash: result,
+                contract: utils.calcNewAddress(address, nextNonce),
                 web3: web3
               });
               cb();

@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'editors', 'Editor', 'ui', 'tabManager'
+    'editors', 'Editor', 'ui', 'tabManager', 'ethergit.libs'
   ];
   main.provides = ['ethergit.sent.txs.editor'];
   return main;
@@ -10,14 +10,86 @@ define(function(require) {
     var Editor = imports.Editor;
     var ui = imports.ui;
     var tabs = imports.tabManager;
+    var libs = imports['ethergit.libs'];
 
+    var $ = libs.jquery();
+    var _ = libs.lodash();
+    
+    var txs = [];
+
+    // Cached elements
+    var $container;
+    
     function TransactionsEditor() {
-      var txs = new Editor('Ethergit', main.consumes, []);
-      txs.load(null, 'sent-txs');
+      var editor = new Editor('Ethergit', main.consumes, []);
+      editor.load(null, 'sent-txs');
 
-      tsx.freezPublicAPI({});
+      ui.insertCss(require('text!./txs.css'), false, editor);
 
-      return txs;
+      editor.on('documentLoad', function(e) {
+        e.doc.title = 'Transactions';
+      });
+
+      editor.on('draw', function(e) {
+        e.htmlNode.innerHTML = require('text!./container.html');
+        var $root = $(e.htmlNode);
+        $container = $root.find('[data-name=txs]');
+      });
+
+      function addTx(tx) {
+        tx.counter = 0;
+        tx.status = 'Pending';
+        
+        var $tx = $(require('text!./tx.html'));
+        $tx.attr('data-tx', tx.hash);
+        $tx.find('[data-name=tx]').text(tx.hash.substr(0, 8) + '...');
+        $tx.find('[data-name=contract]').text(tx.contract.substr(0, 8) + '...');
+        $tx.find('[data-name=status]').text(tx.status);
+        $container.append($tx);
+
+        txs.push(tx);
+      }
+
+      setInterval(checkTxs, 5000);
+
+      function checkTxs() {
+        _(txs).where({ status: 'Pending' }).each(function(tx) {
+          if (tx.counter++ > 170) { // Checking 50 blocks ~ 170 * 5 secs.
+            tx.status = 'Rejected'
+            tx.web3 = null;
+            updateTx(tx);
+          } else {
+            tx.web3.eth1.getTransactionReceipt(tx.hash, function(err, receipt) {
+              if (err) return console.error(err);
+              if (receipt) {
+                tx.status = 'Mined';
+                tx.web3 = null;
+                updateTx(tx);
+              }
+            });
+          }
+        }).value();
+      }
+
+      function updateTx(tx) {
+        var $tx = $container.find('[data-tx=' + tx.hash + ']');
+        $tx.find('[data-name=status]').text(tx.status)
+          .removeClass('Pending Rejected Mined').addClass(tx.status);
+        $tx.find('[data-name=tx]').html(
+          '<a target="_blank" href="http://test.ether.camp/transaction/' +
+            tx.hash.substr(2) + '">' + tx.hash.substr(0, 8) + '...</a>'
+        );
+        $tx.find('[data-name=contract]').html(
+          '<a target="_blank" href="http://test.ether.camp/account/' +
+            tx.contract.substr(2) + '">' + tx.contract.substr(0, 8) + '...</a>'
+        );
+      }
+      
+      editor.freezePublicAPI({
+        addTx: addTx
+      });
+
+      return editor;
     }
 
     var handle = editors.register('sent-tx', 'Transactions', TransactionsEditor, []);
@@ -28,7 +100,7 @@ define(function(require) {
           tabs.getPanes()[0].vsplit(true);
       
       tabs.open({
-        editorType: 'send-tx',
+        editorType: 'sent-tx',
         title: 'Transactions',
         active: true,
         pane: pane,
@@ -42,7 +114,8 @@ define(function(require) {
 
     function addTx(tx, web3) {
       show(function(err, editor) {
-        if (err) return console.error(err);
+        if (err) console.error(err);
+        else editor.addTx(tx);
       });
     }
 

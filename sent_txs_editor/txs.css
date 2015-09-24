@@ -1,0 +1,18 @@
+.sent-txs-container {
+    overflow-y: scroll;
+    height: 100%;
+    color: #e0e0e0;
+    margin-left: 15px;
+}
+
+.sent-txs-container .Pending {
+    color: #3366FF;
+}
+
+.sent-txs-container .Rejected {
+    color: #FF3300;
+}
+
+.sent-txs-container .Mined {
+    color: #66FF33;
+}
