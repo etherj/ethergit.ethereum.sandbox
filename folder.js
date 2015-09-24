@@ -18,7 +18,7 @@ define(function() {
         fold: function($el) {
             var text = $el.data('folder');
             if (text.length > 11) {
-                $el.text(text.substr(0, 3) + '[...]' + text.substr(-3));
+                $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
             }
         },
         unfold: function($el) {

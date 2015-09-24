@@ -12,8 +12,15 @@ define(function(require) {
     var tabs = imports.tabManager;
     var libs = imports['ethergit.libs'];
 
+    var folder = require('../folder');
+
     var $ = libs.jquery();
     var _ = libs.lodash();
+    
+    var urls = {
+      test: 'http://test.ether.camp',
+      frontier: 'http://frontier.ether.camp'
+    };
     
     var txs = [];
 
@@ -75,14 +82,26 @@ define(function(require) {
         var $tx = $container.find('[data-tx=' + tx.hash + ']');
         $tx.find('[data-name=status]').text(tx.status)
           .removeClass('Pending Rejected Mined').addClass(tx.status);
-        $tx.find('[data-name=tx]').html(
-          '<a target="_blank" href="http://test.ether.camp/transaction/' +
-            tx.hash.substr(2) + '">' + tx.hash.substr(0, 8) + '...</a>'
-        );
-        $tx.find('[data-name=contract]').html(
-          '<a target="_blank" href="http://test.ether.camp/account/' +
-            tx.contract.substr(2) + '">' + tx.contract.substr(0, 8) + '...</a>'
-        );
+        if (tx.net) {
+          var url = urls[tx.net];
+          $tx.find('[data-name=tx]').html(
+            '<a target="_blank" href="' + url + '/transaction/' +
+              tx.hash.substr(2) + '">' + tx.hash.substr(0, 8) + '...</a>'
+          );
+          $tx.find('[data-name=contract]').html(
+            '<a target="_blank" href="' + url + '/account/' +
+              tx.contract.substr(2) + '">' + tx.contract.substr(0, 8) + '...</a>'
+          );
+        } else {
+          $tx.click(folder.foldOrUnfold);
+          $tx.find('[data-name=tx]').html(
+            '<span data-folder class="folder">' + tx.hash + '</span>'
+          );
+          $tx.find('[data-name=contract]').html(
+            '<span data-folder class="folder">' + tx.contract + '</span>'
+          );
+          folder.init($tx);
+        }
       }
       
       editor.freezePublicAPI({

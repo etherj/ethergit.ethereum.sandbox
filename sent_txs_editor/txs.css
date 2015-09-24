@@ -16,3 +16,7 @@
 .sent-txs-container .Mined {
     color: #66FF33;
 }
+
+.sent-txs-container .folder {
+    cursor: pointer;
+}

@@ -22,6 +22,11 @@ define(function(require) {
     var widgets = require('../ui/widgets');
 
     var url = 'http://peer-1.ether.camp:8082';
+
+    var nets = {
+      '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368': 'test',
+      '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3': 'frontier'
+    };
     
     var $ = libs.jquery();
     var _ = libs.lodash();
@@ -238,8 +243,13 @@ define(function(require) {
         });
       }
       function sendContracts(cb) {
-        web3.eth1.getTransactionCount(address, function(err, nonce) {
+        async.parallel([
+          web3.eth1.getTransactionCount.bind(web3.eth1, address),
+          web3.eth1.getBlockByNumber.bind(web3.eth1, 0, false)
+        ], function(err, results) {
           if (err) return cb(err);
+          var nonce = results[0];
+          var genesis = results[1].hash;
           async.eachSeries(parsed, function(vals, cb) {
             var nextNonce = nonce++;
             web3.eth1.sendRawTransaction(utils.createTx({
@@ -254,7 +264,8 @@ define(function(require) {
               sentTxs.addTx({
                 hash: result,
                 contract: utils.calcNewAddress(address, nextNonce),
-                web3: web3
+                web3: web3,
+                net: nets[genesis]
               });
               cb();
             });
