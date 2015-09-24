@@ -1,83 +1,84 @@
 define(function(require) {
-    main.consumes = ['Dialog', 'ui', 'ethergit.libs', 'ethereum-console'];
-    main.provides = ['ethergit.dialog.contract.constructor'];
+  main.consumes = ['Dialog', 'ui', 'ethergit.libs', 'ethereum-console'];
+  main.provides = ['ethergit.dialog.contract.constructor'];
 
-    return main;
+  return main;
 
-    function main(options, imports, register) {
-        var Dialog = imports.Dialog;
-        var ui = imports.ui;
-        var libs = imports['ethergit.libs'];
+  function main(options, imports, register) {
+    var Dialog = imports.Dialog;
+    var ui = imports.ui;
+    var libs = imports['ethergit.libs'];
 
-        var async = require('async');
-        var widgets = require('./ui/widgets');
+    var async = require('async');
+    var widgets = require('./ui/widgets');
 
-        var $ = libs.jquery();
-        var _ = libs.lodash();
+    var $ = libs.jquery();
+    var _ = libs.lodash();
 
-        // Cached elements
-        var $name, $args;
+    // Cached elements
+    var $name, $args;
 
-        var dialog = new Dialog('Ethergit', main.consumes, {
-            name: 'sandbox-contract-constructor',
-            allowClose: true,
-            title: 'Contract Constructor',
-            width: 500,
-            elements: [
-                {
-                    type: 'button', id: 'submitContractConstructorDialog', color: 'green',
-                    caption: 'Submit', 'default': true
-                }
-            ]
-        });
-
-        dialog.on('draw', function(e) {
-            e.html.innerHTML = require('text!./contract_constructor.html');
-            var $root = $(e.html);
-            $name = $root.find('[data-name=name]');
-            $args = $root.find('[data-name=args]');
-        });
-
-        function askArgs(contract, cb) {
-            args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
-            dialog.show();
-            $name.text(contract.name);
-            $args.empty();
-            var argHtml = function(name, type, widget) {
-                var $html = $(
-                    '<div class="form-group">\
-                        <label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>\
-                        <div class="col-sm-8" data-name="field"></div>\
-                    </div>'
-                );
-                $html.find('[data-name=field]').append(widget.html());
-                return $html;
-            };
-            var argWidgets = [];
-            _.each(args, function(arg) {
-                argWidgets[arg.name] = widgets(arg.type);
-                $args.append(argHtml(arg.name, arg.type, argWidgets[arg.name]));
-            });
-            dialog.update([{
-                id: 'submitContractConstructorDialog',
-                onclick: function() {
-                    var values = _.map(args, function(arg) {
-                        return argWidgets[arg.name].value();
-                    });
-                    if (!_.some(args, _.isNull)) {
-                        hide();
-                        cb(null, values);
-                    }
-                }
-            }]);
+    var dialog = new Dialog('Ethergit', main.consumes, {
+      name: 'sandbox-contract-constructor',
+      allowClose: true,
+      title: 'Contract Constructor',
+      width: 500,
+      elements: [
+        {
+          type: 'button', id: 'submitContractConstructorDialog', color: 'green',
+          caption: 'Submit', 'default': true
         }
+      ]
+    });
 
-        function hide() {
-            dialog.hide();
+    dialog.on('draw', function(e) {
+      e.html.innerHTML = require('text!./contract_constructor.html');
+      var $root = $(e.html);
+      $name = $root.find('[data-name=name]');
+      $args = $root.find('[data-name=args]');
+    });
+
+    function askArgs(contract, cb) {
+      args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
+      dialog.show();
+      $name.text(contract.name);
+      $args.empty();
+      var argHtml = function(name, type, widget) {
+        var $html = $(
+          '<div class="form-group">' +
+            '<label class="col-sm-4 control-label">' + name + ' : ' + type + '</label>' +
+            '<div class="col-sm-8" data-name="field"></div>' +
+            '</div>'
+        );
+        $html.find('[data-name=field]').append(widget.html());
+        return $html;
+      };
+      var argWidgets = [];
+      _.each(args, function(arg) {
+        argWidgets[arg.name] = widgets(arg.type);
+        $args.append(argHtml(arg.name, arg.type, argWidgets[arg.name]));
+      });
+      dialog.update([{
+        id: 'submitContractConstructorDialog',
+        onclick: function() {
+          var values = _.map(args, function(arg) {
+            return argWidgets[arg.name].value();
+          });
+          
+          if (!_.some(values, _.isNull)) {
+            hide();
+            cb(null, values);
+          }
         }
-
-        dialog.freezePublicAPI({ askArgs: askArgs });
-
-        register(null, { 'ethergit.dialog.contract.constructor': dialog });
+      }]);
     }
+
+    function hide() {
+      dialog.hide();
+    }
+
+    dialog.freezePublicAPI({ askArgs: askArgs });
+
+    register(null, { 'ethergit.dialog.contract.constructor': dialog });
+  }
 });
