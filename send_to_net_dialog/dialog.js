@@ -50,7 +50,7 @@ define(function(require) {
         },
         {
           type: 'button', id: 'cancel', color: 'blue',
-          caption: 'Cancel', 'default': false, onclick: hide
+          caption: 'Cancel', 'default': false, onclick: hide, disable: true
         }
       ]
     });
@@ -146,7 +146,7 @@ define(function(require) {
             } else {
               $error.text('');
               url = $url.val();
-              web3.setProvider(new Web3.prototype.providers.HttpProvider(url));
+              web3 = new Web3(new Web3.prototype.providers.HttpProvider(url));
               updateGasPrice();
             }
 
@@ -201,11 +201,14 @@ define(function(require) {
       if (!hasError) {
         var pkey = processPkey($pkey.val());
         var address = utils.toAddress(pkey);
+
+        disableSend(true);
         
         async.series([
           checkBalance,
           sendContracts
         ], function(err) {
+          disableSend(false);
           if (err) $error.text(err);
           else hide();
         });
@@ -257,6 +260,9 @@ define(function(require) {
             });
           }, cb);
         });
+      }
+      function disableSend(disable) {
+        dialog.update([{ id: 'send', disabled: disable }]);
       }
     }
     
