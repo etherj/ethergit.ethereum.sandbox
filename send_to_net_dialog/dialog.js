@@ -51,11 +51,11 @@ define(function(require) {
       elements: [
         {
           type: 'button', id: 'send', color: 'green',
-          caption: 'Send', 'default': true
+          caption: 'Send', 'default': true, disabled: true
         },
         {
           type: 'button', id: 'cancel', color: 'blue',
-          caption: 'Cancel', 'default': false, onclick: hide, disable: true
+          caption: 'Cancel', 'default': false, onclick: hide, disabled: false
         }
       ]
     });

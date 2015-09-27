@@ -1,4 +1,4 @@
-define(['../validator/validators'], function(validators) {
+define(['../validator/validators', '../utils'], function(validators, utils) {
   return function(type, defaultVal) {
     var validator = validators(type), $input, $error;
     var isNumber = /^uint\d+$/.test(type) || /^int\d+$/.test(type);
@@ -20,8 +20,14 @@ define(['../validator/validators'], function(validators) {
         return errors.length === 0;
       },
       value: function() {
-        return widget.validate() ?
-          (isNumber ? parseInt($input.val()) : $input.val()) : null;
+        if (widget.validate()) {
+          if (/^bytes\d+$/.test(type))
+            return parseBytesN($input.val(), type);
+          else
+            return isNumber ? parseInt($input.val()) : $input.val();
+        } else {
+          return null;
+        }
       },
       setValue: function(val) {
         $input.val(val);
@@ -29,4 +35,13 @@ define(['../validator/validators'], function(validators) {
     };
     return widget;
   };
+
+  function parseBytesN(val, type) {
+    if (!_.startsWith(val, '0x')) {
+      return val;
+    } else {
+      var size = parseInt(type.substr(5));
+      return '0x' + utils.fillWithZeroes(val.substr(2), size * 2);
+    }
+  }
 });
