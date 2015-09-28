@@ -142,8 +142,8 @@ define(function(require, exports, module) {
     }
     
     function setupFilters() {
-      filters['pending'] = web3.eth.filter('pending');
-      filters['pending'].watch(function(err, result) {
+      filters['block'] = web3.eth.filter('latest');
+      filters['block'].watch(function(err, result) {
         if (err) console.error(err);
         else emit('changed', result);
       });
