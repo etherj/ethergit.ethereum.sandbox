@@ -155,6 +155,8 @@ define(function(require) {
         
         function showAccount(address, account) {
           var $account = $(accountTemplate);
+
+          $account.attr('data-account', address);
           
           async.parallel([
             showAccountFields,
