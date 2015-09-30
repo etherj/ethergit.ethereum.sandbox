@@ -144,8 +144,11 @@ define(function(require, exports, module) {
     function setupFilters() {
       filters['block'] = web3.eth.filter('latest');
       filters['block'].watch(function(err, result) {
-        if (err) console.error(err);
-        else emit('changed', result);
+        if (err) return console.error(err);
+        web3.eth.getBlock(result, function(err, block) {
+          if (err) console.error(err);
+          else if (block.transactions.length >0) emit('changed', result);
+        });
       });
       filters['log'] = web3.eth.filter({});
       filters['log'].watch(function(err, result) {
