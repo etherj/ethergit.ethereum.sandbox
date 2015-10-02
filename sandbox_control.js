@@ -85,7 +85,7 @@ define(function(require, exports, module) {
             logger.clear();
             run(false, function(err) {
               if (err) {
-                enableButton();
+                updateButton();
                 logger.error('<pre>' + err + '</pre>');
               }
             });
@@ -102,7 +102,7 @@ define(function(require, exports, module) {
             logger.clear();
             run(true, function(err) {
               if (err) {
-                enableButton();
+                updateButton();
                 logger.error('<pre>' + err + '</pre>');
               }
             });
@@ -121,7 +121,7 @@ define(function(require, exports, module) {
           if (err) return console.err(err);
           stop(function(err) {
             if (err) {
-              enableButton();
+              updateButton();
               logger.error('<pre>' + err + '</pre>');
             }
             if (typeof cb === 'function') cb(err);
@@ -134,12 +134,8 @@ define(function(require, exports, module) {
         $run.addClass('disabled');
       }
 
-      function enableButton() {
-        $run.text(runCommands[choosenCommand]);
-        $run.removeClass('disabled');
-      }
-      
-      sandbox.on('select', function() {
+      sandbox.on('select', updateButton);
+      function updateButton() {
         if (sandbox.getId()) {
           $run.text(runCommands['stopSandbox']);
           $run.removeClass('stopped').addClass('started');
@@ -150,7 +146,7 @@ define(function(require, exports, module) {
           command = choosenCommand;
         }
         $run.removeClass('disabled');
-      });
+      }
     });
 
     function run(current, cb) {
