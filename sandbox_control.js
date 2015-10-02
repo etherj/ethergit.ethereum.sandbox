@@ -244,13 +244,25 @@ define(function(require, exports, module) {
           } else sendTx([]);
           
           function sendTx(args) {
+            var txHash;
+            
             args.push({
               contract: contract,
               data: contract.binary.length == 0 ? '0x00' : '0x' + contract.binary
             });
-            args.push(function(err, contract) {
-              if (err) cb(err);
-              else if (contract.address) cb();
+            args.push(function(err, newContract) {
+              if (err) {
+                // web3 doesn't check exceptions, so here's a workaround to show user an exception
+                if (err.message === 'The contract code couldn\'t be stored, please check your gas amount.') {
+                  sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
+                    if (error) return cb(error);
+                    if (receipt.exception) return cb('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
+                    else cb(err);
+                  });
+                } else cb(err);
+              }
+              else if (newContract.address) cb();
+              else txHash = newContract.transactionHash;
             });
             var newContract = sandbox.web3.eth.contract(contract.abi);
             newContract.new.apply(newContract, args);
