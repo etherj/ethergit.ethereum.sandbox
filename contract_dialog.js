@@ -211,13 +211,19 @@ define(function(require) {
             args.push(function(err, result) {
               if (err) $error.text(err.message);
               else {
-                $method.find('[data-name=ret]').text(
-                  'Waiting for mining of the transaction with hash ' + result
-                ).parent().show();
-                txHash = result;
+                if (method.constant) {
+                  $method.find('[data-name=ret]')
+                    .text('Returned value: ' + result)
+                    .parent().show();
+                } else {
+                  $method.find('[data-name=ret]').text(
+                    'Waiting for mining of the transaction with hash ' + result
+                  ).parent().show();
+                  txHash = result;
+                }
               }
             });
-            watchBlocks();
+            if (!method.constant) watchBlocks();
             contract[method.name][getTypes(method.inputs)].apply(this, args);
 
             function watchBlocks() {
