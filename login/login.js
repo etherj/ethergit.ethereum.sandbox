@@ -1,7 +1,8 @@
 define(function(require, exports, module) {
   main.consumes = [
     'Plugin', 'ui', 'menus', 'info', 'layout', 'http', 'util',
-    'vfs.endpoint', 'auth', 'dialog.alert', 'c9'
+    'vfs.endpoint', 'auth', 'dialog.alert', 'c9',
+    'ethergit.dialog.login'
   ];
   main.provides = ['login'];
   return main;
@@ -17,6 +18,7 @@ define(function(require, exports, module) {
     var info = imports.info;
     var auth = imports.auth;
     var alert = imports['dialog.alert'].show;
+    var loginDialog = imports['ethergit.dialog.login'];
 
     var vfsEndpoint = imports['vfs.endpoint'];
 
@@ -94,11 +96,7 @@ define(function(require, exports, module) {
       if (isGuest(user)) {
         menus.addItemByPath(name + '/Log in', new ui.item({
           onclick: function() {
-            if (!c9.local)
-              return signout();
-            auth.logout(function() {
-              info.login(true);
-            });
+            loginDialog.show();
           }
         }), c += 100, plugin);
       } else {
