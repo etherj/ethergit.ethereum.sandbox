@@ -21,7 +21,7 @@ define(function(require) {
     sha3: function(str) {
       var sha = new SHA3Hash();
       sha.update(str);
-      return sha.digest();
+      return '0x' + sha.digest();
     },
     pad: function(str) {
       return str.length % 2 === 0 ? str : '0' + str;

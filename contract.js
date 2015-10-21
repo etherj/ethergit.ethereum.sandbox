@@ -58,7 +58,7 @@ define(function(require) {
                     return 'Wrong arguments.';
             }
             function encodeMethod(method) {
-                return utils.sha3(signature(method)).substr(0, 8);
+                return utils.sha3(signature(method)).substr(2, 8);
             }
         },
         findMethod: function(name) {

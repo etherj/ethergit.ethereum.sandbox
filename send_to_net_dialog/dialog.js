@@ -220,8 +220,8 @@ define(function(require) {
       }
       
       function processPkey(pkey) {
-        if (pkey.match(/^[\dabcdef]{64}$/)) return '0x' + pkey.substr;
-        else if (!pkey.match(/^0x[\dabcdef]{64}$/)) return '0x' + utils.sha3(pkey);
+        if (pkey.match(/^[\dabcdef]{64}$/)) return '0x' + pkey;
+        else if (!pkey.match(/^0x[\dabcdef]{64}$/)) return utils.sha3(pkey);
         return pkey;
       }
       function checkBalance(cb) {

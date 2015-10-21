@@ -63,7 +63,7 @@ define(function(require) {
                                     .text(error).show();
                             });
                         } else {
-                            if (pkey.length !== 64) pkey = utils.sha3(pkey);
+                            if (pkey.length !== 66) pkey = utils.sha3(pkey);
                             cb(null, { address: address, pkey: pkey });
                             hideDialog();
                         }

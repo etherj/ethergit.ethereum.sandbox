@@ -185,7 +185,7 @@ define(function(require, exports, module) {
               if (typeof account.pkey != 'string') {
                 throw 'Private key should be a hexadecimal hash (64 symbols) or a string';                            }
               if (!account.pkey.match(/^0x[\dabcdef]{64}$/)) {
-                account.pkey = '0x' + utils.sha3(account.pkey);
+                account.pkey = utils.sha3(account.pkey);
               }
             }
           });
