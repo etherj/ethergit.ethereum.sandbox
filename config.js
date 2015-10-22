@@ -17,8 +17,8 @@ define(function(require, exports, module) {
     var _ = libs.lodash();
 
     var DEFAULT_TX = {
-      gasPrice: 1000000000,
-      gasLimit: 1000000000
+      gasPrice: 50000000000,
+      gasLimit: 3141592
     };
     
     function parse(cb) {
