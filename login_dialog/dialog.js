@@ -43,7 +43,7 @@ define(function(require) {
     });
 
     function send() {
-      http.request(options.apiUrl + '/ide/login', {
+      http.request(options.apiUrl + '/login', {
         method: 'POST',
         contentType: 'application/json',
         body: JSON.stringify({

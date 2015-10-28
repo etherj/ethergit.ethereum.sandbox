@@ -107,7 +107,7 @@ define(function(require, exports, module) {
     
     function logout(cb) {
       loggingIn = false;
-      request(apiUrl + '/ide/logout', { method: 'POST' }, function(err) {
+      request(apiUrl + '/logout', { method: 'POST' }, function(err) {
         loggedIn = false;
         emit('logout', {uid: uid, newUid: ANONYMOUS});
         cb && cb(err);
