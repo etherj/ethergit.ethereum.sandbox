@@ -13,9 +13,12 @@ define(function(require) {
     var http = imports.http;
     var libs = imports['ethergit.libs'];
 
+    var bcrypt = require('../lib/bcrypt');
+    
     var $ = libs.jquery();
 
     var $name, $password, $error;
+    var salt = '$2a$10$QxS8kAC.zaO2Sover3OSvO';
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-login',
@@ -48,7 +51,7 @@ define(function(require) {
         contentType: 'application/json',
         body: JSON.stringify({
           name: $name.val(),
-          password: $password.val()
+          password: bcrypt.hashSync($password.val(), salt) 
         })
       }, function(err, session, res) {
         if (err) {
