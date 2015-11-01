@@ -14,16 +14,16 @@ define(function(require, exports, module) {
     var formatter = require('./formatter');
     var Contract = require('./contract');
 
-    var _ = libs.lodash();
     var Web3 = libs.web3();
+    var _ = libs.lodash();
+
     var web3 = new Web3();
-    window.web3 = web3;
-    
+
     var plugin = new Plugin('Ethergit', main.consumes);
     var emit = plugin.getEmitter();
     var id, filters = {};
     var sandboxUrl = 'http://' + window.location.hostname + ':8555/sandbox/';
-    
+
     web3._extend({
       property: 'sandbox',
       methods: [
@@ -89,7 +89,7 @@ define(function(require, exports, module) {
       if (sandboxId != id) {
         id = sandboxId;
         if (id) {
-          web3.setGlobalProvider(new web3.providers.HttpProvider(sandboxUrl + id));
+          web3.setProvider(new Web3.providers.HttpProvider(sandboxUrl + id));
           setDefaultAccount();
           setupFilters();
           connectionWatcher.start();
@@ -115,8 +115,8 @@ define(function(require, exports, module) {
       async.series([
         create,
         function(cb) {
-          web3.setGlobalProvider(
-            new web3.providers.HttpProvider(sandboxUrl + id)
+          web3.setProvider(
+            new Web3.providers.HttpProvider(sandboxUrl + id)
           );
           cb();
         },
@@ -207,7 +207,7 @@ define(function(require, exports, module) {
     }
 
     plugin.freezePublicAPI({
-      get web3() { return web3 },
+      get web3() { return web3; },
       getId: function() { return id; },
       select: select,
       start: start,

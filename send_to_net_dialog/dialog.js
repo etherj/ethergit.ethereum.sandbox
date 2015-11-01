@@ -20,6 +20,7 @@ define(function(require) {
     var async = require('async');
     var utils = require('../utils');
     var widgets = require('../ui/widgets');
+//    var BlockAppsWeb3Provider = require('../lib/blockapps-web3');
 
     var url = 'http://peer-1.ether.camp:8082';
 
@@ -31,7 +32,7 @@ define(function(require) {
     var $ = libs.jquery();
     var _ = libs.lodash();
     var Web3 = libs.web3();
-    var web3 = new Web3(new Web3.prototype.providers.HttpProvider(url));
+    var web3 = new Web3(new Web3.providers.HttpProvider(url));
 
     var contractHtml = '<tr>' +
         '<td data-name="toSend" style="padding-top:15px"></td>' +
@@ -41,7 +42,7 @@ define(function(require) {
         '<td data-name="gasPrice"></td>' +
         '</tr>';
     
-    var $pkey, $error, $success, $contracts, $url, $hidePKey;
+    var $pkey, $error, $success, $contracts, $url, $hidePkey;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -114,7 +115,7 @@ define(function(require) {
       function showContracts() {
         async.parallel([
           sandbox.web3.sandbox.contracts.bind(sandbox.web3.sandbox),
-          web3.eth1.gasPrice.bind(web3.eth1),
+          web3.eth.getGasPrice.bind(web3.eth),
         ], function(err, results) {
           if (err) return $error.text('Could not get contracts: ' + err.message);
           var contracts = results[0];
@@ -151,7 +152,7 @@ define(function(require) {
             } else {
               $error.text('');
               url = $url.val();
-              web3 = new Web3(new Web3.prototype.providers.HttpProvider(url));
+              web3 = new Web3(new Web3.providers.HttpProvider(url));
               updateGasPrice();
             }
 
@@ -159,7 +160,7 @@ define(function(require) {
               return /^(http|https):\/\/[^ ]+$/i.test(val);
             }
             function updateGasPrice() {
-              web3.eth1.gasPrice(function(err, gasPrice) {
+              web3.eth.gasPrice(function(err, gasPrice) {
                 if (err)
                   return $error.text('Could not get gas price from ' + url + ': ' + err.message);
                 _.each(details, function(contract) {
@@ -225,7 +226,7 @@ define(function(require) {
         return pkey;
       }
       function checkBalance(cb) {
-        web3.eth1.getBalance(address, function(err, balance) {
+        web3.eth.getBalance(address, function(err, balance) {
           if (err) return cb(err.message);
           var total = _.reduce(parsed, function(sum, vals) {
             return sum.plus(
@@ -244,15 +245,15 @@ define(function(require) {
       }
       function sendContracts(cb) {
         async.parallel([
-          web3.eth1.getTransactionCount.bind(web3.eth1, address),
-          web3.eth1.getBlockByNumber.bind(web3.eth1, 0, false)
+          web3.eth.getTransactionCount.bind(web3.eth, address),
+          web3.eth.getBlock.bind(web3.eth, 0, false)
         ], function(err, results) {
           if (err) return cb(err);
           var nonce = results[0];
           var genesis = results[1].hash;
           async.eachSeries(parsed, function(vals, cb) {
             var nextNonce = nonce++;
-            web3.eth1.sendRawTransaction(utils.createTx({
+            web3.eth.sendRawTransaction(utils.createTx({
               nonce: nextNonce,
               value: vals.value,
               data: vals.data,

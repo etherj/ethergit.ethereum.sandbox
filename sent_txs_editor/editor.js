@@ -66,7 +66,7 @@ define(function(require) {
             tx.web3 = null;
             updateTx(tx);
           } else {
-            tx.web3.eth1.getTransactionReceipt(tx.hash, function(err, receipt) {
+            tx.web3.eth.getTransactionReceipt(tx.hash, function(err, receipt) {
               if (err) return console.error(err);
               if (receipt) {
                 tx.status = 'Mined';
