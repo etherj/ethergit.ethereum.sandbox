@@ -21,6 +21,7 @@ define(function(require) {
     var async = require('async');
     var folder = require('./folder');
     var formatter = require('./formatter');
+    var formatters = require('./formatter/formatters.js');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
@@ -177,8 +178,12 @@ define(function(require) {
               $account.find('[data-name=contract]').text(contracts[address].name).show();
             }
             $account.find('[data-name=nonce]').text(account.nonce);
-            $account.find('[data-name=balance]').text(account.balance);
+            $account.find('[data-name=balance]').html(parseBalance(account.balance));
             cb();
+
+            function parseBalance(balance) {
+              return balance ? parseInt(balance.substr(2), 16) : 0;
+            }
           }
           function showStorage(cb) {
             var $container = $account.find('[data-name=storage]');
