@@ -177,12 +177,12 @@ define(function(require) {
             if (contracts.hasOwnProperty(address)) {
               $account.find('[data-name=contract]').text(contracts[address].name).show();
             }
-            $account.find('[data-name=nonce]').text(account.nonce);
-            $account.find('[data-name=balance]').html(parseBalance(account.balance));
+            $account.find('[data-name=nonce]').text(parseNumber(account.nonce));
+            $account.find('[data-name=balance]').html(parseNumber(account.balance));
             cb();
 
-            function parseBalance(balance) {
-              return balance ? parseInt(balance.substr(2), 16) : 0;
+            function parseNumber(number) {
+              return number ? parseInt(number.substr(2), 16) : 0;
             }
           }
           function showStorage(cb) {
