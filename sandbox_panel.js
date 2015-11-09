@@ -21,7 +21,6 @@ define(function(require) {
     var async = require('async');
     var folder = require('./folder');
     var formatter = require('./formatter');
-    var formatters = require('./formatter/formatters.js');
 
     var $ = libs.jquery();
     var _ = libs.lodash();

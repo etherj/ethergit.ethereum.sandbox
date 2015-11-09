@@ -1,6 +1,7 @@
 .ethereum-console-container {
     overflow-y: scroll;
     height: 100%;
+    padding: 5px;
 }
 
 .ethereum-console {
@@ -10,4 +11,12 @@
 
 .ethereum-console-warning {
     color: #FF8A88;
+}
+
+.ethereum-console .button {
+    color: gray;
+    border-top: 1px dotted grey;
+    border-bottom: 1px dotted grey;
+    margin: 2px 5px;
+    text-decoration: none;
 }

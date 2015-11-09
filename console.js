@@ -18,7 +18,7 @@ define(function(require) {
 
     var async = require('async');
     var Contract = require('./contract');
-    var formatter = require('./formatter');
+    var formatter = require('./new_formatter');
     var utils = require('./utils');
     
     var $ = libs.jquery();
@@ -54,7 +54,8 @@ define(function(require) {
       return ethConsole;
 
       function log(entry) {
-        $log.append('<li>' + entry + '</li>');
+        if (_.isString(entry)) $log.append('<li>' + entry + '</li>');
+        else $log.append($('<li>').append(entry));
       }
 
       function error(entry) {
@@ -123,7 +124,17 @@ define(function(require) {
         }
         
         function log(contractName, data, topics) {
-          return 'Sandbox LOG (' + contractName + '): ' + _(data).concat(topics).join(', ');
+          var $el = $('<span>Sandbox LOG (' + contractName + '): <span data-name="data"></span></span>');
+          var $data = $el.find('[data-name=data]');
+          _(data).concat(topics)
+            .map(function(value) {
+              return formatter(value);
+            })
+            .each(function($value) {
+              $data.append($value);
+            })
+            .value();
+          return $el;
         }
       });
     });
