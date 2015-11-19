@@ -44,7 +44,10 @@ define(function(require) {
       $password = $root.find('[data-name=password]');
       $error = $root.find('[data-name=error]');
       $root.keydown(function(e) { e.stopPropagation(); });
-      $root.keyup(function(e) { e.stopPropagation(); });
+      $root.keyup(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 27) hide();
+      });
       $root.keypress(function(e) {
         e.stopPropagation();
         if (e.keyCode == 13) send();

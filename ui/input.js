@@ -31,6 +31,9 @@ define(['../validator/validators', '../utils'], function(validators, utils) {
       },
       setValue: function(val) {
         $input.val(val);
+      },
+      focus: function() {
+        $input.focus();
       }
     };
     return widget;

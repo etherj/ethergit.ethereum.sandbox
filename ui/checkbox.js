@@ -9,6 +9,9 @@ define(function() {
       validate: function() { return true; },
       value: function() {
         return $input.is(':checked');
+      },
+      focus: function() {
+        $input.focus();
       }
     };
   };

@@ -16,7 +16,7 @@ define(function(require) {
     var _ = libs.lodash();
 
     // Cached elements
-    var $name, $args;
+    var $root, $name, $args;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'sandbox-contract-constructor',
@@ -33,13 +33,18 @@ define(function(require) {
 
     dialog.on('draw', function(e) {
       e.html.innerHTML = require('text!./contract_constructor.html');
-      var $root = $(e.html);
+      $root = $(e.html);
       $name = $root.find('[data-name=name]');
       $args = $root.find('[data-name=args]');
+      $args.keydown(function(e) { e.stopPropagation(); });
+      $args.keyup(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 27) hide();
+      });
     });
 
     function askArgs(contract, cb) {
-      args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
+      var args = _.findWhere(contract.abi, { type: 'constructor' }).inputs;
       dialog.show();
       $name.text(contract.name);
       $args.empty();
@@ -58,19 +63,33 @@ define(function(require) {
         argWidgets[arg.name] = widgets(arg.type);
         $args.append(argHtml(arg.name, arg.type, argWidgets[arg.name]));
       });
+
+      argWidgets[args[0].name].focus();
+      
       dialog.update([{
         id: 'submitContractConstructorDialog',
-        onclick: function() {
-          var values = _.map(args, function(arg) {
-            return argWidgets[arg.name].value();
-          });
-          
-          if (!_.some(values, _.isNull)) {
-            hide();
-            cb(null, values);
-          }
-        }
+        onclick: send
       }]);
+      
+      $args.off('keypress');
+      $args.keypress(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 13) {
+          e.preventDefault();
+          send();
+        }
+      });
+
+      function send() {
+        var values = _.map(args, function(arg) {
+          return argWidgets[arg.name].value();
+        });
+        
+        if (!_.some(values, _.isNull)) {
+          hide();
+          cb(null, values);
+        }
+      }
     }
 
     function hide() {
