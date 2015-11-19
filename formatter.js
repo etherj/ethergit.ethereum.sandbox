@@ -16,7 +16,7 @@ define(['./utils', './folder'], function(utils, folder) {
       name: 'int',
       format: function(value) {
         value = value.substr(2);
-        if (parseInt(value.charAt(0), 16).toString(2).charAt(0) === '1')
+        if (parseInt(value.charAt(0), 16) >= 8)
           return new BigNumber(value, 16).minus(new BigNumber(2).pow(256)).toString();
         else
           return new BigNumber(value, 16).toString();
@@ -93,8 +93,32 @@ define(['./utils', './folder'], function(utils, folder) {
     return $el;
   }
   
-  function detect() {
+  function detect(value) {
+    if (value.match(/^0xffff/)) return formatters['int'];
+    if (value.match(/^0x0{28}/)) return formatters['uint'];
+    if (value.match(/^0x0{24}/)) return formatters['address'];
+    if (isString(value.substr(2))) return formatters['string'];
     return formatters['data'];
+
+    function isString(value) {
+      if (value.length % 2 !== 0) value = '0' + value;
+      var i = 0;
+      for (; i < value.length; i += 2) {
+        var code = parseInt(value.substr(i, 2), 16);
+        if (code == 0) break;
+        if (!isChar(code)) return false;
+      }
+
+      for (; i < value.lenght; i += 2) {
+        if (parseInt(value.substr(i, 2), 16) != 0) return false;
+      }
+      
+      return true;
+
+      function isChar(code) {
+        return code > 31 && code < 127;
+      }
+    }
   }
 
   function next(type) {

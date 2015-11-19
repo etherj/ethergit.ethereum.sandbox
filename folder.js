@@ -6,7 +6,7 @@ define(['async'], function(async) {
         var text = $el.text();
         var tip = $el.data('bs.tooltip');
         if (tip) {
-          if (text.length > 11) {
+          if (text.length > 13) {
             tip.options.title = text;
             tip.enable();
             $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
@@ -14,9 +14,11 @@ define(['async'], function(async) {
             tip.disable();
           }
         } else {
+          $el.tooltip({ title: text, trigger: 'manual' });
           if (text.length > 11) {
-            $el.tooltip({ title: text, trigger: 'manual' });
             $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
+          } else {
+            $el.data('bs.tooltip').disable();
           }
         }
       });
