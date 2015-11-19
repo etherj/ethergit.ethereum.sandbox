@@ -20,7 +20,7 @@ define(function(require) {
     var accountTemplate = require('text!./account.html');
     var async = require('async');
     var folder = require('./folder');
-    var formatter = require('./formatter');
+    var formatter = require('./new_formatter');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
@@ -67,8 +67,7 @@ define(function(require) {
         sandbox.select(id === 'notSelected' ? null : id);
       });
       $sandbox = $root.find('[data-name=accounts-container]');
-      $sandbox.click(folder.foldOrUnfold);
-      $sandbox.click(formatter.format.bind(formatter));
+      $sandbox.click(folder.handler);
       $sandbox.click(function(e) {
         var $el = $(e.target);
         if ($el.data('name') === 'contract') {
@@ -131,7 +130,6 @@ define(function(require) {
           rendering = false;
           if (err) return console.error(err);
           $sandbox.html($container);
-          folder.init($sandbox);
         });
       }
     };
@@ -164,7 +162,6 @@ define(function(require) {
             showCode,
           ], function(err) {
             if (err) return cb(err);
-            formatter.init($account.find('[data-name=storage]'));
             $container.append($account);
           });
           
@@ -188,16 +185,25 @@ define(function(require) {
             var $container = $account.find('[data-name=storage]');
             _.each(account.storage, function(value, key) {
               $container.append(
-                '<tr><td><a href="#" class="button" data-formatter="key">number</button></td>'
-                  + '<td data-folder data-name="key" class="folder">' + key + '</td>'
-                  + '<td data-folder data-name="value" class="folder">' + value + '</td>'
-                  + '<td><a href="#" class="button" data-formatter="value">number</button></td></tr>'
+                $('<tr>')
+                  .append(formatter(
+                    key,
+                    '<td><a href="#" data-name="switch" class="button"><%= type %></button></td>'
+                      + '<td><span data-folder data-name="value" data-folder="" class="folder"><%= value %></span></td>'
+                  ))
+                  .append(formatter(
+                    value,
+                    '<td><span data-folder data-name="value" data-folder class="folder"><%= value %></span></td>'
+                      + '<td><a href="#" data-name="switch" data-folder="" class="button"><%= type %></a></td>'
+                  ))
               );
             });
             cb();
           }
           function showCode(cb) {
-            $account.find('[data-name=code]').text(account.code);
+            var $code = $account.find('[data-name=code]');
+            $code.text(account.code);
+            folder.init($code.parent());
             cb();
           }
         }

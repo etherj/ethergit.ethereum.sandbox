@@ -1,4 +1,4 @@
-define(['./utils'], function(utils) {
+define(['./utils', './folder'], function(utils, folder) {
   var formatters = {
     data: {
       name: 'data',
@@ -67,7 +67,10 @@ define(['./utils'], function(utils) {
 
   function formatter(value, tmpl) {
     if (!tmpl)
-      tmpl = '<span><span data-name="value"><%= value %></span><a data-name="switch" href="#" class="button"><%= type %></a>';
+      tmpl = '<span>' +
+      '<span data-name="value" class="folder" data-folder=""><%= value %></span>' +
+      '<a data-name="switch" href="#" class="button"><%= type %></a>' +
+      '</span>';
     tmpl = _.template(tmpl);
 
     var formatter = detect(value);
@@ -84,9 +87,11 @@ define(['./utils'], function(utils) {
       type = nextFormatter.name;
       $switch.text(type);
       $value.text(nextFormatter.format(value));
+      folder.init($el);
     });
+    folder.init($el);
     return $el;
-  };
+  }
   
   function detect() {
     return formatters['data'];

@@ -20,6 +20,7 @@ define(function(require) {
     var Contract = require('./contract');
     var formatter = require('./new_formatter');
     var utils = require('./utils');
+    var folder = require('./folder');
     
     var $ = libs.jquery();
     var _ = libs.lodash();
@@ -45,6 +46,7 @@ define(function(require) {
                     </div>'
         );
         $log = $root.find('ul[data-name=ethereum-console]');
+        $root.click(folder.handler);
       });
 
       ethConsole.on('documentLoad', function(e) {

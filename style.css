@@ -58,3 +58,20 @@
 .fakehbox > .runbtn {
     display: none;
 }
+
+/* workaround to show tooltips for tab content */
+.tooltip .tooltip-inner {
+    max-width: none;
+}
+
+.editor_tab .session_page {
+    z-index: 110;
+    overflow: visible;
+}
+
+.basic.right {
+    z-index: 110 !important;
+    overflow: visible;
+}
+
+/* end */

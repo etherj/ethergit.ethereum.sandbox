@@ -1,30 +1,36 @@
-define(function() {
-    var folder = {
-        init: function($container) {
-            $container.find('[data-folder]').each(function() {
-                var $el = $(this);
-                $el.data('folder', $el.text());
-                folder.fold($el);
-            });
-        },
-        foldOrUnfold: function(e) {
-            var $el = $(e.target);
-            var foldData = $el.data('folder');
-            if (foldData !== undefined) {
-                if (foldData === $el.text()) folder.fold($el);
-                else folder.unfold($el);
-            }
-        },
-        fold: function($el) {
-            var text = $el.data('folder');
-            if (text.length > 11) {
-                $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
-            }
-        },
-        unfold: function($el) {
-            var text = $el.data('folder');
-            if (text.length > 11) $el.text(text);
+define(['async'], function(async) {
+  var folder = {
+    init: function($container) {
+      $container.find('[data-folder]').each(function() {
+        var $el = $(this);
+        $el.tooltip('destroy');
+        var text = $el.text();
+        if (text.length > 11) {
+          $el.tooltip({ title: $el.text(), trigger: 'manual' });
+          $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
         }
-    };
-    return folder;
+      });
+    },
+    handler: function(e) {
+      var $el = $(e.target);
+      if ($el.hasClass('tooltip-inner')) return;
+      
+      var open = !!$el.attr('aria-describedby');
+      
+      var tips = _($('[data-folder]'))
+            .map(function(el) { return $(el); })
+            .filter(function($el) { return !!$el.attr('aria-describedby'); })
+            .map(function($el) { return $el.data('bs.tooltip'); })
+            .value();
+
+      async.each(
+        tips,
+        function(tip, cb) { tip.hide(cb); },
+        function() {
+          if (!open && $el.data('folder') !== undefined) $el.tooltip('show');
+        }
+      );
+    }
+  };
+  return folder;
 });
