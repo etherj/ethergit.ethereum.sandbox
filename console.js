@@ -18,7 +18,7 @@ define(function(require) {
 
     var async = require('async');
     var Contract = require('./contract');
-    var formatter = require('./new_formatter');
+    var formatter = require('./formatter');
     var utils = require('./utils');
     var folder = require('./folder');
     

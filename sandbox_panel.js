@@ -20,7 +20,7 @@ define(function(require) {
     var accountTemplate = require('text!./account.html');
     var async = require('async');
     var folder = require('./folder');
-    var formatter = require('./new_formatter');
+    var formatter = require('./formatter');
 
     var $ = libs.jquery();
     var _ = libs.lodash();

@@ -3,11 +3,21 @@ define(['async'], function(async) {
     init: function($container) {
       $container.find('[data-folder]').each(function() {
         var $el = $(this);
-        $el.tooltip('destroy');
         var text = $el.text();
-        if (text.length > 11) {
-          $el.tooltip({ title: $el.text(), trigger: 'manual' });
-          $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
+        var tip = $el.data('bs.tooltip');
+        if (tip) {
+          if (text.length > 11) {
+            tip.options.title = text;
+            tip.enable();
+            $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
+          } else {
+            tip.disable();
+          }
+        } else {
+          if (text.length > 11) {
+            $el.tooltip({ title: text, trigger: 'manual' });
+            $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
+          }
         }
       });
     },
