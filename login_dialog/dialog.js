@@ -43,6 +43,16 @@ define(function(require) {
       $name = $root.find('[data-name=name]');
       $password = $root.find('[data-name=password]');
       $error = $root.find('[data-name=error]');
+      $root.keydown(function(e) { e.stopPropagation(); });
+      $root.keyup(function(e) { e.stopPropagation(); });
+      $root.keypress(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 13) send();
+      });
+    });
+
+    dialog.on('show', function() {
+      $name.focus();
     });
 
     function send() {
