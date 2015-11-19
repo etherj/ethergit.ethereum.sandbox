@@ -1,7 +1,7 @@
 define(function(require, exports, module) {
   main.consumes = [
     'Plugin', 'ui', 'menus', 'info', 'layout', 'http', 'util',
-    'vfs.endpoint', 'auth', 'dialog.alert', 'c9',
+    'vfs.endpoint', 'auth', 'dialog.alert', 'c9', 'commands',
     'ethergit.dialog.login'
   ];
   main.provides = ['login'];
@@ -17,6 +17,7 @@ define(function(require, exports, module) {
     var util = imports.util;
     var info = imports.info;
     var auth = imports.auth;
+    var commands = imports.commands;
     var alert = imports['dialog.alert'].show;
     var loginDialog = imports['ethergit.dialog.login'];
 
@@ -99,6 +100,22 @@ define(function(require, exports, module) {
             loginDialog.show();
           }
         }), c += 100, plugin);
+
+        var btn = new ui.button({
+          skin: "c9-menu-btn",
+          caption: "Log In",
+          tooltip: "Log in to the IDE",
+          command: "openLoginDialog"
+        });
+
+        commands.addCommand({
+          name: "openLoginDialog",
+          exec: function() {
+            loginDialog.show();
+          }
+        }, plugin);
+        
+        ui.insertByIndex(parent, btn, 620, plugin);
       } else {
         menus.addItemByPath(name + '/Log out', new ui.item({
           onclick: function() {
