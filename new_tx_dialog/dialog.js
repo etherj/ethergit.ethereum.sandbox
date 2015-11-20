@@ -55,7 +55,7 @@ define(function(require) {
         e.stopPropagation();
         if (e.keyCode == 27) hide();
       });
-      $root.find('form').keydown(function(e) {
+      $root.find('form').keypress(function(e) {
         e.stopPropagation();
         if (e.keyCode == 13) {
           e.preventDefault();

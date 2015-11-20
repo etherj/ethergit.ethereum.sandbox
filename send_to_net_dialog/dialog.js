@@ -20,7 +20,6 @@ define(function(require) {
     var async = require('async');
     var utils = require('../utils');
     var widgets = require('../ui/widgets');
-//    var BlockAppsWeb3Provider = require('../lib/blockapps-web3');
 
     var url = 'http://peer-1.ether.camp:8082';
 
@@ -42,7 +41,7 @@ define(function(require) {
         '<td data-name="gasPrice"></td>' +
         '</tr>';
     
-    var $pkey, $error, $success, $contracts, $url, $hidePkey;
+    var $form, $pkey, $error, $success, $contracts, $url, $hidePkey;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -87,6 +86,7 @@ define(function(require) {
     dialog.on('draw', function(e) {
       e.html.innerHTML = require('text!./dialog.html');
       var $root = $(e.html);
+      $form = $root.find('form');
       $pkey = $root.find('[data-name=pkey]');
       $hidePkey = $root.find('[data-name=hidePKey]');
       $error = $root.find('[data-name=error]');
@@ -98,12 +98,20 @@ define(function(require) {
       $hidePkey.on('change', function() {
         $pkey.attr('type', $hidePkey.is(':checked') ? 'password' : 'text');
       });
+
+      $root.keydown(function(e) { e.stopPropagation(); });
+      $root.keyup(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 27) hide();
+      });
     });
 
     dialog.on('show', function() {
       setFormDefaults();
       showContracts();
-
+      $form.off('keypress');
+      $pkey.focus();
+      
       function setFormDefaults() {
         $pkey.attr('type', 'password');
         $pkey.val('');
@@ -142,6 +150,13 @@ define(function(require) {
             $contracts.append($html);
           });
           dialog.update([{ id: 'send', onclick: send.bind(null, details) }]);
+          $form.keypress(function(e) {
+            e.stopPropagation();
+            if (e.keyCode == 13) {
+              e.preventDefault();
+              send(details);
+            }
+          });
 
           $url.off('change').on('change', updateUrl);
 
