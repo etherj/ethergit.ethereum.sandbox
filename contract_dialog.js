@@ -41,7 +41,7 @@ define(function(require) {
       elements: [
         {
           type: 'button', id: 'closeContractDialog', color: 'blue',
-          caption: 'Close', 'default': true, onclick: hideDialog
+          caption: 'Close', 'default': true, onclick: hide
         }
       ]
     });
@@ -60,6 +60,12 @@ define(function(require) {
       $methods = $contract.find('[data-name=methods]');
 
       $contract.click(folder.foldOrUnfold);
+
+      $root.keydown(function(e) { e.stopPropagation(); });
+      $root.keyup(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 27) hide();
+      });
       
       var showOrHideAdvanced = (function() {
         var $icon = $root.find('[data-name=advanced-btn-icon]');
@@ -144,27 +150,46 @@ define(function(require) {
             $html.find('[data-name=field]').append(widget.html());
             return $html;
           };
+          var first = true;
           contractRaw.abi
             .filter(function(method) { return method.type === 'function'; })
             .forEach(function(method) {
               var $method = $(require('text!./contract_method.html'));
               $method.find('[data-name=name]').text(method.name);
 
-              var argWidgets = [];
+              var argWidgets = {};
               var $args = $method.find('[data-name=args]');
               method.inputs.forEach(function(input) {
                 argWidgets[input.name] = widgets(input.type);
                 $args.append(argHtml(input.name, input.type, argWidgets[input.name]));
               });
+              
               $method.find('[data-name=call]').click(function(e) {
                 e.preventDefault();
+                send();
+              });
+              $methods.append($method);
+
+              if (first && method.inputs.length > 0) {
+                argWidgets[method.inputs[0].name].focus();
+                first = false;
+              }
+
+              $method.keypress(function(e) {
+                e.stopPropagation();
+                if (e.keyCode == 13) {
+                  e.preventDefault();
+                  send();
+                }
+              });
+
+              function send() {
                 var args = _.map(method.inputs, function(arg) {
                   return argWidgets[arg.name].value();
                 });
                 if (!_.some(args, _.isNull))
                   call(contract, method, args, $method);
-              });
-              $methods.append($method);
+              }
             });
           cb();
         }
@@ -257,7 +282,7 @@ define(function(require) {
       return utils.pad(parseInt(val, 10).toString(16));
     }
     
-    function hideDialog() {
+    function hide() {
       dialog.hide();
       $showAbi.off('click');
     }

@@ -58,7 +58,7 @@ define(function(require) {
         $html.find('[data-name=field]').append(widget.html());
         return $html;
       };
-      var argWidgets = [];
+      var argWidgets = {};
       _.each(args, function(arg) {
         argWidgets[arg.name] = widgets(arg.type);
         $args.append(argHtml(arg.name, arg.type, argWidgets[arg.name]));
