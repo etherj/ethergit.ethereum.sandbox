@@ -19,9 +19,12 @@ define(function(require) {
     var libs = imports['ethergit.libs'];
     
     var async = require('async');
+
+    var $ = libs.jquery();
+    var _ = libs.lodash();
     
     // Cached elements
-    var $from, $to, $value;
+    var $from, $to, $value, $error;
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'sandbox-new-tx',
@@ -47,6 +50,18 @@ define(function(require) {
       $from = $root.find('[data-name=from]');
       $to = $root.find('[data-name=to]');
       $value = $root.find('[data-name=value]');
+      $root.keydown(function(e) { e.stopPropagation(); });
+      $root.keyup(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 27) hide();
+      });
+      $root.find('form').keydown(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 13) {
+          e.preventDefault();
+          send();
+        }
+      });
     });
 
     dialog.on('show', function() {
@@ -68,6 +83,8 @@ define(function(require) {
         $to.html(_(allAccounts).map(function(address) {
           return '<option value="' + address + '">' + address + '</option>';
         }).join(''));
+
+        $value.focus();
       });
     });
     
