@@ -209,6 +209,9 @@ define(function(require) {
         }
       });
     }
+
+    // hide buttons that confuse users.
+    ui.insertCss(require('text!./hide_buttons.css'), false, panel);
     
     panel.freezePublicAPI({
     });

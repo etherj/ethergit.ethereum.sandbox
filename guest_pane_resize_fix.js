@@ -3,13 +3,14 @@
 // opened in not guest mode.
 
 define(function(require, exports, module) {
-  main.consumes = ['Plugin', 'tabManager', 'ethergit.libs'];
+  main.consumes = ['Plugin', 'tabManager', 'ethergit.libs', 'ui'];
   main.provides = ['ethergit.guest.pane.resize.fix'];
   return main;
 
   function main(options, imports, register) {
     var Plugin = imports.Plugin;
     var tabs = imports.tabManager;
+    var ui = imports.ui;
     var libs = imports['ethergit.libs'];
 
     var _ = libs.lodash();
@@ -19,11 +20,16 @@ define(function(require, exports, module) {
     tabs.on('ready', function() {
       _(tabs.getTabs())
         .filter(function(tab) {
-          return tab.editorType == 'terminal' || tab.editorType == 'ethereum-console';
+          return tab.editorType == 'terminal' ||
+            tab.editorType == 'ethereum-console' ||
+            tab.editorType == 'sent-tx';
         })
         .invoke('close')
         .value();
     });
+
+    // hide buttons that confuse users.
+    ui.insertCss(require('text!./hide_buttons.css'), false, plugin);
 
     plugin.freezePublicAPI({});
     register(null, { 'ethergit.guest.pane.resize.fix': plugin });
