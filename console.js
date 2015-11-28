@@ -24,6 +24,8 @@ define(function(require) {
     
     var $ = libs.jquery();
     var _ = libs.lodash();
+    var SolidityEvent = libs.SolidityEvent();
+    var BigNumber = libs.BigNumber();
 
     function EthereumConsole() {
       var ethConsole = new Editor('Ethergit', main.consumes, []);
@@ -73,7 +75,22 @@ define(function(require) {
 
     var inProcess = false, pendingEntries = [];
     handle.on('load', function() {
-      sandbox.on('log', function printLog(entry) {
+      var filter;
+      sandbox.on('select', function() {
+        if (filter) {
+          filter.stopWatching();
+          filter = null;
+        }
+        if (sandbox.getId()) {
+          filter = sandbox.web3.eth.filter({});
+          filter.watch(function(err, entry) {
+            if (err) console.error(err);
+            else printLog(entry);
+          });
+        }
+      });
+
+      function printLog(entry) {
         if (inProcess) return pendingEntries.push(entry);
         inProcess = true;
         
@@ -92,23 +109,19 @@ define(function(require) {
           var logger = options.logger;
 
           var address = entry.address;
-          var data = split(entry.data);
+          var data = entry.data;
           var topics = entry.topics;
           var contract = options.contracts.hasOwnProperty(address) ?
                 Object.create(Contract).init(address, options.contracts[address]) :
                 null;
           if (!contract) {
-            logger.log(log(address, data, topics));
+            logger.log(log(address, [data], topics));
           } else {
             var event = topics.length > 0 ? contract.findEvent(topics[0]) : null;
             if (event) {
-              logger.log(
-                event ?
-                  showEvent(contract.name, event, data, topics) :
-                  log(contract.name, data, topics)
-              );
+              logger.log(showEvent(contract.name, event, data, topics));
             } else {
-              logger.log(log(contract.name, data, topics));
+              logger.log(log(contract.name, split(data), topics));
             }
           }
           function split(str) {
@@ -118,10 +131,12 @@ define(function(require) {
         }
 
         function showEvent(contractName, event, data, topics) {
-          topics.shift(); // skip event hash
+          var e = new SolidityEvent(null, event, null);
+          var result = e.decode({ data: data, topics: topics });
           return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
-            _(event.inputs).map(function(input) {
-              return input.indexed ? topics.shift() : data.shift();
+            _(result.args).map(function(val) {
+              if (isBigNumber(val)) return val.toString();
+              else return JSON.stringify(val);
             }).join(', ');
         }
         
@@ -138,7 +153,12 @@ define(function(require) {
             .value();
           return $el;
         }
-      });
+
+        function isBigNumber(object) {
+          return object instanceof BigNumber ||
+            (object && object.constructor && object.constructor.name === 'BigNumber');
+        };
+      }
     });
     
     handle.freezePublicAPI({

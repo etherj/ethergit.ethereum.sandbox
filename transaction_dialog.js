@@ -40,7 +40,7 @@ define(function(require) {
     
     dialog.on('draw', function(e) {
       e.html.innerHTML = require('text!./transaction.html');
-      $(e.html).click(folder.foldOrUnfold);
+      $(e.html).click(folder.handler);
     });
 
     function showTransaction(sandbox, id) {

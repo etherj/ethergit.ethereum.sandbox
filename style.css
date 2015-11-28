@@ -65,13 +65,17 @@
 }
 
 .editor_tab .session_page {
-    z-index: 110;
-    overflow: visible;
+    z-index: 110 !important;
+    overflow: visible !important;
 }
 
 .basic.right {
     z-index: 110 !important;
-    overflow: visible;
+    overflow: visible !important;
+}
+
+.bk-window.dialog {
+    overflow: visible !important;
 }
 
 /* end */

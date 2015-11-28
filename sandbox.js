@@ -150,11 +150,6 @@ define(function(require, exports, module) {
           else if (block.transactions.length >0) emit('changed', result);
         });
       });
-      filters['log'] = web3.eth.filter({});
-      filters['log'].watch(function(err, result) {
-        if (err) console.error(err);
-        else emit('log', result);
-      });
     }
 
     var connectionWatcher = {
