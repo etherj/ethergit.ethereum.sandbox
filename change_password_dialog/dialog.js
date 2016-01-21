@@ -84,6 +84,7 @@ define(function(require) {
           return console.error(err);
         }
 
+        // workaround for https://github.com/c9/core/issues/239
         if (res.body.length == 0) {
           showMessage('Your password has been changed.');
         } else {
