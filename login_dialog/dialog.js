@@ -86,8 +86,8 @@ define(function(require) {
           if (match) return match[0];
           else {
             // domain name like someide.ether.camp
-            match = /\.[\w\-]+\.[\w\-]+$/.exec(host);
-            return match ? match[0] : host;
+            match = /^[\w\-]+(\..+)$/.exec(host);
+            return match ? match[1] : host;
           }
         }
       });
