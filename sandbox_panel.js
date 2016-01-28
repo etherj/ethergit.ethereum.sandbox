@@ -35,7 +35,7 @@ define(function(require) {
       where: 'right'
     });
 
-    var $id, $sandbox, $sandboxes;
+    var $id, $pinId, $sandbox, $sandboxes;
     
     panel.on('load', function() {
       ui.insertCss(require('text!./style.css'), false, panel);
@@ -54,6 +54,7 @@ define(function(require) {
           watcher.stop();
         }
       }, panel);
+
       sandbox.on('changed', function() { watcher.redraw = true; });
     });
 
@@ -61,11 +62,20 @@ define(function(require) {
       var $root = $(e.html);
       $root.append(require('text!./sandbox_panel.html'));
       $id = $root.find('[data-name=sandbox-id]');
+
+      $pinId = $root.find('[data-name=pin-sandbox-id]');
+      $pinId.click(function() {
+        sandbox.pinOrUnpin();
+        updatePinAndId();
+      });
+      
       $sandboxes = $root.find('[data-name=select-sandbox]');
       $sandboxes.click(function(e) {
         var id = $(e.target).data('id');
         sandbox.select(id === 'notSelected' ? null : id);
       });
+
+      
       $sandbox = $root.find('[data-name=accounts-container]');
       $sandbox.click(folder.handler);
       $sandbox.click(function(e) {
@@ -77,6 +87,8 @@ define(function(require) {
       });
       watchSandboxes();
     });
+
+   
 
     function watchSandboxes() {
       var prevSandboxes;
@@ -116,15 +128,32 @@ define(function(require) {
       }
     };
 
+    function updatePinAndId() {
+      if (sandbox.pinnedId() != null) {
+        $id.text(sandbox.pinnedId());
+        $pinId.addClass('active');
+      } else {
+        $pinId.removeClass('active');
+        if (sandbox.getId()) {
+          $pinId.show();
+          $id.text(sandbox.getId());
+        } else {
+          $pinId.hide();
+          $id.text('Not selected');
+        }
+      }
+    }
+    
     var rendering = false;
     panel.render = function() {
       if ($sandbox === null) return;
+
+      updatePinAndId();
+      
       if (!sandbox.getId()) {
-        $id.text('Not started');
         $sandbox.empty();
       } else {
         rendering = true;
-        $id.text(sandbox.getId());
         var $container = $('<div></div>');
         renderAccounts($container, sandbox, function(err) {
           rendering = false;

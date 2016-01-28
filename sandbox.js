@@ -21,7 +21,7 @@ define(function(require, exports, module) {
 
     var plugin = new Plugin('Ethergit', main.consumes);
     var emit = plugin.getEmitter();
-    var id, filters = {};
+    var id, pinnedId = null, filters = {};
     var sandboxUrl = 'http://' + window.location.hostname + ':8555/sandbox/';
 
     web3._extend({
@@ -82,6 +82,7 @@ define(function(require, exports, module) {
     });
 
     function select(sandboxId) {
+      pinnedId = null;
       if (id) {
         _.invoke(filters, 'stopWatching');
         connectionWatcher.stop();
@@ -133,7 +134,13 @@ define(function(require, exports, module) {
       });
 
       function create(cb) {
-        http.request(sandboxUrl, { method: 'POST' }, function(err, data) {
+        var query = {};
+        if (pinnedId != null) query.id = pinnedId;
+        
+        http.request(sandboxUrl, {
+          method: 'POST',
+          query: query
+        }, function(err, data) {
           if (err) return cb(err);
           id = data.id;
           cb();
@@ -204,6 +211,8 @@ define(function(require, exports, module) {
     plugin.freezePublicAPI({
       get web3() { return web3; },
       getId: function() { return id; },
+      pinnedId: function() { return pinnedId; },
+      pinOrUnpin: function() { pinnedId = pinnedId == null ? id : null; },
       select: select,
       start: start,
       stop: stop,
