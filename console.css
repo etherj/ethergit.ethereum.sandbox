@@ -5,8 +5,16 @@
 }
 
 .ethereum-console {
-    color: #EBEBEB;
     margin: 0 10px 0 10px;
+    font-size: 12px;
+}
+
+.dark.ethereum-console {
+    color: #e1e1e1;
+}
+
+.light-flat.ethereum-console {
+    color: #333333;
 }
 
 .ethereum-console-warning {

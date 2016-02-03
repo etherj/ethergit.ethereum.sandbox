@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'editors', 'Editor', 'ui', 'tabManager',
+    'editors', 'Editor', 'ui', 'tabManager', 'settings',
     'ethergit.libs',
     'ethergit.sandbox'
   ];
@@ -13,6 +13,7 @@ define(function(require) {
     var Editor = imports.Editor;
     var ui = imports.ui;
     var tabs = imports.tabManager;
+    var settings = imports.settings;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
 
@@ -27,6 +28,11 @@ define(function(require) {
     var SolidityEvent = libs.SolidityEvent();
     var BigNumber = libs.BigNumber();
 
+    var theme = settings.get('user/general/@skin');
+    settings.on('user/general/@skin', function(newTheme) {
+      theme = newTheme;
+    });
+    
     function EthereumConsole() {
       var ethConsole = new Editor('Ethergit', main.consumes, []);
 
@@ -48,6 +54,7 @@ define(function(require) {
                     </div>'
         );
         $log = $root.find('ul[data-name=ethereum-console]');
+        installTheme($log);
         $root.click(folder.handler);
       });
 
@@ -68,6 +75,13 @@ define(function(require) {
 
       function clear() {
         $log.empty();
+      }
+
+      function installTheme($el) {
+        $el.addClass(settings.get('user/general/@skin'));
+        settings.on('user/general/@skin', function(newTheme, oldTheme) {
+          $el.removeClass(oldTheme).addClass(newTheme);
+        }, ethConsole);
       }
     }
     
@@ -182,7 +196,9 @@ define(function(require) {
         demandExisting: true
       }, function(err, tab) {
         if (err) return cb(err);
-        if (!tab.classList.names.contains('dark')) tab.classList.add('dark');
+        // workaround for tab styles
+        if (!tab.classList.names.contains(theme)) tab.classList.add(theme);
+        if (!tab.classList.names.contains('tab5')) tab.classList.add('tab5');
         cb(null, tab.editor);
       });
     }

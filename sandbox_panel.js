@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Panel', 'ui', 'apf',
+    'Panel', 'ui', 'apf', 'settings',
     'ethergit.libs',
     'ethergit.ethereum.sandbox.dialog.contract',
     'ethergit.sandbox'
@@ -13,6 +13,7 @@ define(function(require) {
     var Panel = imports.Panel;
     var ui = imports.ui;
     var apf = imports.apf;
+    var settings = imports.settings;
     var libs = imports['ethergit.libs'];
     var contractDialog = imports['ethergit.ethereum.sandbox.dialog.contract'];
     var sandbox = imports['ethergit.sandbox'];
@@ -63,6 +64,8 @@ define(function(require) {
       $root.append(require('text!./sandbox_panel.html'));
       $id = $root.find('[data-name=sandbox-id]');
 
+      installTheme($root.find('#sandboxPanel'));
+      
       $pinId = $root.find('[data-name=pin-sandbox-id]');
       $pinId.click(function() {
         sandbox.pinOrUnpin();
@@ -86,9 +89,14 @@ define(function(require) {
         }
       });
       watchSandboxes();
-    });
 
-   
+      function installTheme($el) {
+        $el.addClass(settings.get('user/general/@skin'));
+        settings.on('user/general/@skin', function(newTheme, oldTheme) {
+          $el.removeClass(oldTheme).addClass(newTheme);
+        }, panel);
+      }
+    });
 
     function watchSandboxes() {
       var prevSandboxes;
