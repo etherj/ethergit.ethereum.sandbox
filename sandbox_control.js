@@ -159,7 +159,6 @@ define(function(require, exports, module) {
         else async.series([
           startSandbox.bind(this, params.config),
           createContracts.bind(this, params.config, params.contracts)
-          
         ], cb);
       });
 
@@ -227,7 +226,7 @@ define(function(require, exports, module) {
       }
 
       function startSandbox(config, cb) {
-        sandbox.start(config.env, cb);
+        sandbox.start(config, cb);
       }
       function createContracts(config, contracts, cb) {
         async.eachSeries(contracts, function(contract, cb) {

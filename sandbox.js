@@ -99,8 +99,8 @@ define(function(require, exports, module) {
       }
     }
     
-    function start(env, cb) {
-      var accounts = _(env.accounts)
+    function start(config, cb) {
+      var accounts = _(config.env.accounts)
           .pairs()
           .filter(function(account) {
             return account[1].hasOwnProperty('pkey');
@@ -121,8 +121,8 @@ define(function(require, exports, module) {
           );
           cb();
         },
-        web3.sandbox.setBlock.bind(web3.sandbox, env.block),
-        web3.sandbox.createAccounts.bind(web3.sandbox, env.accounts),
+        web3.sandbox.setBlock.bind(web3.sandbox, config.env.block),
+        web3.sandbox.createAccounts.bind(web3.sandbox, config.env.accounts),
         web3.sandbox.addAccounts.bind(web3.sandbox, accounts),
         setDefaultAccount,
         async.asyncify(setupFilters),
@@ -139,7 +139,11 @@ define(function(require, exports, module) {
         
         http.request(sandboxUrl, {
           method: 'POST',
-          query: query
+          query: query,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            plugins: config.hasOwnProperty('plugins') ? config.plugins : {}
+          })
         }, function(err, data) {
           if (err) return cb(err);
           id = data.id;

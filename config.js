@@ -40,6 +40,10 @@ define(function(require, exports, module) {
         });
       }
       function adjustValues(config, cb) {
+        if (config.hasOwnProperty('plugins') && !_.isPlainObject(config.plugins)) {
+          return cb('Field plugins has to be a map in ethereum.json');
+        }
+        
         if (!config.hasOwnProperty('env') || !config.env.hasOwnProperty('accounts') ||
             Object.keys(config.env).length === 0) {
           return cb('Please, add initial account(s) to ethereum.json');
