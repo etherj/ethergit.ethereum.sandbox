@@ -1,7 +1,15 @@
 .sandbox-panel {
     height: 100%;
     overflow: auto;
-    color: white;
+    font-size: 12px;
+}
+
+.sandbox-panel.dark {
+    color: #e1e1e1;
+}
+
+.sandbox-panel.flat-light {
+    color: #333333;
 }
 
 .select-sandbox {

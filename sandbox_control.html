@@ -1,10 +1,14 @@
-<div class="bs-root" data-name="startSandbox">
+<div class="bs-root panel-container" data-name="startSandbox">
   <div class="btn-group">
-    <a id="startSandbox" data-name="run" class="btn eci-btn-default stopped">Run All Contracts</a>
-    <a id="selectSandboxSettings" class="btn eci-btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-      <span class="caret"></span>
-      <span class="sr-only">Choose build configuration</span>
-    </a>
+    <div id="startSandbox" data-name="run" class="btn eci-btn-default stopped">
+      <div>Run All Contracts</div>
+    </div>
+    <div id="selectSandboxSettings" class="btn eci-btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <div>
+        <span class="caret"></span>
+        <span class="sr-only">Choose build configuration</span>
+      </div>
+    </div>
     <ul class="dropdown-menu eci-dropdown-menu" aria-labelledby="selectSandboxSettings">
       <li data-name="runAll">Run all contracts</li>
       <li data-name="runCurrent">Run active contract</li>

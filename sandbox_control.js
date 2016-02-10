@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
   main.consumes = [
-    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save',
+    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings',
     'ethergit.libs',
     'ethergit.sandbox',
     'ethergit.solidity.compiler',
@@ -20,6 +20,7 @@ define(function(require, exports, module) {
     var tabs = imports.tabManager;
     var commands = imports.commands;
     var save = imports.save;
+    var settings = imports.settings;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var compiler = imports['ethergit.solidity.compiler'];
@@ -51,9 +52,11 @@ define(function(require, exports, module) {
       );
 
       var $widget = $('[data-name=startSandbox]');
+      installTheme($widget);
+      
       var $run = $widget.find('[data-name=run]');
       $run.click(function() {
-        commands.exec(command, tabs.focussedTab.editor);
+        commands.exec(command, tabs.focussedTab ? tabs.focussedTab.editor : null);
       });
 
       $widget.find('[data-name=runAll]').click(function() {
@@ -130,22 +133,29 @@ define(function(require, exports, module) {
       }
 
       function disableButton() {
-        $run.text('Processing...');
+        $run.children().text('Processing...');
         $run.addClass('disabled');
       }
 
       sandbox.on('select', updateButton);
       function updateButton() {
         if (sandbox.getId()) {
-          $run.text(runCommands['stopSandbox']);
+          $run.children().text(runCommands['stopSandbox']);
           $run.removeClass('stopped').addClass('started');
           command = 'stopSandbox';
         } else {
-          $run.text(runCommands[choosenCommand]);
+          $run.children().text(runCommands[choosenCommand]);
           $run.removeClass('started').addClass('stopped');
           command = choosenCommand;
         }
         $run.removeClass('disabled');
+      }
+
+      function installTheme($el) {
+        $el.addClass(settings.get('user/general/@skin'));
+        settings.on('user/general/@skin', function(newTheme, oldTheme) {
+          $el.removeClass(oldTheme).addClass(newTheme);
+        }, control);
       }
     });
 
