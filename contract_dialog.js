@@ -98,26 +98,46 @@ define(function(require) {
         if (err) showError(err);
       });
 
-      function showAccounts(cb) {
-        async.waterfall([ load, show ], cb);
+      var defaultSender, gasPrice, gasLimit;
+      function resetAdvanced() {
+        $sender.children().each(function(idx, element) {
+          var $element = $(element);
+          if ($element.text() == 'defaultSender') {
+            $element.attr('selected', 'selected');
+          } else {
+            $element.removeAttr('selected');
+          }
+        });
+        $value.val(0);
+        $gasPrice.val(gasPrice);
+        $gasLimit.val(gasLimit);
+      }
 
-        function load(cb) {
-          sandbox.web3.eth.getAccounts(cb);
-        }
-        function show(addresses, cb) {
+      function showAccounts(cb) {
+        async.parallel({
+          config: config.parse.bind(config),
+          defaultAccount: sandbox.web3.sandbox.defaultAccount.bind(sandbox.web3.sandbox),
+          addresses: sandbox.web3.eth.getAccounts.bind(sandbox.web3.eth)
+        }, function(err, results) {
+          if (err) return cb(err);
+
+          var config = results.config,
+              defaultAccount = results.defaultAccount,
+              addresses = results.addresses;
+
+          gasPrice = config.transaction.gasPrice;
+          gasLimit = config.transaction.gasLimit;
+          
           $sender.html(
             _.reduce(addresses, function(html, address) {
               return html + '<option>' + address + '</option>';
             }, '')
           );
 
-          config.parse(function(err, parsed) {
-            if (err) return console.error(err);
-            $gasPrice.val(parsed.transaction.gasPrice);
-            $gasLimit.val(parsed.transaction.gasLimit);
-          });
+          resetAdvanced();
+          
           cb();
-        }
+        });
       }
 
       function showContract(cb) {
@@ -250,6 +270,7 @@ define(function(require) {
             });
             if (!method.constant) watchBlocks();
             contract[method.name][getTypes(method.inputs)].apply(this, args);
+            resetAdvanced();
 
             function watchBlocks() {
               var latestBlock = sandbox.web3.eth.filter('latest');
