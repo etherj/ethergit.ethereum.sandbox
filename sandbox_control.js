@@ -239,15 +239,51 @@ define(function(require, exports, module) {
         sandbox.start(config, cb);
       }
       function createContracts(config, contracts, cb) {
-        async.eachSeries(contracts, function(contract, cb) {
-          var ctor = _.findWhere(contract.abi, { type: 'constructor' });
-          if (ctor && ctor.inputs.length > 0) {
-            contractConstructorDialog.askArgs(contract, function(err, args) {
-              if (err) cb(err);
-              else sendTx(args);
-            });
-          } else sendTx([]);
+        async.eachSeries(contracts, deploy, cb);
+        
+        function deploy(contract, cb) {
+          if (contract.address) cb();
           
+          try {
+            var libs = findLibs();
+          } catch (err) {
+            return cb(err);
+          }
+          
+          if (libs.length != 0) {
+            async.eachSeries(libs, deploy, function(err) {
+              if (err) return cb(err);
+              _.each(libs, function(lib) {
+                putLibAddress(lib.name, lib.address);
+              });
+              deploy(contract, cb);
+            });
+          } else {
+            var ctor = _.findWhere(contract.abi, { type: 'constructor' });
+            if (ctor && ctor.inputs.length > 0) {
+              contractConstructorDialog.askArgs(contract, function(err, args) {
+                if (err) cb(err);
+                else sendTx(args);
+              });
+            } else sendTx([]);
+          }
+
+          function findLibs() {
+            var match, libs = [], libRe = /[^_]__(\w{36})__[^_]/g;
+            while (match = libRe.exec(contract.binary)) {
+              var lib = _.find(contracts, function(contract) {
+                return match[1].indexOf(contract.name) != -1;
+              });
+              if (!lib) throw "There is not lib to link with " + match[1];
+              libs.push(lib);
+            }
+            return libs;
+          }
+          function putLibAddress(name, address) {
+            var placeholder = '__' + name + '__';
+            placeholder = placeholder + _.repeat('_', 40 - placeholder.length);
+            contract.binary = contract.binary.replace(placeholder, address.substr(2));
+          }
           function sendTx(args) {
             var txHash;
             
@@ -268,13 +304,16 @@ define(function(require, exports, module) {
                   });
                 } else cb(err);
               }
-              else if (newContract.address) cb();
+              else if (newContract.address) {
+                contract.address = newContract.address;
+                cb();
+              }
               else txHash = newContract.transactionHash;
             });
             var newContract = sandbox.web3.eth.contract(contract.abi);
             newContract.new.apply(newContract, args);
           }
-        }, cb);
+        }
       }
     }
 
