@@ -71,6 +71,10 @@
     display: none;
 }
 
+.fakehbox > .preview {
+    display: none;
+}
+
 /* workaround to show tooltips for tab content */
 .tooltip .tooltip-inner {
     max-width: none;
