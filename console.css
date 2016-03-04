@@ -1,11 +1,10 @@
 .ethereum-console-container {
     overflow-y: scroll;
     height: 100%;
-    padding: 5px;
 }
 
 .ethereum-console {
-    margin: 0 10px 0 10px;
+    margin: 10px 10px;
     font-size: 12px;
 }
 

@@ -46,13 +46,14 @@ define(function(require) {
       
       ethConsole.load(null, 'ethereum-console');
 
-      var $log;
+      var $container, $log;
       ethConsole.on('draw', function(e) {
         var $root = $(e.htmlNode).html(            
-          '<div class="ethereum-console-container">\
-                        <ul class="ethereum-console list-unstyled" data-name="ethereum-console"></ul>\
-                    </div>'
+          '<div class="ethereum-console-container" data-name="container">' +
+            '<ul class="ethereum-console list-unstyled" data-name="ethereum-console"></ul>' +
+            '</div>'
         );
+        $container = $root.find('[data-name=container]');
         $log = $root.find('ul[data-name=ethereum-console]');
         installTheme($log);
         $root.click(folder.handler);
@@ -67,10 +68,12 @@ define(function(require) {
       function log(entry) {
         if (_.isString(entry)) $log.append('<li>' + entry + '</li>');
         else $log.append($('<li>').append(entry));
+        scrollDown();
       }
 
       function error(entry) {
         $log.append('<li class="ethereum-console-warning">' + entry + '</li>');
+        scrollDown();
       }
 
       function clear() {
@@ -82,6 +85,10 @@ define(function(require) {
         settings.on('user/general/@skin', function(newTheme, oldTheme) {
           $el.removeClass(oldTheme).addClass(newTheme);
         }, ethConsole);
+      }
+
+      function scrollDown() {
+        $container.scrollTop($log.height());
       }
     }
     
