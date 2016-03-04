@@ -63,6 +63,17 @@
     cursor: pointer;
 }
 
+.dark .account-container .contract-name,
+.dark-gray .account-container .contract-name {
+    border-color: #B9CA4A;
+    color: #B9CA4A;
+}
+
+.flat-light .account-container .contract-name {
+    border-color: rgb(49, 132, 149);
+    color: rgb(49, 132, 149);
+}
+
 .account-container td {
     padding: 3px;
 }
