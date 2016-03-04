@@ -60,16 +60,6 @@ define(['./utils', './folder'], function(utils, folder) {
         var val = parseInt(value.substr(2), 16);
         return val === 1 ? 'true' : 'false';
       }
-    },
-    stringN: {
-      name: 'string',
-      format: function(data, num) {
-        data = data.substr(2);
-        var offset = parseInt(data.substr(num * 64, 64), 16);
-        var size = parseInt(data.substr(offset * 2, 64), 16);
-        var value = data.substr(offset * 2 + 64, size * 2);
-        
-      }
     }
   };
 
