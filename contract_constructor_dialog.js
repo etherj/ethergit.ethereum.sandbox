@@ -10,10 +10,11 @@ define(function(require) {
     var libs = imports['ethergit.libs'];
 
     var async = require('async');
-    var widgets = require('./ui/widgets');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+
+    var widgets = require('./ui/widgets')(_);
 
     // Cached elements
     var $root, $name, $args;

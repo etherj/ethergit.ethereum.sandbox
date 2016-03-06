@@ -24,10 +24,11 @@ define(function(require) {
     var formatter = require('./formatter');
     var folder = require('./folder');
     var utils = require('./utils');
-    var widgets = require('./ui/widgets');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+
+    var widgets = require('./ui/widgets')(_);
 
     // Cached elements
     var $root, $advanced, $sender, $value, $gasPrice, $gasLimit,
