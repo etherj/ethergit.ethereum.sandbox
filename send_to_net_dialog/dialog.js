@@ -19,7 +19,6 @@ define(function(require) {
 
     var async = require('async');
     var utils = require('../utils');
-    var widgets = require('../ui/widgets');
 
     var url = 'http://peer-1.ether.camp:8082';
 
@@ -32,6 +31,8 @@ define(function(require) {
     var _ = libs.lodash();
     var Web3 = libs.web3();
     var web3 = new Web3(new Web3.providers.HttpProvider(url));
+
+    var widgets = require('../ui/widgets')(_);
 
     var contractHtml = '<tr>' +
         '<td data-name="toSend" style="padding-top:15px"></td>' +

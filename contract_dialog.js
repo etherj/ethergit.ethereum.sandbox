@@ -21,12 +21,13 @@ define(function(require) {
     var abiDialog = imports['ethergit.dialog.abi'];
     var config = imports['ethergit.sandbox.config'];
     var async = require('async');
-    var formatter = require('./formatter');
-    var folder = require('./folder');
     var utils = require('./utils');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+
+    var folder = require('./folder')(_);
+    var formatter = require('./formatter')(_);
 
     var widgets = require('./ui/widgets')(_);
 

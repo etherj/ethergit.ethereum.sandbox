@@ -19,15 +19,16 @@ define(function(require) {
 
     var async = require('async');
     var Contract = require('./contract');
-    var formatter = require('./formatter');
     var utils = require('./utils');
-    var folder = require('./folder');
-    
+
     var $ = libs.jquery();
     var _ = libs.lodash();
     var SolidityEvent = libs.SolidityEvent();
     var BigNumber = libs.BigNumber();
 
+    var folder = require('./folder')(_);
+    var formatter = require('./formatter')(_);
+    
     var theme = settings.get('user/general/@skin');
     settings.on('user/general/@skin', function(newTheme) {
       theme = newTheme;

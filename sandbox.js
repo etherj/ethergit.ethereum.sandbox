@@ -11,11 +11,12 @@ define(function(require, exports, module) {
     
     var async = require('async');
     var utils = require('./utils');
-    var formatter = require('./formatter');
     var Contract = require('./contract');
 
     var Web3 = libs.web3();
     var _ = libs.lodash();
+
+    var formatter = require('./formatter')(_);
 
     var web3 = new Web3();
 

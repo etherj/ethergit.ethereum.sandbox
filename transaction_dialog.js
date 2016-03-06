@@ -8,7 +8,8 @@ define(function(require) {
     var Dialog = imports.Dialog;
     var ui = imports.ui;
     var libs = imports['ethergit.libs'];
-    var folder = require('./folder');
+    var _ = libs.lodash();
+    var folder = require('./folder')(_);
     var $ = libs.jquery();
 
     var displayFields = [

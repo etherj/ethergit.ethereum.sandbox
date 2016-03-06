@@ -12,10 +12,10 @@ define(function(require) {
     var tabs = imports.tabManager;
     var libs = imports['ethergit.libs'];
 
-    var folder = require('../folder');
-
     var $ = libs.jquery();
     var _ = libs.lodash();
+
+    var folder = require('../folder')(_);
     
     var urls = {
       test: 'http://test.ether.camp',

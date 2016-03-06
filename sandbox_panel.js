@@ -20,11 +20,12 @@ define(function(require) {
 
     var accountTemplate = require('text!./account.html');
     var async = require('async');
-    var folder = require('./folder');
-    var formatter = require('./formatter');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+
+    var folder = require('./folder')(_);
+    var formatter = require('./formatter')(_);
 
     apf.config.setProperty('allow-select', true);
 
