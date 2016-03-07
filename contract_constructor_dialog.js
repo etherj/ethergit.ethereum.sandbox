@@ -74,6 +74,9 @@ define(function(require) {
       
       $args.off('keypress');
       $args.keypress(function(e) {
+        // Workaround to support enter key in ace editor
+        if (e.target.offsetParent.className.indexOf('ace_editor') != -1) return;
+
         e.stopPropagation();
         if (e.keyCode == 13) {
           e.preventDefault();
