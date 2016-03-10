@@ -21,7 +21,7 @@ define(function(require, exports, module) {
       gasLimit: 3141592
     };
     
-    function parse(cb) {
+    function parse(projectDir, cb) {
       async.waterfall([
         read,
         adjustValues,
@@ -29,7 +29,7 @@ define(function(require, exports, module) {
       ], cb);
       
       function read(cb) {
-        fs.readFile('/ethereum.json', function(err, content) {
+        fs.readFile(projectDir + '/ethereum.json', function(err, content) {
           if (err) return cb(err);
           try {
             var config = JSON.parse(utils.removeMetaInfo(content));
@@ -55,9 +55,7 @@ define(function(require, exports, module) {
         if (typeof config.contracts != 'string') {
           return cb('Field contracts in ethereum.json should be a string');
         }
-        config.contracts = _.startsWith(config.contracts, './') ?
-          '/' + config.contracts.substr(2) :
-          '/' + config.contracts;
+        config.contracts = projectDir + config.contracts;
         if (!_.endsWith(config.contracts, '/')) config.contracts += '/';
         
         try {
@@ -143,14 +141,8 @@ define(function(require, exports, module) {
             return cb(e);
           }
           if (account.hasOwnProperty('source')) {
-            if (!_.startsWith(account.source, './')) {
-              if (account.source.charAt(0) == '/')
-                account.source = '.' + account.source;
-              else
-                account.source = './' + account.source;
-            }
-            compiler.binaryAndABI([account.source], '/', function(err, compiled) {
-              if (err) return cb(err.message);
+            compiler.binaryAndABI([account.source], projectDir, function(err, compiled) {
+              if (err) return cb('compilation error: ' + err.message);
               if (compiled.length !== 1)
                 return cb('File specified in source property of ethereum.json should contain only one contract');
               account.runCode = compiled[0];

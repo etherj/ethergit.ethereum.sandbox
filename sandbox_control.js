@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
   main.consumes = [
-    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings',
+    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings', 'tree',
     'ethergit.libs',
     'ethergit.sandbox',
     'ethergit.solidity.compiler',
@@ -21,6 +21,7 @@ define(function(require, exports, module) {
     var commands = imports.commands;
     var save = imports.save;
     var settings = imports.settings;
+    var workspace = imports.tree;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var compiler = imports['ethergit.solidity.compiler'];
@@ -160,9 +161,18 @@ define(function(require, exports, module) {
     });
 
     function run(current, cb) {
+      var selected = workspace.selected;
+      console.log(selected);
+
+      if (!selected || selected == '/') {
+        return cb('Please, select a project to run in the workspace panel. Project directory have to be placed in the workspace directory.');
+      }
+
+      var projectDir = /^\/[^\/]+/.exec(selected)[0] + '/';
+      
       async.waterfall([
         saveAll,
-        config.parse.bind(config),
+        config.parse.bind(config, projectDir),
         compileContracts.bind(null, current)
       ], function(err, params) {
         if (err) cb(err);
