@@ -177,7 +177,7 @@ define(function(require, exports, module) {
       });
 
       function findProjectDir(cb) {
-        var msg = 'Please, select a project to run in the workspace panel. Project directory have to be placed in the workspace directory.';
+        var msg = 'Please, select a project to run in the workspace panel. Project directory has to be placed in the workspace directory.';
         if (!selected || selected == '/') return cb(msg);
 
         var projectDir = /^\/[^\/]+/.exec(selected)[0];
