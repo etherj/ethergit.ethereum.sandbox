@@ -162,17 +162,11 @@ define(function(require, exports, module) {
 
     function run(current, cb) {
       var selected = workspace.selected;
-      console.log(selected);
 
-      if (!selected || selected == '/') {
-        return cb('Please, select a project to run in the workspace panel. Project directory have to be placed in the workspace directory.');
-      }
-
-      var projectDir = /^\/[^\/]+/.exec(selected)[0] + '/';
-      
       async.waterfall([
+        findProjectDir,
         saveAll,
-        config.parse.bind(config, projectDir),
+        config.parse.bind(config),
         compileContracts.bind(null, current)
       ], function(err, params) {
         if (err) cb(err);
@@ -182,9 +176,22 @@ define(function(require, exports, module) {
         ], cb);
       });
 
-      function saveAll(cb) {
+      function findProjectDir(cb) {
+        var msg = 'Please, select a project to run in the workspace panel. Project directory have to be placed in the workspace directory.';
+        if (!selected || selected == '/') return cb(msg);
+
+        var projectDir = /^\/[^\/]+/.exec(selected)[0];
+
+        fs.stat(projectDir, function(err, data) {
+          if (err) return cb(err);
+          if (!/(folder|directory)$/.test(data.mime)) return cb(msg);
+          cb(null, projectDir + '/');
+        });
+      }
+
+      function saveAll(projectDir, cb) {
         save.saveAllInteractive(tabs.getTabs(), function(result) {
-          cb(result === 0 ? 'Compilation has been canceled.' : null);
+          cb(result === 0 ? 'Compilation has been canceled.' : null, projectDir);
         });
       }
 
