@@ -62,7 +62,7 @@ define(function(require) {
       function checkTxs() {
         _(txs).where({ status: 'Pending' }).each(function(tx) {
           if (tx.counter++ > 170) { // Checking 50 blocks ~ 170 * 5 secs.
-            tx.status = 'Rejected'
+            tx.status = 'Rejected';
             tx.web3 = null;
             updateTx(tx);
           } else {
@@ -72,6 +72,7 @@ define(function(require) {
                 tx.status = 'Mined';
                 tx.web3 = null;
                 updateTx(tx);
+                if (tx.onMined) tx.onMined();
               }
             });
           }

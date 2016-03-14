@@ -1,4 +1,4 @@
-<div class="bs-root" style="width:100%;max-height:500px;overflow-y:scroll">
+<div class="bs-root send-to-net" style="width:100%;max-height:500px;overflow-y:scroll">
   <div class="container" style="width:90%">
     <div class="row">
       <div data-name="error" class="text-danger"></div>
@@ -7,14 +7,18 @@
     <div class="row">
       <form class="form-horizontal">
         <h4>Contracts to send:</h4>
-        <table class="table">
+        <table class="contracts table">
           <thead>
             <tr>
-              <td>Send</td>
-              <td>Name</td>
-              <td>Value</td>
-              <td>Gas limit</td>
-              <td>Gas price</td>
+              <th>Send</th>
+              <th>
+                Publish
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true" title="Attach contract's source code to a created account on ether.camp explorer for the selected network"></span>
+              </th>
+              <th>Name</th>
+              <th>Value</th>
+              <th>Gas limit</th>
+              <th>Gas price</th>
             </tr>
           </thead>
           <tbody data-name="contracts">

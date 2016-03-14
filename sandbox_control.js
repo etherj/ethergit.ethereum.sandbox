@@ -303,7 +303,7 @@ define(function(require, exports, module) {
           }
           function sendTx(args) {
             var txHash;
-            
+
             args.push({
               contract: contract,
               data: contract.binary.length == 0 ? '0x00' : '0x' + contract.binary,

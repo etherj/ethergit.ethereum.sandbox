@@ -35,12 +35,13 @@ define(function(require) {
     var widgets = require('../ui/widgets')(_);
 
     var contractHtml = '<tr>' +
-        '<td data-name="toSend" style="padding-top:15px"></td>' +
-        '<td data-name="name" style="padding-top:15px"></td>' +
-        '<td data-name="value"></td>' +
-        '<td data-name="gasLimit"></td>' +
-        '<td data-name="gasPrice"></td>' +
-        '</tr>';
+          '<td data-name="toSend" style="padding-top:15px"></td>' +
+          '<td data-name="publish" style="padding-top:15px;min-width:85px"></td>' + 
+          '<td data-name="name" style="padding-top:15px"></td>' +
+          '<td data-name="value"></td>' +
+          '<td data-name="gasLimit"></td>' +
+          '<td data-name="gasPrice"></td>' +
+          '</tr>';
     
     var $form, $pkey, $error, $success, $contracts, $url, $hidePkey;
 
@@ -62,6 +63,8 @@ define(function(require) {
     });
 
     dialog.on('load', function() {
+//      ui.insertCss(require('text!./style.css'), false, dialog);
+      
       commands.addCommand({
         name: 'showSendToNet',
         exec: dialog.show.bind(dialog)
@@ -133,6 +136,7 @@ define(function(require) {
             return {
               contract: contract,
               toSend: widgets('bool', true),
+              publish: widgets('bool', true),
               value: widgets('uint256', 0),
               gasLimit: widgets(
                 'uint256',
@@ -143,8 +147,16 @@ define(function(require) {
           });
           _.each(details, function(contract) {
             var $html = $(contractHtml);
+
+            var $toSend = contract.toSend.html();
+            var $publish = contract.publish.html();
+            $toSend.change(function(e) {
+              $publish.prop('disabled', !$toSend.is(':checked'));
+            });
+
             $html.find('[data-name=name]').append(contract.contract.name);
-            $html.find('[data-name=toSend]').append(contract.toSend.html());
+            $html.find('[data-name=toSend]').append($toSend);
+            $html.find('[data-name=publish]').append($publish);
             $html.find('[data-name=value]').append(contract.value.html());
             $html.find('[data-name=gasLimit]').append(contract.gasLimit.html());
             $html.find('[data-name=gasPrice]').append(contract.gasPrice.html());
@@ -203,7 +215,9 @@ define(function(require) {
               value: contract.value.value(),
               gasLimit: contract.gasLimit.value(),
               gasPrice: contract.gasPrice.value(),
-              data: contract.contract.data
+              data: contract.contract.data,
+              root: contract.contract.dir,
+              sources: contract.contract.sources
             };
           }).value();
       if (parsed.length === 0) {
@@ -278,11 +292,13 @@ define(function(require) {
               pkey: pkey
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
+              var newAddress = utils.calcNewAddress(address, nextNonce);
               sentTxs.addTx({
                 hash: result,
-                contract: utils.calcNewAddress(address, nextNonce),
+                contract: newAddress,
                 web3: web3,
-                net: nets[genesis]
+                net: nets[genesis],
+                onMined: uploadSources.bind(null, newAddress, vals)
               });
               cb();
             });
@@ -291,6 +307,26 @@ define(function(require) {
       }
       function disableSend(disable) {
         dialog.update([{ id: 'send', disabled: disable }]);
+      }
+      function uploadSources(address, details) {
+        console.log(address, details);
+        var url = 'https://test-state.ether.camp';
+        var data = new FormData();
+        data.append('name', details.name);
+        _.each(details.sources, function(source) {
+          data.append(source, 'contract asdf {}');
+        });
+        $.ajax({
+          url: url + '/api/v1/accounts/' + address.substr(2) + '/contract',
+          data: data,
+          cache: false,
+          contentType: false,
+          processData: false,
+          type: 'POST',
+          success: function(data){
+            console.log(data);
+          }
+        });
       }
     }
     
