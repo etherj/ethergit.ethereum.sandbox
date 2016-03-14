@@ -306,9 +306,7 @@ define(function(require, exports, module) {
             
             args.push({
               contract: contract,
-              data: contract.binary.length == 0 ? '0x00' : '0x' + contract.binary,
-              gas: config.transaction.gasLimit,
-              gasPrice: config.transaction.gasPrice
+              data: contract.binary.length == 0 ? '0x00' : '0x' + contract.binary
             });
             args.push(function(err, newContract) {
               if (err) {

@@ -104,7 +104,7 @@ define(function(require) {
       function resetAdvanced() {
         $sender.children().each(function(idx, element) {
           var $element = $(element);
-          if ($element.text() == 'defaultSender') {
+          if ($element.text() == defaultSender) {
             $element.attr('selected', 'selected');
           } else {
             $element.removeAttr('selected');
@@ -117,21 +117,19 @@ define(function(require) {
 
       function showAccounts(cb) {
         async.parallel({
-          config: config.parse.bind(config),
+          gasPrice: sandbox.web3.eth.getGasPrice.bind(sandbox.web3.eth),
+          gasLimit: sandbox.web3.sandbox.getGasLimit.bind(sandbox.web3.sandbox),
           defaultAccount: sandbox.web3.sandbox.defaultAccount.bind(sandbox.web3.sandbox),
           addresses: sandbox.web3.eth.getAccounts.bind(sandbox.web3.eth)
         }, function(err, results) {
           if (err) return cb(err);
 
-          var config = results.config,
-              defaultAccount = results.defaultAccount,
-              addresses = results.addresses;
+          defaultSender = results.defaultAccount;
+          gasPrice = results.gasPrice.toString();
+          gasLimit = results.gasLimit.toString();
 
-          gasPrice = config.transaction.gasPrice;
-          gasLimit = config.transaction.gasLimit;
-          
           $sender.html(
-            _.reduce(addresses, function(html, address) {
+            _.reduce(results.addresses, function(html, address) {
               return html + '<option>' + address + '</option>';
             }, '')
           );
