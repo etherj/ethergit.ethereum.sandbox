@@ -1,8 +1,8 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'layout', 'commands',
+    'Dialog', 'ui', 'layout', 'commands', 'fs',
     'ethergit.sandbox', 'ethergit.libs',
-    'ethergit.sandbox.config', 'ethergit.sent.txs.editor'
+    'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console'
   ];
   main.provides = ['ethergit.dialog.send.to.net'];
   return main;
@@ -12,10 +12,12 @@ define(function(require) {
     var ui = imports.ui;
     var layout = imports.layout;
     var commands = imports.commands;
+    var fs = imports.fs;
     var sandbox = imports['ethergit.sandbox'];
     var libs = imports['ethergit.libs'];
     var config = imports['ethergit.sandbox.config'];
     var sentTxs = imports['ethergit.sent.txs.editor'];
+    var ethConsole = imports['ethereum-console'];
 
     var async = require('async');
     var utils = require('../utils');
@@ -25,6 +27,11 @@ define(function(require) {
     var nets = {
       '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368': 'test',
       '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3': 'frontier'
+    };
+
+    var etherCampAPI = {
+      test: 'https://test-state.ether.camp',
+      frontier: 'https://state.ether.camp'
     };
     
     var $ = libs.jquery();
@@ -188,7 +195,7 @@ define(function(require) {
               return /^(http|https):\/\/[^ ]+$/i.test(val);
             }
             function updateGasPrice() {
-              web3.eth.gasPrice(function(err, gasPrice) {
+              web3.eth.getGasPrice(function(err, gasPrice) {
                 if (err)
                   return $error.text('Could not get gas price from ' + url + ': ' + err.message);
                 _.each(details, function(contract) {
@@ -216,7 +223,7 @@ define(function(require) {
               gasLimit: contract.gasLimit.value(),
               gasPrice: contract.gasPrice.value(),
               data: contract.contract.data,
-              root: contract.contract.dir,
+              root: contract.contract.root,
               sources: contract.contract.sources
             };
           }).value();
@@ -293,12 +300,13 @@ define(function(require) {
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               var newAddress = utils.calcNewAddress(address, nextNonce);
+              var net = nets[genesis];
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
                 web3: web3,
-                net: nets[genesis],
-                onMined: uploadSources.bind(null, newAddress, vals)
+                net: net,
+                onMined: net ? uploadSources.bind(null, newAddress, vals, net) : null
               });
               cb();
             });
@@ -308,24 +316,42 @@ define(function(require) {
       function disableSend(disable) {
         dialog.update([{ id: 'send', disabled: disable }]);
       }
-      function uploadSources(address, details) {
-        console.log(address, details);
-        var url = 'https://test-state.ether.camp';
+      function uploadSources(address, details, net) {
         var data = new FormData();
         data.append('name', details.name);
-        _.each(details.sources, function(source) {
-          data.append(source, 'contract asdf {}');
-        });
-        $.ajax({
-          url: url + '/api/v1/accounts/' + address.substr(2) + '/contract',
-          data: data,
-          cache: false,
-          contentType: false,
-          processData: false,
-          type: 'POST',
-          success: function(data){
-            console.log(data);
+        async.reduce(details.sources, {}, function(result, source, cb) {
+          fs.readFile(details.root + source, function(err, content) {
+            result[source] = content;
+            cb(err, result);
+          });
+        }, function(err, sources) {
+          if (err) {
+            return ethConsole.logger(function(error, logger) {
+              if (error) return console.error(error);
+              logger.error('<pre>' + err + '</pre>');
+            });
           }
+          
+          _.each(sources, function(content, filename) {
+            var contract = new Blob([content], { type: 'plain/text' });
+            data.append('contracts', contract, filename);
+          });
+          $.ajax({
+            url: etherCampAPI[net] + '/api/v1/accounts/' + address.substr(2) + '/contract',
+            data: data,
+            cache: false,
+            contentType: false,
+            processData: false,
+            type: 'POST',
+            success: function(data){
+              if (!data.success) {
+                ethConsole.logger(function(error, logger) {
+                  if (error) return console.error(error);
+                  logger.error('<pre>' + data.errorMessage + '</pre>');
+                });
+              }  
+            }
+          });
         });
       }
     }
