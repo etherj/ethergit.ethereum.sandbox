@@ -16,11 +16,6 @@ define(function(require, exports, module) {
 
     var _ = libs.lodash();
 
-    var DEFAULT_TX = {
-      gasPrice: 50000000000,
-      gasLimit: 3141592
-    };
-    
     function parse(projectDir, cb) {
       async.waterfall([
         read,
@@ -59,7 +54,6 @@ define(function(require, exports, module) {
         if (!_.endsWith(config.contracts, '/')) config.contracts += '/';
         
         try {
-          adjustTx();
           adjustBlock();
         } catch (e) {
           return cb(e);
@@ -67,24 +61,6 @@ define(function(require, exports, module) {
 
         async.forEachOf(config.env.accounts, adjustAccount, _.partial(cb, _, config));
 
-        function adjustTx() {
-          if (config.hasOwnProperty('transaction')) {
-            var tx = config.transaction;
-            _.each(['gasPrice', 'gasLimit'], function(field) {
-              if (tx.hasOwnProperty(field)) {
-                try {
-                  tx[field] = value(tx[field]);
-                } catch(e) {
-                  throw 'Could not parse transaction.' + field + ': ' + e;
-                }
-              } else {
-                tx[field] = DEFAULT_TX[field];
-              }
-            });
-          } else {
-            config.transaction = DEFAULT_TX;
-          }
-        }
         function adjustBlock() {
           if (config.env.hasOwnProperty('block')) {
             var block = config.env.block;
@@ -97,7 +73,7 @@ define(function(require, exports, module) {
             }
             
             _.each(
-              ['difficulty', 'gasLimit', 'number', 'timestamp'],
+              ['difficulty', 'gasLimit', 'gasPrice'],
               function(field) {
                 if (block.hasOwnProperty(field)) {
                   try {

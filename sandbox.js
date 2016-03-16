@@ -15,6 +15,7 @@ define(function(require, exports, module) {
 
     var Web3 = libs.web3();
     var _ = libs.lodash();
+    var web3Formatters = libs.formatters();
 
     var formatter = require('./formatter')(_);
 
@@ -78,6 +79,11 @@ define(function(require, exports, module) {
         new web3._extend.Property({
           name: 'id',
           getter: 'sandbox_id'
+        }),
+        new web3._extend.Property({
+          name: 'gasLimit',
+          getter: 'sandbox_gasLimit',
+          outputFormatter: web3Formatters.outputBigNumberFormatter
         })
       ]
     });
