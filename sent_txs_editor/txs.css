@@ -1,8 +1,19 @@
 .sent-txs-container {
     overflow-y: scroll;
     height: 100%;
-    color: #e0e0e0;
     margin-left: 15px;
+}
+
+.dark.sent-txs-container {
+    color: #e1e1e1;
+}
+
+.dark-gray.sent-txs-container {
+    color: #e1e1e1;
+}
+
+.flat-light.sent-txs-container {
+    color: #333333;
 }
 
 .sent-txs-container .Pending {

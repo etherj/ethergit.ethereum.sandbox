@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'editors', 'Editor', 'ui', 'tabManager', 'ethergit.libs'
+    'editors', 'Editor', 'ui', 'tabManager', 'settings', 'ethergit.libs'
   ];
   main.provides = ['ethergit.sent.txs.editor'];
   return main;
@@ -10,6 +10,7 @@ define(function(require) {
     var Editor = imports.Editor;
     var ui = imports.ui;
     var tabs = imports.tabManager;
+    var settings = imports.settings;
     var libs = imports['ethergit.libs'];
 
     var $ = libs.jquery();
@@ -25,7 +26,7 @@ define(function(require) {
     var txs = [];
 
     // Cached elements
-    var $container;
+    var $txs;
     
     function TransactionsEditor() {
       var editor = new Editor('Ethergit', main.consumes, []);
@@ -40,7 +41,15 @@ define(function(require) {
       editor.on('draw', function(e) {
         e.htmlNode.innerHTML = require('text!./container.html');
         var $root = $(e.htmlNode);
-        $container = $root.find('[data-name=txs]');
+        $txs = $root.find('[data-name=txs]');
+        installTheme($root.find('[data-name=container]'));
+
+        function installTheme($el) {
+          $el.addClass(settings.get('user/general/@skin'));
+          settings.on('user/general/@skin', function(newTheme, oldTheme) {
+            $el.removeClass(oldTheme).addClass(newTheme);
+          }, editor);
+        }
       });
 
       function addTx(tx) {
@@ -52,7 +61,7 @@ define(function(require) {
         $tx.find('[data-name=tx]').text(tx.hash.substr(0, 8) + '...');
         $tx.find('[data-name=contract]').text(tx.contract.substr(0, 8) + '...');
         $tx.find('[data-name=status]').text(tx.status);
-        $container.append($tx);
+        $txs.append($tx);
 
         txs.push(tx);
       }
@@ -80,7 +89,7 @@ define(function(require) {
       }
 
       function updateTx(tx) {
-        var $tx = $container.find('[data-tx=' + tx.hash + ']');
+        var $tx = $txs.find('[data-tx=' + tx.hash + ']');
         $tx.find('[data-name=status]').text(tx.status)
           .removeClass('Pending Rejected Mined').addClass(tx.status);
         if (tx.net) {
