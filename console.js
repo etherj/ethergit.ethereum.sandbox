@@ -1,8 +1,7 @@
 define(function(require) {
   main.consumes = [
     'editors', 'Editor', 'ui', 'tabManager', 'settings',
-    'ethergit.libs',
-    'ethergit.sandbox'
+    'ethergit.libs', 'ethergit.sandbox'
   ];
   main.provides = ['ethereum-console'];
 

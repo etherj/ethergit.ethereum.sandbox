@@ -103,7 +103,7 @@ define(function(require) {
               tx.contract.substr(2) + '">' + tx.contract.substr(0, 8) + '...</a>'
           );
         } else {
-          $tx.click(folder.foldOrUnfold);
+          $tx.click(folder.handler);
           $tx.find('[data-name=tx]').html(
             '<span data-folder class="folder">' + tx.hash + '</span>'
           );
