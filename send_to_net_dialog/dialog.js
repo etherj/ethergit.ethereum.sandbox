@@ -282,7 +282,7 @@ define(function(require) {
       }
       function sendContracts(cb) {
         async.parallel([
-          web3.eth.getTransactionCount.bind(web3.eth, address),
+          web3.eth.getTransactionCount.bind(web3.eth, address, 'pending'),
           web3.eth.getBlock.bind(web3.eth, 0, false)
         ], function(err, results) {
           if (err) return cb(err);
