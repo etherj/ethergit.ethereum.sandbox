@@ -20,7 +20,7 @@ define(function(require) {
     
     var urls = {
       test: 'http://test.ether.camp',
-      frontier: 'http://frontier.ether.camp'
+      live: 'http://frontier.ether.camp'
     };
     
     var txs = [];

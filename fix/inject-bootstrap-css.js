@@ -11,6 +11,8 @@ define(function(require, exports, module) {
 
     injectCss('/static/plugins/ethergit.libs/bootstrap/css/bootstrap.css');
     injectCss('/static/plugins/ethergit.libs/bootstrap/css/bootstrap-theme.css');
+    injectCss('/static/plugins/ethergit.libs/custom-fonts/css/custom.css');
+    injectCss('/static/plugins/ethergit.libs/custom-fonts/css/animation.css');
     
     var plugin = new Plugin('Ethergit', main.consumes);
 

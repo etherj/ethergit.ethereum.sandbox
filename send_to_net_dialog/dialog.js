@@ -24,14 +24,16 @@ define(function(require) {
 
     var url = 'http://peer-1.ether.camp:8082';
 
+    var net = 'test';
     var nets = {
-      '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368': 'test',
-      '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3': 'frontier'
-    };
-
-    var etherCampAPI = {
-      test: 'https://test-state.ether.camp',
-      frontier: 'https://state.ether.camp'
+      test: {
+        genesis: '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368',
+        api: 'https://test-state.ether.camp'
+      },
+      live: {
+        genesis: '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3',
+        api: 'https://state.ether.camp'
+      }
     };
     
     var $ = libs.jquery();
@@ -50,7 +52,7 @@ define(function(require) {
           '<td data-name="gasPrice"></td>' +
           '</tr>';
     
-    var $form, $pkey, $error, $success, $contracts, $url, $hidePkey;
+    var $form, $pkey, $error, $success, $loadingContainer, $loading, $contracts, $url, $hidePkey;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -102,6 +104,8 @@ define(function(require) {
       $hidePkey = $root.find('[data-name=hidePKey]');
       $error = $root.find('[data-name=error]');
       $success = $root.find('[data-name=success]');
+      $loadingContainer = $root.find('[data-name=loading-container]');
+      $loading = $root.find('[data-name=loading]');
       $contracts = $root.find('[data-name=contracts]');
       $url = $root.find('[data-name=url]');
       $url.val(url);
@@ -119,10 +123,17 @@ define(function(require) {
 
     dialog.on('show', function() {
       setFormDefaults();
-      showContracts();
       $form.off('keypress');
       $pkey.focus();
-      
+
+      async.series([
+        showContracts,
+        updateNetworkDetails
+      ], function(err) {
+        loading(false);
+        if (err) $error.text(err);
+      });
+
       function setFormDefaults() {
         $pkey.attr('type', 'password');
         $pkey.val('');
@@ -131,14 +142,10 @@ define(function(require) {
         $success.text('');
         $contracts.empty();
       }
-      function showContracts() {
-        async.parallel([
-          sandbox.web3.sandbox.contracts.bind(sandbox.web3.sandbox),
-          web3.eth.getGasPrice.bind(web3.eth),
-        ], function(err, results) {
-          if (err) return $error.text('Could not get contracts: ' + err.message);
-          var contracts = results[0];
-          var gasPrice = results[1].toString();
+      function showContracts(cb) {
+        loading('Getting contracts');
+        sandbox.web3.sandbox.contracts(function(err, contracts) {
+          if (err) return cb('Could not get contracts: ' + err.message);
           var details = _.map(contracts, function(contract) {
             return {
               contract: contract,
@@ -149,7 +156,7 @@ define(function(require) {
                 'uint256',
                 Math.floor(parseInt(contract.gasUsed.substr(2), 16) * 1.1)
               ),
-              gasPrice: widgets('uint256', gasPrice)
+              gasPrice: widgets('uint256', 0)
             };
           });
           _.each(details, function(contract) {
@@ -170,6 +177,7 @@ define(function(require) {
             $contracts.append($html);
           });
           dialog.update([{ id: 'send', onclick: send.bind(null, details) }]);
+          
           $form.keypress(function(e) {
             e.stopPropagation();
             if (e.keyCode == 13) {
@@ -178,33 +186,53 @@ define(function(require) {
             }
           });
 
-          $url.off('change').on('change', updateUrl);
+          $url.off('change').on('change', updateNetworkDetails.bind(null, function(err) {
+            loading(false);
+            if (err) $error.text(err);
+          }));
 
-          function updateUrl() {
-            $url.val($url.val().trim());
-            if (!validate($url.val())) {
-              $error.text('JSON RPC URL is not valid.');
-            } else {
-              $error.text('');
-              url = $url.val();
-              web3 = new Web3(new Web3.providers.HttpProvider(url));
-              updateGasPrice();
-            }
-
-            function validate(val) {
-              return /^(http|https):\/\/[^ ]+$/i.test(val);
-            }
-            function updateGasPrice() {
-              web3.eth.getGasPrice(function(err, gasPrice) {
-                if (err)
-                  return $error.text('Could not get gas price from ' + url + ': ' + err.message);
-                _.each(details, function(contract) {
-                  contract.gasPrice.setValue(gasPrice.toString());
-                });
-              });
-            }
-          }
+          cb();
         });
+      }
+      function updateNetworkDetails(cb) {
+        loading('Updating network details');
+        $url.val($url.val().trim());
+        if (!validate($url.val())) return cb('JSON RPC URL is not valid.');
+
+        $error.text('');
+        url = $url.val();
+        web3 = new Web3(new Web3.providers.HttpProvider(url));
+        async.parallel([
+          updateNetworkId,
+          updateGasPrice
+        ], cb);
+
+        function validate(val) {
+          return /^(http|https):\/\/[^ ]+$/i.test(val);
+        }
+        function updateNetworkId(cb) {
+          web3.eth.getBlock(0, false, function(err, genesis) {
+            if (err) return cb(err.message);
+            net = _.findKey(nets, { genesis: genesis.hash });
+            disableSourcePublish(!net);
+            cb();
+          });
+
+          function disableSourcePublish(disable) {
+            $contracts.find('tr').each(function(index, el) {
+              var $el = $(el);
+              if ($el.find('[data-name=toSend] input').is(':checked'))
+                $el.find('[data-name=publish] input').prop('disabled', disable);
+            });
+          }
+        }
+        function updateGasPrice(cb) {
+          web3.eth.getGasPrice(function(err, gasPrice) {
+            if (err) return cb('Could not get gas price from ' + url + ': ' + err.message);
+            $contracts.find('[data-name=gasPrice] input').val(gasPrice.toString());
+            cb();
+          });
+        }
       }
     });
 
@@ -224,7 +252,8 @@ define(function(require) {
               gasPrice: contract.gasPrice.value(),
               data: contract.contract.data,
               root: contract.contract.root,
-              sources: contract.contract.sources
+              sources: contract.contract.sources,
+              publish: contract.publish.value()
             };
           }).value();
       if (parsed.length === 0) {
@@ -245,13 +274,13 @@ define(function(require) {
         var pkey = processPkey($pkey.val());
         var address = utils.toAddress(pkey);
 
-        disableSend(true);
+        loading('Sending the contracts');
         
         async.series([
           checkBalance,
           sendContracts
         ], function(err) {
-          disableSend(false);
+          loading(false);
           if (err) $error.text(err);
           else hide();
         });
@@ -275,19 +304,14 @@ define(function(require) {
           cb(
             balance.lessThan(total) ?
               'Account ' + address + ' has only ' + balance.toString() +
-              ' wei, but need ' + total.toString() + ' to create contract(s).' :
+              ' wei, but need ' + total.toString() + ' to create the contract(s).' :
               null
           );
         });
       }
       function sendContracts(cb) {
-        async.parallel([
-          web3.eth.getTransactionCount.bind(web3.eth, address, 'pending'),
-          web3.eth.getBlock.bind(web3.eth, 0, false)
-        ], function(err, results) {
+        web3.eth.getTransactionCount(address, 'pending', function(err, nonce) {
           if (err) return cb(err);
-          var nonce = results[0];
-          var genesis = results[1].hash;
           async.eachSeries(parsed, function(vals, cb) {
             var nextNonce = nonce++;
             web3.eth.sendRawTransaction(utils.createTx({
@@ -300,21 +324,18 @@ define(function(require) {
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               var newAddress = utils.calcNewAddress(address, nextNonce);
-              var net = nets[genesis];
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
                 web3: web3,
                 net: net,
-                onMined: net ? uploadSources.bind(null, newAddress, vals, net) : null
+                onMined: net && vals.publish ?
+                  uploadSources.bind(null, newAddress, vals, net) : null
               });
               cb();
             });
           }, cb);
         });
-      }
-      function disableSend(disable) {
-        dialog.update([{ id: 'send', disabled: disable }]);
       }
       function uploadSources(address, details, net) {
         var data = new FormData();
@@ -337,31 +358,39 @@ define(function(require) {
             data.append('contracts', contract, filename);
           });
           $.ajax({
-            url: etherCampAPI[net] + '/api/v1/accounts/' + address.substr(2) + '/contract',
+            url: nets[net].api + '/api/v1/accounts/' + address.substr(2) + '/contract',
             data: data,
             cache: false,
             contentType: false,
             processData: false,
             type: 'POST',
-            success: function(data){
+            success: function(data) {
               if (!data.success) {
                 ethConsole.logger(function(error, logger) {
                   if (error) return console.error(error);
                   logger.error('<pre>' + data.errorMessage + '</pre>');
                 });
-              }  
+              }
             }
           });
         });
       }
     }
     
+    function loading(message) {
+      var loading = !!message;
+      dialog.getElement('send').setAttribute('disabled', loading);
+      if (loading) {
+        $loading.text(message);
+        $loadingContainer.show();
+      } else $loadingContainer.hide();
+    }
+    
     function hide() {
       dialog.hide();
     }
 
-    dialog.freezePublicAPI({
-    });
+    dialog.freezePublicAPI({});
 
     register(null, {
       'ethergit.dialog.send.to.net': dialog
