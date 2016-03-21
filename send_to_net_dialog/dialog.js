@@ -324,18 +324,40 @@ define(function(require) {
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               var newAddress = utils.calcNewAddress(address, nextNonce);
+              console.log(address, nextNonce, newAddress);
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
                 web3: web3,
                 net: net,
                 onMined: net && vals.publish ?
-                  uploadSources.bind(null, newAddress, vals, net) : null
+                  _.partial(waitForSync, _, net, uploadSources.bind(null, newAddress, vals, net)) :
+                  null
               });
               cb();
             });
           }, cb);
         });
+      }
+      function waitForSync(txHash, net, cb) {
+        async.retry({ times: 18, interval: 10000 }, checkTx, function(err) {
+          if (err) {
+            return ethConsole.logger(function(error, logger) {
+              if (error) return console.error(error);
+              logger.error('Could not get details of tx <pre>' + txHash + '</pre> from <pre>' + nets[net].api + '</pre>: ' + err);
+            });
+          }
+          cb();
+        });
+
+        function checkTx(cb) {
+          $.getJSON(nets[net].api + '/api/v1/transactions/' + txHash.substr(2))
+            .done(function(data) { cb(null, data); })
+            .fail(function(xhr, statusText) {
+              if (xhr.readyState == 4) cb(statusText);
+              else cb('Connection refused');
+            });
+        }
       }
       function uploadSources(address, details, net) {
         var data = new FormData();

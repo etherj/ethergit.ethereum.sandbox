@@ -20,7 +20,7 @@ define(function(require) {
     
     var urls = {
       test: 'http://test.ether.camp',
-      live: 'http://frontier.ether.camp'
+      live: 'http://live.ether.camp'
     };
     
     var txs = [];
@@ -81,7 +81,7 @@ define(function(require) {
                 tx.status = 'Mined';
                 tx.web3 = null;
                 updateTx(tx);
-                if (tx.onMined) tx.onMined();
+                if (tx.onMined) tx.onMined(tx.hash);
               }
             });
           }
