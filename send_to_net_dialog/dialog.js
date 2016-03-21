@@ -324,7 +324,6 @@ define(function(require) {
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               var newAddress = utils.calcNewAddress(address, nextNonce);
-              console.log(address, nextNonce, newAddress);
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
