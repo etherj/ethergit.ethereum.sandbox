@@ -13014,7 +13014,7 @@ module.exports = {
   },
   calcNewAddress: function(from, nonce) {
     return '0x' + ethUtil
-      .generateAddress(new Buffer(from.substr(2), 'hex'), nonce + 1)
+      .generateAddress(new Buffer(from.substr(2), 'hex'), nonce)
       .toString('hex');
   },
   // Workaround for https://github.com/c9/core/issues/71
