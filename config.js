@@ -89,6 +89,9 @@ define(function(require, exports, module) {
         function adjustAccount(account, address, cb) {
           try {
             parseAddress(address);
+
+            if (account.hasOwnProperty('name') && typeof account.name != 'string')
+              throw 'Account name must be a string';
             
             _.each(['balance', 'nonce'], function(field) {
               if (account.hasOwnProperty(field)) {

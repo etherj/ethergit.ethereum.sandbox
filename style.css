@@ -75,6 +75,15 @@
     color: rgb(49, 132, 149);
 }
 
+.dark .account-container .account-name,
+.dark-gray .account-container .account-name {
+    color: #B9CA4A;
+}
+
+.flat-light .account-container .account-name {
+    color: rgb(49, 132, 149);
+}
+
 .account-container td {
     padding: 3px;
 }
