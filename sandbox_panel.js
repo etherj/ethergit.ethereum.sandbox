@@ -205,7 +205,6 @@ define(function(require) {
           
           function showAccountFields(cb) {
             $account.find('[data-name=address]').text(address);
-            console.log(account);
             if (account.name) {
               $account.find('[data-name=name]').show().text(account.name);
             }
