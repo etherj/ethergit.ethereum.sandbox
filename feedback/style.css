@@ -1,0 +1,15 @@
+.feedback {
+    position: absolute;
+    bottom: 2%;
+    right: 2%;
+    z-index: 1000;
+}
+
+.feedback.dark a,
+.feedback.dark-gray a {
+    color: #B9CA4A;
+}
+
+.feedback.flat-light a {
+    color: rgb(49, 132, 149);
+}
