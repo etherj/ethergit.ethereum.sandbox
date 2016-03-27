@@ -85,7 +85,7 @@ define(function(require) {
         if (match) return match[0];
         else {
           // domain name like someide.ether.camp
-          match = /^[\w\-]+(\..+)$/.exec(host);
+          match = /^[\w\-\.]+(\.[\w\-\.]+\.\w+)$/.exec(host);
           return match ? match[1] : host;
         }
       }
@@ -119,7 +119,7 @@ define(function(require) {
           if (match) return match[0];
           else {
             // domain name like someide.ether.camp
-            match = /^[\w\-]+(\..+)$/.exec(host);
+            match = /^[\w\-\.]+(\.[\w\-\.]+\.\w+)$/.exec(host);
             return match ? match[1] : host;
           }
         }
