@@ -13,9 +13,9 @@ define(function(require) {
     var http = imports.http;
     var libs = imports['ethergit.libs'];
 
-    var bcrypt = require('../lib/bcrypt');
-    
     var $ = libs.jquery();
+
+    var bcrypt = require('../lib/bcrypt');
 
     var $name, $password, $error;
     var salt = '$2a$10$QxS8kAC.zaO2Sover3OSvO';
@@ -28,7 +28,8 @@ define(function(require) {
       elements: [
         {
           type: 'button', id: 'btnOk', color: 'green',
-          caption: 'OK', 'default': true, onclick: send
+          caption: 'OK', 'default': true,
+          onclick: options.bcrypt ? sendWithBCrypt : send
         },
         {
           type: 'button', id: 'btnCancel', color: 'blue',
@@ -59,6 +60,38 @@ define(function(require) {
     });
 
     function send() {
+      $.ajax({
+        type: 'POST',
+        url: options.apiUrl + '/login',
+        data: JSON.stringify({
+          name: $name.val(),
+          password: $password.val()
+        }),
+        dataType: 'json',
+        contentType: 'application/json'
+      })
+        .done(function(session) {
+          document.cookie = 'sessionId=' + session.id + '; path=/; domain=' + base(window.location.hostname);
+          window.location.reload();
+        })
+        .fail(function(xhr) {
+          if (xhr.readyState == 4) $error.text('Could not find such user');
+          else $error.text('Connection refused');
+        });
+
+      function base(host) {
+        // ip address
+        var match = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.exec(host);
+        if (match) return match[0];
+        else {
+          // domain name like someide.ether.camp
+          match = /^[\w\-]+(\..+)$/.exec(host);
+          return match ? match[1] : host;
+        }
+      }
+    }
+
+    function sendWithBCrypt() {
       http.request(options.apiUrl + '/login', {
         method: 'POST',
         contentType: 'application/json',

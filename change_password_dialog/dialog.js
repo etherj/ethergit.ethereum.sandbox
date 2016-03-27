@@ -11,12 +11,12 @@ define(function(require) {
     var menus = imports.menus;
     var libs = imports['ethergit.libs'];
 
+    var bcrypt = require('../lib/bcrypt');
+    
     var $ = libs.jquery();
 
-    var bcrypt = require('../lib/bcrypt');
-
-    var salt = '$2a$10$QxS8kAC.zaO2Sover3OSvO';
     var $old, $new, $repeatNew, $message;
+    var salt = '$2a$10$QxS8kAC.zaO2Sover3OSvO';
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-change-password',
@@ -26,7 +26,8 @@ define(function(require) {
       elements: [
         {
           type: 'button', id: 'btnOk', color: 'green',
-          caption: 'Change', 'default': true, onclick: change
+          caption: 'Change', 'default': true,
+          onclick: options.bcrypt ? changeWithBCrypt : change
         },
         {
           type: 'button', id: 'btnClose', color: 'blue',
@@ -75,6 +76,51 @@ define(function(require) {
       api.user.post('change-password', {
         contentType: 'application/json',
         body: JSON.stringify({
+          oldPassword: $old.val(),
+          newPassword: $new.val()
+        })
+      }, function(err, session, res) {
+        if (err) {
+          showMessage('Unknown error', true);
+          return console.error(err);
+        }
+
+        // workaround for https://github.com/c9/core/issues/239
+        if (res.body.length == 0) {
+          showMessage('Your password has been changed.');
+        } else {
+          try {
+            showMessage(JSON.parse(res.body).message, true);
+          } catch (e) {
+            showMessage(res.body, true);
+          }
+        }
+      });
+
+      function showMessage(msg, error) {
+        $message
+          .removeClass(error ? 'alert-success' : 'alert-danger')
+          .addClass(error ? 'alert-danger' : 'alert-success')
+          .text(msg)
+          .show();
+      }
+
+      function validate() {
+        var valid = [$old, $new].every(function (field) {
+          return /^\w+$/.test(field.val());
+        });
+        if (!valid) return 'Password can contain only letters, digits, and/or _.';
+        if ($new.val() !== $repeatNew.val()) return 'New password fields does not match';
+      }
+    }
+
+    function changeWithBCrypt() {
+      var err = validate();
+      if (err) return showMessage(err, true);
+      
+      api.user.post('change-password', {
+        contentType: 'application/json',
+        body: JSON.stringify({
           oldPassword: bcrypt.hashSync($old.val(), salt),
           newPassword: bcrypt.hashSync($new.val(), salt)
         })
@@ -112,7 +158,7 @@ define(function(require) {
         if ($new.val() !== $repeatNew.val()) return 'New password fields does not match';
       }
     }
-
+    
     function hide() {
       dialog.hide();
     }
