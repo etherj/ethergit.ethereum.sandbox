@@ -22,9 +22,9 @@ define(function(require) {
     var async = require('async');
     var utils = require('../utils');
 
-    var url = 'http://peer-1.ether.camp:8082';
+    var url = 'http://frontier-lb.ether.camp';
 
-    var net = 'test';
+    var net = 'live';
     var nets = {
       test: {
         genesis: '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368',
