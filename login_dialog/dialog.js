@@ -1,7 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'http',
-    'ethergit.libs'
+    'Dialog', 'ui', 'http', 'ethergit.libs'
   ];
   main.provides = ['ethergit.dialog.login'];
 
@@ -15,10 +14,7 @@ define(function(require) {
 
     var $ = libs.jquery();
 
-    var bcrypt = require('../lib/bcrypt');
-
     var $name, $password, $error;
-    var salt = '$2a$10$QxS8kAC.zaO2Sover3OSvO';
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-login',
@@ -28,8 +24,7 @@ define(function(require) {
       elements: [
         {
           type: 'button', id: 'btnOk', color: 'green',
-          caption: 'OK', 'default': true,
-          onclick: options.bcrypt ? sendWithBCrypt : send
+          caption: 'OK', 'default': true, onclick: send
         },
         {
           type: 'button', id: 'btnCancel', color: 'blue',
@@ -89,41 +84,6 @@ define(function(require) {
           return match ? match[1] : host;
         }
       }
-    }
-
-    function sendWithBCrypt() {
-      http.request(options.apiUrl + '/login', {
-        method: 'POST',
-        contentType: 'application/json',
-        body: JSON.stringify({
-          name: $name.val(),
-          password: bcrypt.hashSync($password.val(), salt) 
-        })
-      }, function(err, session, res) {
-        if (err) {
-          try {
-            var error = JSON.parse(res.body);
-            $error.text(error.message);
-          } catch (e) {
-            $error.text(err);
-          }
-        } else {
-          document.cookie = 'sessionId=' + session.id +
-            '; path=/; domain=' + base(window.location.hostname);
-          window.location.reload();
-        }
-
-        function base(host) {
-          // ip address
-          var match = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.exec(host);
-          if (match) return match[0];
-          else {
-            // domain name like someide.ether.camp
-            match = /^[\w\-\.]+(\.[\w\-\.]+\.\w+)$/.exec(host);
-            return match ? match[1] : host;
-          }
-        }
-      });
     }
 
     function hide() {
