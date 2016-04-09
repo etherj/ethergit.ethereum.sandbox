@@ -90,7 +90,7 @@ define(function(require, exports, module) {
             run(false, function(err) {
               if (err) {
                 updateButton();
-                logger.error('<pre>' + err + '</pre>');
+                logger.error(err);
               }
             });
           });
@@ -107,7 +107,7 @@ define(function(require, exports, module) {
             run(true, function(err) {
               if (err) {
                 updateButton();
-                logger.error('<pre>' + err + '</pre>');
+                logger.error(err);
               }
             });
           });
@@ -126,7 +126,7 @@ define(function(require, exports, module) {
           stop(function(err) {
             if (err) {
               updateButton();
-              logger.error('<pre>' + err + '</pre>');
+              logger.error(err);
             }
             if (typeof cb === 'function') cb(err);
           });
@@ -162,6 +162,8 @@ define(function(require, exports, module) {
 
     function run(current, cb) {
       var selected = workspace.selected;
+      var selectProjectMsg = 'Please, select a project to run in the workspace panel. Project directory has to be placed in the workspace directory.';
+      var noProjectMsg = 'Could not find any project with ethereum.json in the workspace directory.';
 
       async.waterfall([
         findProjectDir,
@@ -177,16 +179,55 @@ define(function(require, exports, module) {
       });
 
       function findProjectDir(cb) {
-        var msg = 'Please, select a project to run in the workspace panel. Project directory has to be placed in the workspace directory.';
-        if (!selected || selected == '/') return cb(msg);
+        if (!selected || selected == '/') return selectFirstProject(cb);
 
-        var projectDir = /^\/[^\/]+/.exec(selected)[0];
+        var match = /^\/[^\/]+/.exec(selected);
+        if (!match) return selectFirstProject(cb);
 
+        var projectDir = match[0];
+        
         fs.stat(projectDir, function(err, data) {
-          if (err) return cb(err);
-          if (!/(folder|directory)$/.test(data.mime)) return cb(msg);
+          if (err) {
+            console.error(err);
+            return cb(err);
+          }
+          if (!/(folder|directory)$/.test(data.mime)) return selectFirstProject(cb);
           cb(null, projectDir + '/');
         });
+      }
+
+      function selectFirstProject(cb) {
+        fs.readdir('/', function(err, files) {
+          if (err) return cb();
+          var dirs = _(files)
+                .filter(isDirectory)
+                .filter(isNotHidden)
+                .value();
+          async.detect(dirs, hasEthereumJson, function(dir) {
+            if (dir) {
+              workspace.select('/' + dir.name);
+              cb(selectProjectMsg);
+            } else {
+              cb(noProjectMsg);
+            }
+          });
+        });
+
+        function isDirectory(stat) {
+          return /(folder|directory)$/.test(stat.mime);
+        }
+        function isNotHidden(stat) {
+          return stat.name.charAt(0) != '.';
+        }
+        function hasEthereumJson(stat, cb) {
+          fs.readdir('/' + stat.name, function(err, files) {
+            if (err) {
+              console.error(err);
+              return cb();
+            }
+            cb(_.where(files, { name: 'ethereum.json' }).length != 0);
+          });
+        }
       }
 
       function saveAll(projectDir, cb) {
@@ -234,7 +275,7 @@ define(function(require, exports, module) {
             compiler.binaryAndABI(files, config.contracts, function(err, compiled) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
-                cb(err.message);
+                cb('<pre>' + err.message + '</pre>');
               }
               else cb(null, compiled);
             });
