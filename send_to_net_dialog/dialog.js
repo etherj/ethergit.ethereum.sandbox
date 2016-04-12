@@ -154,7 +154,7 @@ define(function(require) {
               value: widgets('uint256', 0),
               gasLimit: widgets(
                 'uint256',
-                Math.floor(parseInt(contract.gasUsed.substr(2), 16) * 1.1)
+                Math.floor(parseInt(contract.gasUsed.substr(2), 16) * 2)
               ),
               gasPrice: widgets('uint256', 0)
             };
