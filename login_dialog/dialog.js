@@ -70,7 +70,7 @@ define(function(require) {
           window.location.reload();
         })
         .fail(function(xhr) {
-          if (xhr.readyState == 4) $error.text('Could not find such user');
+          if (xhr.readyState == 4) $error.text('Name or password is incorrect');
           else $error.text('Connection refused');
         });
 
