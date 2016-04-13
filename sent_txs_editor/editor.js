@@ -19,8 +19,8 @@ define(function(require) {
     var folder = require('../folder')(_);
     
     var urls = {
-      test: 'http://test.ether.camp',
-      live: 'http://live.ether.camp'
+      test: 'https://test.ether.camp',
+      live: 'https://live.ether.camp'
     };
     
     var txs = [];

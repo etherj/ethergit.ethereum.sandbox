@@ -22,7 +22,7 @@ define(function(require) {
     var async = require('async');
     var utils = require('../utils');
 
-    var url = 'http://frontier-lb.ether.camp';
+    var url = 'https://frontier-lb.ether.camp';
 
     var net = 'live';
     var nets = {
