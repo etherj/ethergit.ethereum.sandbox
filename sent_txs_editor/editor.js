@@ -20,7 +20,8 @@ define(function(require) {
     
     var urls = {
       test: 'https://test.ether.camp',
-      live: 'https://live.ether.camp'
+      live: 'https://live.ether.camp',
+      morden: 'https://morden.ether.camp'
     };
     
     var txs = [];
