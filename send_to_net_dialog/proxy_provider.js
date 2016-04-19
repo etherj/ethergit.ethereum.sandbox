@@ -1,20 +1,24 @@
 define(function() {
+  var requestId = 0;
+  
   function ProxyProvider(proxy, url) {
-    this.reqId = 0;
     this.url = url;
     this.proxy = proxy;
     this.callbacks = {};
     this.receive = (function(data) {
       try {
         var response = JSON.parse(data);
-        if (response.error) {
-          this.callbacks[response.id](response.error);
-        } else {
-          this.callbacks[response.id](null, response.payload);
-        }
       } catch (e) {
-        this.callbacks[response.id]('Could not parse the response');
-      }  
+        return console.error('Could not parse the proxy response', data);
+      }
+
+      if (!this.callbacks.hasOwnProperty(response.id)) return;
+      
+      if (response.error) {
+        this.callbacks[response.id](response.error);
+      } else {
+        this.callbacks[response.id](null, response.payload);
+      }
       delete this.callbacks[response.id];
     }).bind(this);
     this.proxy.on('data', this.receive);
@@ -22,11 +26,11 @@ define(function() {
   
   ProxyProvider.prototype.sendAsync = function(payload, cb) {
     this.proxy.write(JSON.stringify({
-      id: this.reqId,
+      id: requestId,
       url: this.url,
       payload: payload
     }));
-    this.callbacks[this.reqId++] = cb;
+    this.callbacks[requestId++] = cb;
   };
 
   ProxyProvider.prototype.destroy = function() {

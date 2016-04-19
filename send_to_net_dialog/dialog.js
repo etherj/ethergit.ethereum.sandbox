@@ -91,8 +91,6 @@ define(function(require) {
       });
     }
 
-    //loadProxy();
-
     c9.on('connect', loadProxy);
     c9.on('disconnect', function() { proxy = null; });
 
@@ -353,7 +351,7 @@ define(function(require) {
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
-                web3: web3,
+                web3: new Web3(new ProxyProvider(proxy, url)),
                 net: net,
                 onMined: net && vals.publish ?
                   _.partial(waitForSync, _, net, uploadSources.bind(null, newAddress, vals, net)) :
