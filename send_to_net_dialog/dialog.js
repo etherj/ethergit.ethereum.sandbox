@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'layout', 'commands', 'fs',
+    'Dialog', 'ui', 'layout', 'commands', 'fs', 'ext', 'c9', 'vfs',
     'ethergit.sandbox', 'ethergit.libs',
     'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console'
   ];
@@ -13,6 +13,9 @@ define(function(require) {
     var layout = imports.layout;
     var commands = imports.commands;
     var fs = imports.fs;
+    var ext = imports.ext;
+    var c9 = imports.c9;
+    var vfs = imports.c9;
     var sandbox = imports['ethergit.sandbox'];
     var libs = imports['ethergit.libs'];
     var config = imports['ethergit.sandbox.config'];
@@ -21,6 +24,7 @@ define(function(require) {
 
     var async = require('async');
     var utils = require('../utils');
+    var ProxyProvider = require('./proxy_provider');
 
     var url = 'https://frontier-lb.ether.camp';
 
@@ -39,7 +43,7 @@ define(function(require) {
     var $ = libs.jquery();
     var _ = libs.lodash();
     var Web3 = libs.web3();
-    var web3 = new Web3(new Web3.providers.HttpProvider(url));
+    var web3, proxy;
 
     var widgets = require('../ui/widgets')(_);
 
@@ -71,9 +75,30 @@ define(function(require) {
       ]
     });
 
+    function loadProxy() {
+      var clientId = vfs.id;
+      ext.loadRemotePlugin("ether-camp-proxy", {
+        code: require("text!./proxy.js")
+      }, function(err, api) {
+        api.connect(5600, function(err, meta) {
+          if (err) return console.error(err);
+          proxy = meta.stream;
+          if (web3) {
+            web3.currentProvider.destroy();
+            web3.setProvider(new ProxyProvider(proxy, url));
+          }
+        });
+      });
+    }
+
+    //loadProxy();
+
+    c9.on('connect', loadProxy);
+    c9.on('disconnect', function() { proxy = null; });
+
     dialog.on('load', function() {
 //      ui.insertCss(require('text!./style.css'), false, dialog);
-      
+
       commands.addCommand({
         name: 'showSendToNet',
         exec: dialog.show.bind(dialog)
@@ -201,7 +226,8 @@ define(function(require) {
 
         $error.text('');
         url = $url.val();
-        web3 = new Web3(new Web3.providers.HttpProvider(url));
+        if (web3) web3.currentProvider.destroy();
+        web3 = new Web3(new ProxyProvider(proxy, url));
         async.parallel([
           updateNetworkId,
           updateGasPrice
