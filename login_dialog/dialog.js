@@ -59,7 +59,7 @@ define(function(require) {
         type: 'POST',
         url: options.apiUrl + '/login',
         data: JSON.stringify({
-          nameOrEmail: $nameOrEmail.val(),
+          name: $nameOrEmail.val(),
           password: $password.val()
         }),
         dataType: 'json',
