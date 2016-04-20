@@ -14,7 +14,7 @@ define(function(require) {
 
     var $ = libs.jquery();
 
-    var $name, $password, $error;
+    var $nameOrEmail, $password, $error;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-login',
@@ -36,7 +36,7 @@ define(function(require) {
     dialog.on('draw', function(e) {
       e.html.innerHTML = require('text!./dialog.html');
       var $root = $(e.html);
-      $name = $root.find('[data-name=name]');
+      $nameOrEmail = $root.find('[data-name=nameOrEmail]');
       $password = $root.find('[data-name=password]');
       $error = $root.find('[data-name=error]');
       $root.keydown(function(e) { e.stopPropagation(); });
@@ -51,7 +51,7 @@ define(function(require) {
     });
 
     dialog.on('show', function() {
-      $name.focus();
+      $nameOrEmail.focus();
     });
 
     function send() {
@@ -59,7 +59,7 @@ define(function(require) {
         type: 'POST',
         url: options.apiUrl + '/login',
         data: JSON.stringify({
-          name: $name.val(),
+          nameOrEmail: $nameOrEmail.val(),
           password: $password.val()
         }),
         dataType: 'json',
