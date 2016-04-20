@@ -17,7 +17,11 @@ define(function() {
       if (response.error) {
         this.callbacks[response.id](response.error);
       } else {
-        this.callbacks[response.id](null, response.payload);
+        try {
+          this.callbacks[response.id](null, JSON.parse(response.body));
+        } catch (e) {
+          this.callbacks[response.id]({ message: 'Could not parse the response' });
+        }
       }
       delete this.callbacks[response.id];
     }).bind(this);
@@ -28,7 +32,7 @@ define(function() {
     this.proxy.write(JSON.stringify({
       id: requestId,
       url: this.url,
-      payload: payload
+      body: JSON.stringify(payload)
     }));
     this.callbacks[requestId++] = cb;
   };

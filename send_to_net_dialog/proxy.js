@@ -18,14 +18,12 @@ module.exports = function (vfs, options, register) {
   }
 
   function send(request) {
-    request.payload = JSON.stringify(request.payload);
-
     var httpOrHttps = request.url.indexOf('https') == 0 ? https : http;
     var opts = url.parse(request.url);
     opts.method = 'POST';
     opts.headers = {
       'Content-Type': 'application/json',
-      'Content-Lenght': request.payload.length
+      'Content-Lenght': request.body.length
     };
     
     var req = httpOrHttps.request(opts, function(res) {
@@ -34,11 +32,22 @@ module.exports = function (vfs, options, register) {
         body += chunk.toString();
       });
       res.on('end', function() {
-        var payload = JSON.parse(body);
-        stream.emit('data', JSON.stringify({
-          id: request.id,
-          payload: payload
-        }));
+        var status = parseInt(res.statusCode);
+        if (status < 200 || status >= 300) {
+          stream.emit('data', JSON.stringify({
+            id: request.id,
+            error: {
+              status: res.statusCode,
+              message: res.statusCode + ' ' + res.statusMessage
+            },
+            body: body
+          }));
+        } else {
+          stream.emit('data', JSON.stringify({
+            id: request.id,
+            body: body
+          }));
+        }
       });
     });
     
@@ -51,7 +60,7 @@ module.exports = function (vfs, options, register) {
       }));
     });
     
-    req.end(request.payload);
+    req.end(request.body);
   }
   
   register(null, {

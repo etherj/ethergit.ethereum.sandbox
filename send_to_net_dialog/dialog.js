@@ -240,7 +240,7 @@ define(function(require) {
         }
         function updateNetworkId(cb) {
           web3.eth.getBlock(0, false, function(err, genesis) {
-            if (err) return cb(err.message);
+            if (err) return cb('Could not get details from ' + url + ': ' + err.message);
             net = _.findKey(nets, { genesis: genesis.hash });
             disableSourcePublish(!net);
             cb();
