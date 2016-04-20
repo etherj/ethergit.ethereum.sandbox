@@ -95,6 +95,8 @@ define(function(require) {
       });
     }
 
+    loadProxy();
+
     c9.on('connect', loadProxy);
     c9.on('disconnect', function() { proxy = null; });
 
