@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  main.consumes = ['Plugin', 'api', 'dialog.notification'];
+  main.consumes = ['Plugin', 'api', 'dialog.notification', 'login'];
   main.provides = ['ethereum.studio.notifications'];
   return main;
 
@@ -7,6 +7,7 @@ define(function(require, exports, module) {
     var Plugin = imports.Plugin;
     var api = imports.api;
     var notify = imports['dialog.notification'].show;
+    var login = imports['login'];
 
     var plugin = new Plugin('ether.camp', main.consumes);
 
@@ -17,7 +18,10 @@ define(function(require, exports, module) {
 
     function getNotifications() {
       api.project.get('notifications', function(err, notifications) {
-        if (err) return console.error(err);
+        if (err) {
+          if (err.code == 404) login.relogin();
+          return console.error(err);
+        }
         notifications.forEach(function(msg) {
           notify('<div class="c9-update">' + notifications[0].text + '</div>', true);
         });

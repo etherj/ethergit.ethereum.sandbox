@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
   main.consumes = [
-    'Plugin', 'save', 'api', 'ethergit.libs'
+    'Plugin', 'save', 'api', 'ethergit.libs', 'login'
   ];
   main.provides = ['ethergit.activity'];
   return main;
@@ -10,6 +10,7 @@ define(function(require, exports, module) {
     var save = imports.save;
     var api = imports.api;
     var libs = imports['ethergit.libs'];
+    var login = imports.login;
 
     var DiffMatchPatch = require('./lib/diff_match_patch.js');
     
@@ -30,7 +31,10 @@ define(function(require, exports, module) {
           contentType: 'application/json',
           body: JSON.stringify(changes)
         }, function(err) {
-          if (err) console.error(err);
+          if (err) {
+            if (err.code == 404) login.relogin();
+            console.error(err);
+          }
         });
       });
     }, activity);

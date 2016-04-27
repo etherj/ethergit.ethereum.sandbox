@@ -174,6 +174,10 @@ define(function(require, exports, module) {
               });
       }
     }
+
+    function relogin() {
+      loginDialog.showWithMessage('The IDE was updated. Please, sign in again.');
+    }
     
     /***** Lifecycle *****/
 
@@ -205,7 +209,8 @@ define(function(require, exports, module) {
         'ready'
       ],
       createButton: createButton,
-      updateButton: updateButton
+      updateButton: updateButton,
+      relogin: relogin
     });
 
     register(null, {

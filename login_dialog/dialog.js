@@ -14,7 +14,8 @@ define(function(require) {
 
     var $ = libs.jquery();
 
-    var $nameOrEmail, $password, $error;
+    var $nameOrEmail, $password, $error, $message;
+    var message = '';
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-login',
@@ -39,6 +40,7 @@ define(function(require) {
       $nameOrEmail = $root.find('[data-name=nameOrEmail]');
       $password = $root.find('[data-name=password]');
       $error = $root.find('[data-name=error]');
+      $message = $root.find('[data-name=message]');
       $root.keydown(function(e) { e.stopPropagation(); });
       $root.keyup(function(e) {
         e.stopPropagation();
@@ -51,8 +53,14 @@ define(function(require) {
     });
 
     dialog.on('show', function() {
+      $message.text(message);
       $nameOrEmail.focus();
     });
+
+    function showWithMessage(msg) {
+      message = msg;
+      dialog.show();
+    }
 
     function send() {
       $.ajax({
@@ -71,7 +79,7 @@ define(function(require) {
         })
         .fail(function(xhr) {
           if (xhr.readyState == 4) $error.text('Name or password is incorrect');
-          else $error.text('Connection refused');
+          else $error.text('Authentication server is not available. Please, try to sign in again in a minute.');
         });
 
       function base(host) {
@@ -90,7 +98,9 @@ define(function(require) {
       dialog.hide();
     }
 
-    dialog.freezePublicAPI({});
+    dialog.freezePublicAPI({
+      showWithMessage: showWithMessage
+    });
     register(null, { 'ethergit.dialog.login': dialog });
   }
 });
