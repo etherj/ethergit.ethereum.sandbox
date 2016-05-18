@@ -20,8 +20,16 @@
     color: #333333;
 }
 
-.ethereum-console-warning {
+.dark .ethereum-console-warning {
     color: #FF8A88;
+}
+
+.dark-gray .ethereum-console-warning {
+    color: #FF8A88;
+}
+
+.flat-light .ethereum-console-warning {
+    color: #C82829;
 }
 
 .ethereum-console .button {
