@@ -179,21 +179,38 @@ define(function(require, exports, module) {
       });
 
       function findProjectDir(cb) {
-        if (!selected || selected == '/') return selectFirstProject(cb);
-
-        var match = /^\/[^\/]+/.exec(selected);
-        if (!match) return selectFirstProject(cb);
-
-        var projectDir = match[0];
-        
-        fs.stat(projectDir, function(err, data) {
-          if (err) {
-            console.error(err);
-            return cb(err);
+        if (current) {
+          try {
+            var project = getProjectPath(tabs.focussedTab);
+            if (selected.indexOf(project) < 0) workspace.select(project);
+            cb(null, project);
+          } catch (e) {
+            return cb(e);
           }
-          if (!/(folder|directory)$/.test(data.mime)) return selectFirstProject(cb);
-          cb(null, projectDir + '/');
-        });
+        } else {
+          if (!selected || selected == '/') return selectFirstProject(cb);
+
+          var match = /^\/[^\/]+/.exec(selected);
+          if (!match) return selectFirstProject(cb);
+          
+          var projectDir = match[0];
+          
+          fs.stat(projectDir, function(err, data) {
+            if (err) {
+              console.error(err);
+              return cb(err);
+            }
+            if (!/(folder|directory)$/.test(data.mime)) return selectFirstProject(cb);
+            cb(null, projectDir + '/');
+          });
+        }
+      }
+
+      function getProjectPath(tab) {
+        if (!tab || tab.editorType !== 'ace') throw 'Focussed tab is not a text file';
+        var match = /^\/[^\/]+\//.exec(tab.path);
+        if (!match) throw 'Active file is not in a project directory';
+        return match[0];
       }
 
       function selectFirstProject(cb) {
@@ -251,7 +268,7 @@ define(function(require, exports, module) {
             else {
               var path = tabs.focussedTab.path;
               if (!_.startsWith(path, config.contracts))
-                cb('Contract should be placed in the directory ' + config.contracts);
+                cb('Active file should be placed in the directory ' + config.contracts);
               else
                 cb(null, [path.substr(config.contracts.length)]);
             }
