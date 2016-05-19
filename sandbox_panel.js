@@ -37,7 +37,7 @@ define(function(require) {
       where: 'right'
     });
 
-    var $id, $pinId, $sandbox, $sandboxes;
+    var $id, $pinId, $projectNameContainer, $projectName, $sandbox, $sandboxes;
     
     panel.on('load', function() {
       ui.insertCss(require('text!./style.css'), false, panel);
@@ -64,6 +64,8 @@ define(function(require) {
       var $root = $(e.html);
       $root.append(require('text!./sandbox_panel.html'));
       $id = $root.find('[data-name=sandbox-id]');
+      $projectNameContainer = $root.find('[data-name=project-name-container]');
+      $projectName = $root.find('[data-name=project-name]');
 
       installTheme($root.find('#sandboxPanel'));
       
@@ -158,6 +160,7 @@ define(function(require) {
       if ($sandbox === null) return;
 
       updatePinAndId();
+      showOrHideProjectName(sandbox);
       
       if (!sandbox.getId()) {
         $sandbox.empty();
@@ -171,6 +174,19 @@ define(function(require) {
         });
       }
     };
+
+    function showOrHideProjectName(sandbox) {
+      if (!sandbox.getId()) {
+        $projectNameContainer.hide();
+        $projectName.empty();
+      } else {
+        sandbox.web3.sandbox.getProjectName(function(err, name) {
+          if (err) return console.error(name);
+          $projectName.text(name);
+          $projectNameContainer.show();
+        });
+      }
+    }
     
     function renderAccounts($container, sandbox, cb) {
       async.parallel({

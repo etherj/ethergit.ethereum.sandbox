@@ -28,8 +28,12 @@
 }
 
 .sandbox-id,
-.accounts-container {
+.accounts-container,
+.project-name-container {
     padding: 10px;
+}
+
+.project-name {
 }
 
 .account-container {

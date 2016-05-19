@@ -167,13 +167,20 @@ define(function(require, exports, module) {
 
       async.waterfall([
         findProjectDir,
+        getProjectName,
         saveAll,
-        config.parse.bind(config),
-        compileContracts.bind(null, current)
+        function(results, cb) {
+          config.parse(results.projectDir, function(err, config) {
+            if (err) return cb(err);
+            results.config = config;
+            cb(null, results);
+          });
+        },
+        compileContracts
       ], function(err, params) {
         if (err) cb(err);
         else async.series([
-          startSandbox.bind(this, params.config),
+          startSandbox.bind(this, params.projectName, params.config),
           createContracts.bind(this, params.config, params.contracts)
         ], cb);
       });
@@ -183,7 +190,7 @@ define(function(require, exports, module) {
           try {
             var project = getProjectPath(tabs.focussedTab);
             if (selected.indexOf(project) < 0) workspace.select(project);
-            cb(null, project);
+            cb(null, { projectDir: project });
           } catch (e) {
             return cb(e);
           }
@@ -201,7 +208,7 @@ define(function(require, exports, module) {
               return cb(err);
             }
             if (!/(folder|directory)$/.test(data.mime)) return selectFirstProject(cb);
-            cb(null, projectDir + '/');
+            cb(null, { projectDir: projectDir + '/' });
           });
         }
       }
@@ -247,18 +254,24 @@ define(function(require, exports, module) {
         }
       }
 
-      function saveAll(projectDir, cb) {
+      function getProjectName(results, cb) {
+        results.projectName = results.projectDir.substr(1, results.projectDir.length - 2);
+        cb(null, results);
+      }
+
+      function saveAll(results, cb) {
         save.saveAllInteractive(tabs.getTabs(), function(result) {
-          cb(result === 0 ? 'Compilation has been canceled.' : null, projectDir);
+          cb(result === 0 ? 'Compilation has been canceled.' : null, results);
         });
       }
 
-      function compileContracts(current, config, cb) {
+      function compileContracts(results, cb) {
         async.waterfall([
           getFiles.bind(null, current),
           compile
         ], function(err, contracts) {
-          cb(err, { contracts: contracts, config: config });
+          results.contracts = contracts;
+          cb(err, results);
         });
 
         function getFiles(current, cb) {
@@ -267,17 +280,17 @@ define(function(require, exports, module) {
               cb('Focussed tab is not a text file');
             else {
               var path = tabs.focussedTab.path;
-              if (!_.startsWith(path, config.contracts))
-                cb('Active file should be placed in the directory ' + config.contracts);
+              if (!_.startsWith(path, results.config.contracts))
+                cb('Active file should be placed in the directory ' + results.config.contracts);
               else
-                cb(null, [path.substr(config.contracts.length)]);
+                cb(null, [path.substr(results.config.contracts.length)]);
             }
           } else findSolidityFiles(cb);
           
           function findSolidityFiles(cb) {
             find.findFiles({
               path: '',
-              base: find.basePath + config.contracts,
+              base: find.basePath + results.config.contracts,
               pattern : '*.sol',
               buffer  : true
             }, function(err, result) {
@@ -289,7 +302,7 @@ define(function(require, exports, module) {
         function compile(files, cb) {
           if (files.length === 0) cb(null, []);
           else {
-            compiler.binaryAndABI(files, config.contracts, function(err, compiled) {
+            compiler.binaryAndABI(files, results.config.contracts, function(err, compiled) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
@@ -300,7 +313,7 @@ define(function(require, exports, module) {
 
           function gotoLine(err) {
             tabs.open({
-              path: config.contracts + err.file,
+              path: results.config.contracts + err.file,
               focus: true
             }, function(error, tab){
               if (error) console.error(error);
@@ -310,8 +323,8 @@ define(function(require, exports, module) {
         }
       }
 
-      function startSandbox(config, cb) {
-        sandbox.start(config, cb);
+      function startSandbox(projectName, config, cb) {
+        sandbox.start(projectName, config, cb);
       }
       function createContracts(config, contracts, cb) {
         async.eachSeries(contracts, deploy, cb);
