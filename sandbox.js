@@ -4,6 +4,8 @@ define(function(require, exports, module) {
   return main;
 
   function main(options, imports, register) {
+    this.version = JSON.parse(require('text!./package.json')).version;
+    
     var Plugin = imports.Plugin;
     var http = imports.http;
     var showError = imports['dialog.error'].show;
