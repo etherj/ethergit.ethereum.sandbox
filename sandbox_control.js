@@ -330,7 +330,7 @@ define(function(require, exports, module) {
         async.eachSeries(contracts, deploy, cb);
         
         function deploy(contract, cb) {
-          if (contract.address) cb();
+          if (contract.address) return cb();
           
           try {
             var libs = findLibs();
@@ -359,18 +359,27 @@ define(function(require, exports, module) {
           function findLibs() {
             var match, libs = [], libRe = /[^_]__(\w{36})__[^_]/g;
             while (match = libRe.exec(contract.binary)) {
-              var lib = _.find(contracts, function(contract) {
-                return match[1].indexOf(contract.name) != -1;
-              });
-              if (!lib) throw "There is not lib to link with " + match[1];
+              if (_.some(libs, matchName.bind(null, match[1]))) continue;
+              
+              var lib = _.find(contracts, matchName.bind(null, match[1]));
+              if (!lib) throw "There is no lib to link with " + match[1];
               libs.push(lib);
             }
             return libs;
+            
+            function matchName(nameWithUnderscores, lib) {
+              var name = lib.name;
+              if (name.length > 36) name = name.substr(0, 36);
+              else if (name.length < 36) name += _.repeat('_', 36 - name.length);
+              return nameWithUnderscores == name;
+            }
           }
           function putLibAddress(name, address) {
+            if (name.length > 36) name = name.substr(0, 36);
             var placeholder = '__' + name + '__';
             placeholder = placeholder + _.repeat('_', 40 - placeholder.length);
-            contract.binary = contract.binary.replace(placeholder, address.substr(2));
+            var re = new RegExp(placeholder, 'g');
+            contract.binary = contract.binary.replace(re, address.substr(2));
           }
           function sendTx(args) {
             var txHash;
