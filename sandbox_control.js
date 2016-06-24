@@ -83,6 +83,7 @@ define(function(require, exports, module) {
 
       commands.addCommand({
         name: 'runAllContracts',
+        bindKey: 'F7',
         exec: function() {
           disableButton();
           ethConsole.logger(function(err, logger) {
@@ -103,6 +104,10 @@ define(function(require, exports, module) {
 
       commands.addCommand({
         name: 'runCurrentContract',
+        bindKey: { 
+          mac: 'Command-F7', 
+          win: 'Ctrl-F7'
+        },
         exec: function() {
           disableButton();
           ethConsole.logger(function(err, logger) {
@@ -124,6 +129,10 @@ define(function(require, exports, module) {
       commands.addCommand({
         name: 'stopSandbox',
         exec: stopSandbox,
+        bindKey: { 
+          mac: 'Shift-Command-F7', 
+          win: 'Ctrl-Shift-F7'
+        },
         isAvailable: function(editor) {
           return !!sandbox.getId();
         }
