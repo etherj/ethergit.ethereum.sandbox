@@ -143,14 +143,9 @@ define(function(require, exports, module) {
         });
       }
 
-      var menuRunAllContracts = new ui.item({ command: 'runAllContracts' });
-      menus.addItemByPath('Run/Run All Contracts', menuRunAllContracts, 1280, control);
-      var menuRunCurrentContract = new ui.item({ command: 'runCurrentContract' });
-      menus.addItemByPath('Run/Run Active Contract', menuRunCurrentContract, 1290, control);
-      var menuStopSandbox = new ui.item({ command: 'stopSandbox' });
-      menus.addItemByPath('Run/Stop Sandbox', menuStopSandbox, 1300, control);
-
-      updateMenus();
+      menus.addItemByPath('Run/Run All Contracts', new ui.item({ command: 'runAllContracts' }), 1280, control);
+      menus.addItemByPath('Run/Run Active Contract', new ui.item({ command: 'runCurrentContract' }), 1290, control);
+      menus.addItemByPath('Run/Stop Sandbox', new ui.item({ command: 'stopSandbox' }), 1300, control);
 
       function disableButton() {
         $run.children().text('Processing...');
@@ -158,7 +153,6 @@ define(function(require, exports, module) {
       }
 
       sandbox.on('select', updateButton);
-      sandbox.on('select', updateMenus);
       function updateButton() {
         if (sandbox.getId()) {
           $run.children().text(runCommands['stopSandbox']);
@@ -170,12 +164,6 @@ define(function(require, exports, module) {
           command = choosenCommand;
         }
         $run.removeClass('disabled');
-      }
-      function updateMenus() {
-        var running = !!sandbox.getId();
-        menuRunAllContracts.setAttribute('disabled', running);
-        menuRunCurrentContract.setAttribute('disabled', running);
-        menuStopSandbox.setAttribute('disabled', !running);
       }
 
       function installTheme($el) {
