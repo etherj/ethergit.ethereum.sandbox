@@ -93,6 +93,7 @@ define(function(require) {
         } else {
           btnTransactions.setAttribute('caption', 'Transactions');
           btnTransactions.setAttribute('disabled', true);
+          menuTransactions.setAttribute('caption', 'Transactions');
         }
       });
 
