@@ -13,7 +13,7 @@ define(function(require, exports, module) {
 
     var plugin = new Plugin('ether.camp', main.consumes);
 
-    var menuItem;
+    var menuItem, userMenuItem;
 
     plugin.on('load', function() {
       info.getWorkspace(function(err, project) {
@@ -24,6 +24,18 @@ define(function(require, exports, module) {
             'user_' + user.id + '/' + getLabel(project.nonpublic),
             menuItem,
             675,
+            plugin
+          );
+
+          if (!menus.get('User').menu) {
+            menus.setRootMenu('User', 1000, plugin);
+          }
+
+          userMenuItem = new ui.item({ onclick: publishOrProtect });
+          menus.addItemByPath(
+            'User/' + getLabel(project.nonpublic),
+            userMenuItem,
+            200,
             plugin
           );
         });
@@ -59,6 +71,7 @@ define(function(require, exports, module) {
 
             project.nonpublic = JSON.parse(res.body).nonpublic;
             menuItem.setAttribute('caption', getLabel(project.nonpublic));
+            userMenuItem.setAttribute('caption', getLabel(project.nonpublic));
           });
         });
       });
