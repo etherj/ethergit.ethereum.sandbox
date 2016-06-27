@@ -12,6 +12,10 @@
     color: #e1e1e1;
 }
 
+.sandbox-panel.flat-dark {
+    color: #e1e1e1;
+}
+
 .sandbox-panel.flat-light {
     color: #333333;
     background-color: #F4F9ED;
@@ -69,7 +73,8 @@
 }
 
 .dark .account-container .contract-name,
-.dark-gray .account-container .contract-name {
+.dark-gray .account-container .contract-name,
+.dark-flat .account-container .contract-name {
     border-color: #B9CA4A;
     color: #B9CA4A;
 }
@@ -80,7 +85,8 @@
 }
 
 .dark .account-container .account-name,
-.dark-gray .account-container .account-name {
+.dark-gray .account-container .account-name,
+.dark .account-container .account-name {
     color: #B9CA4A;
 }
 

@@ -20,6 +20,10 @@
     color: #d6d6d6;
 }
 
+.flat-dark .btn.eci-btn-default { 
+    color: #d6d6d6;
+}
+
 .flat-light .btn.eci-btn-default { 
     color: #333333;
 }
@@ -77,6 +81,19 @@
     text-shadow: none;
 }
 
+.flat-dark .btn.eci-btn-default:hover {
+    border: 1px solid black;
+    background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgeG1sbnM9Imh0d…IgaGVpZ2h0PSIxIiBmaWxsPSJ1cmwoI2dyYWQtdWNnZy1nZW5lcmF0ZWQpIiAvPjwvc3ZnPg==);
+    background-image: -moz-linear-gradient(top, rgba(45, 48, 51, 0.75) 0%, rgba(41, 42, 43, 0.81) 55%, rgba(32, 32, 34, 0.91) 55%, rgba(45, 45, 46, 0.83) 100%);
+    background-image: -webkit-linear-gradient(top, rgba(45, 48, 51, 0.75) 0%, rgba(41, 42, 43, 0.81) 55%, rgba(32, 32, 34, 0.91) 55%, rgba(45, 45, 46, 0.83) 100%);
+    background-image: -o-linear-gradient(top, rgba(45, 48, 51, 0.75) 0%, rgba(41, 42, 43, 0.81) 55%, rgba(32, 32, 34, 0.91) 55%, rgba(45, 45, 46, 0.83) 100%);
+    background-image: linear-gradient(top, rgba(45, 48, 51, 0.75) 0%, rgba(41, 42, 43, 0.81) 55%, rgba(32, 32, 34, 0.91) 55%, rgba(45, 45, 46, 0.83) 100%);
+    -webkit-box-shadow: inset 1px 1px rgba(255, 255, 255, 0.1), inset -1px -1px rgba(255, 255, 255, 0.1);
+    -moz-box-shadow: inset 1px 1px rgba(255, 255, 255, 0.1), inset -1px -1px rgba(255, 255, 255, 0.1);
+    box-shadow: inset 1px 1px rgba(255, 255, 255, 0.1), inset -1px -1px rgba(255, 255, 255, 0.1);
+    text-shadow: none;
+}
+
 .flat-light .btn.eci-btn-default {
     height: 100%;
     display: inline-table;
@@ -119,6 +136,19 @@
     text-shadow: none;
 }
 
+.flat-dark .btn.eci-btn-default.active {
+    border: 1px solid black;
+    background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgeG1sbnM9Imh0d…EiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz48L3N2Zz4=);
+    background-image: -moz-linear-gradient(top, #262627 0%, #252525 55%, #191919 55%, #1f1f1f 100%);
+    background-image: -webkit-linear-gradient(top, #262627 0%, #252525 55%, #191919 55%, #1f1f1f 100%);
+    background-image: -o-linear-gradient(top, #262627 0%, #252525 55%, #191919 55%, #1f1f1f 100%);
+    background-image: linear-gradient(top, #262627 0%, #252525 55%, #191919 55%, #1f1f1f 100%);
+    -webkit-box-shadow: inset 1px 1px #1e1e1e, inset -1px -1px #1e1e1e;
+    -moz-box-shadow: inset 1px 1px #1e1e1e, inset -1px -1px #1e1e1e;
+    box-shadow: inset 1px 1px #1e1e1e, inset -1px -1px #1e1e1e;
+    text-shadow: none;
+}
+
 .flat-light .open .btn.eci-btn-default.dropdown-toggle,
 .flat-light .btn.eci-btn-default.active {
     font-weight: normal;
@@ -144,6 +174,12 @@
     box-shadow: 0 1px 0 0 #4f4f4f inset;
     border: 1px solid #1f1f1f;
     background: #3f3f3f;
+    color: #d6d6d6;
+}
+
+.flat-dark .dropdown-menu.eci-dropdown-menu {
+    box-shadow: 0 1px 0 0 #353535 inset;
+    background: #252525;
     color: #d6d6d6;
 }
 
