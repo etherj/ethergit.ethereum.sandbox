@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
   main.consumes = [
-    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings', 'tree',
+    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings', 'tree', 'menus',
     'ethergit.libs',
     'ethergit.sandbox',
     'ethergit.solidity.compiler',
@@ -22,6 +22,7 @@ define(function(require, exports, module) {
     var save = imports.save;
     var settings = imports.settings;
     var workspace = imports.tree;
+    var menus = imports.menus;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var compiler = imports['ethergit.solidity.compiler'];
@@ -82,6 +83,7 @@ define(function(require, exports, module) {
 
       commands.addCommand({
         name: 'runAllContracts',
+        bindKey: 'F7',
         exec: function() {
           disableButton();
           ethConsole.logger(function(err, logger) {
@@ -94,11 +96,18 @@ define(function(require, exports, module) {
               }
             });
           });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
         }
       }, control);
 
       commands.addCommand({
         name: 'runCurrentContract',
+        bindKey: { 
+          mac: 'Command-F7', 
+          win: 'Ctrl-F7'
+        },
         exec: function() {
           disableButton();
           ethConsole.logger(function(err, logger) {
@@ -111,12 +120,22 @@ define(function(require, exports, module) {
               }
             });
           });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
         }
       }, control);
 
       commands.addCommand({
         name: 'stopSandbox',
-        exec: stopSandbox
+        exec: stopSandbox,
+        bindKey: { 
+          mac: 'Shift-Command-F7', 
+          win: 'Ctrl-Shift-F7'
+        },
+        isAvailable: function(editor) {
+          return !!sandbox.getId();
+        }
       }, control);
 
       function stopSandbox(cb) {
@@ -132,6 +151,10 @@ define(function(require, exports, module) {
           });
         });
       }
+
+      menus.addItemByPath('Run/Run All Contracts', new ui.item({ command: 'runAllContracts' }), 1280, control);
+      menus.addItemByPath('Run/Run Active Contract', new ui.item({ command: 'runCurrentContract' }), 1290, control);
+      menus.addItemByPath('Run/Stop Sandbox', new ui.item({ command: 'stopSandbox' }), 1300, control);
 
       function disableButton() {
         $run.children().text('Processing...');
@@ -330,7 +353,7 @@ define(function(require, exports, module) {
         async.eachSeries(contracts, deploy, cb);
         
         function deploy(contract, cb) {
-          if (contract.address) cb();
+          if (contract.address) return cb();
           
           try {
             var libs = findLibs();
@@ -359,18 +382,27 @@ define(function(require, exports, module) {
           function findLibs() {
             var match, libs = [], libRe = /[^_]__(\w{36})__[^_]/g;
             while (match = libRe.exec(contract.binary)) {
-              var lib = _.find(contracts, function(contract) {
-                return match[1].indexOf(contract.name) != -1;
-              });
-              if (!lib) throw "There is not lib to link with " + match[1];
+              if (_.some(libs, matchName.bind(null, match[1]))) continue;
+              
+              var lib = _.find(contracts, matchName.bind(null, match[1]));
+              if (!lib) throw "There is no lib to link with " + match[1];
               libs.push(lib);
             }
             return libs;
+            
+            function matchName(nameWithUnderscores, lib) {
+              var name = lib.name;
+              if (name.length > 36) name = name.substr(0, 36);
+              else if (name.length < 36) name += _.repeat('_', 36 - name.length);
+              return nameWithUnderscores == name;
+            }
           }
           function putLibAddress(name, address) {
+            if (name.length > 36) name = name.substr(0, 36);
             var placeholder = '__' + name + '__';
             placeholder = placeholder + _.repeat('_', 40 - placeholder.length);
-            contract.binary = contract.binary.replace(placeholder, address.substr(2));
+            var re = new RegExp(placeholder, 'g');
+            contract.binary = contract.binary.replace(re, address.substr(2));
           }
           function sendTx(args) {
             var txHash;

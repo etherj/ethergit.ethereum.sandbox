@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'layout', 'commands', 'fs', 'ext', 'c9', 'vfs',
+    'Dialog', 'ui', 'layout', 'commands', 'fs', 'ext', 'c9', 'vfs', 'menus', 'Menu',
     'ethergit.sandbox', 'ethergit.libs',
     'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console'
   ];
@@ -16,6 +16,8 @@ define(function(require) {
     var ext = imports.ext;
     var c9 = imports.c9;
     var vfs = imports.c9;
+    var menus = imports.menus;
+    var Menu = imports.Menu;
     var sandbox = imports['ethergit.sandbox'];
     var libs = imports['ethergit.libs'];
     var config = imports['ethergit.sandbox.config'];
@@ -101,11 +103,12 @@ define(function(require) {
     c9.on('disconnect', function() { proxy = null; });
 
     dialog.on('load', function() {
-//      ui.insertCss(require('text!./style.css'), false, dialog);
-
       commands.addCommand({
         name: 'showSendToNet',
-        exec: dialog.show.bind(dialog)
+        exec: dialog.show.bind(dialog),
+        isAvailable: function(editor) {
+          return !!sandbox.getId();
+        }
       }, dialog);
 
       var btn = ui.insertByIndex(
@@ -118,6 +121,17 @@ define(function(require) {
           disabled: true
         }),
         450, dialog
+      );
+
+      if (!menus.get('Window/Ethereum').menu) {
+        menus.addItemByPath('Window/~', new ui.divider(), 10300, dialog);
+        menus.addItemByPath('Window/Ethereum', new Menu({}, dialog), 10320, dialog);
+      }
+      
+      menus.addItemByPath(
+        'Window/Ethereum/Send Contracts to Net',
+        new ui.item({ command: 'showSendToNet' }),
+        200, dialog
       );
 
       sandbox.on('select', function() {

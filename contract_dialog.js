@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'dialog.error',
+    'Dialog', 'ui', 'dialog.error', 'settings',
     'ethergit.libs',
     'ethergit.ethereum.sandbox.dialog.pkey',
     'ethergit.sandbox',
@@ -15,6 +15,7 @@ define(function(require) {
     var Dialog = imports.Dialog;
     var ui = imports.ui;
     var showError = imports['dialog.error'].show;
+    var settings = imports.settings;
     var libs = imports['ethergit.libs'];
     var pkeyDialog = imports['ethergit.ethereum.sandbox.dialog.pkey'];
     var sandbox = imports['ethergit.sandbox'];
@@ -68,6 +69,8 @@ define(function(require) {
         e.stopPropagation();
         if (e.keyCode == 27) hide();
       });
+
+      installTheme($root);
       
       var showOrHideAdvanced = (function() {
         var $icon = $root.find('[data-name=advanced-btn-icon]');
@@ -82,6 +85,13 @@ define(function(require) {
         };
       })();
       $root.find('[data-name=advanced-btn]').click(showOrHideAdvanced);
+
+      function installTheme($el) {
+        $el.addClass(settings.get('user/general/@skin'));
+        settings.on('user/general/@skin', function(newTheme, oldTheme) {
+          $el.removeClass(oldTheme).addClass(newTheme);
+        }, dialog);
+      }
     });
 
     function showAdvanced() {

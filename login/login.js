@@ -93,6 +93,14 @@ define(function(require, exports, module) {
         onclick: function() { window.open(dashboardUrl); }
       }), c += 100, plugin);
 
+      if (!menus.get('User').menu) {
+        menus.setRootMenu('User', 1000, plugin);
+      }
+      
+      menus.addItemByPath('User/Dashboard', new ui.item({
+        onclick: function() { window.open(dashboardUrl); }
+      }), 100, plugin);
+      
       menus.addItemByPath(name + '/~', new ui.divider(), c += 100, plugin);
       if (isGuest(user)) {
         menus.addItemByPath(name + '/Log in', new ui.item({
@@ -101,6 +109,10 @@ define(function(require, exports, module) {
           }
         }), c += 100, plugin);
 
+        menus.addItemByPath('User/Log in', new ui.item({
+          command: 'openLoginDialog'
+        }), 300, plugin);
+        
         var btn = new ui.button({
           skin: "c9-menu-btn",
           caption: "Log In",
@@ -119,13 +131,20 @@ define(function(require, exports, module) {
       } else {
         menus.addItemByPath(name + '/Log out', new ui.item({
           onclick: function() {
-            if (!c9.local)
-              return signout();
+            if (!c9.local) return signout();
             auth.logout(function() {
               info.login(true);
             });
           }
         }), c += 100, plugin);
+        menus.addItemByPath('User/Log out', new ui.item({
+          onclick: function() {
+            if (!c9.local) return signout();
+            auth.logout(function() {
+              info.login(true);
+            });
+          }
+        }), 300, plugin);
       }
 
       var button = menus.get(name).item;

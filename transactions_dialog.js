@@ -1,6 +1,7 @@
 define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'dialog.error', 'http', 'tabManager', 'commands', 'layout',
+    'menus', 'Menu', 'MenuItem',
     'ethergit.libs',
     'ethergit.ethereum.sandbox.dialog.transaction',
     'ethergit.ethereum.sandbox.dialog.new.tx',
@@ -20,6 +21,9 @@ define(function(require) {
     var tabs = imports.tabManager;
     var commands = imports.commands;
     var layout = imports.layout;
+    var menus = imports.menus;
+    var Menu = imports.Menu;
+    var MenuItem = imports.MenuItem;
     var libs = imports['ethergit.libs'];
     var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
     var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
@@ -56,7 +60,10 @@ define(function(require) {
     dialog.on('load', function() {
       commands.addCommand({
         name: 'showTransactions',
-        exec: dialog.show.bind(dialog)
+        exec: dialog.show.bind(dialog),
+        isAvailable: function(editor) {
+          return !!sandbox.getId();
+        }
       }, dialog);
 
       var btnTransactions = ui.insertByIndex(
@@ -71,6 +78,14 @@ define(function(require) {
         400, dialog
       );
 
+      if (!menus.get('Window/Ethereum').menu) {
+        menus.addItemByPath("Window/~", new ui.divider(), 10300, dialog);
+        menus.addItemByPath('Window/Ethereum', new Menu({}, dialog), 10320, dialog);
+      }
+      
+      var menuTransactions = new ui.item({ command: 'showTransactions' });
+      menus.addItemByPath("Window/Ethereum/Transactions", menuTransactions, 100, dialog);
+
       sandbox.on('select', function() {
         if (sandbox.getId()) {
           btnTransactions.setAttribute('disabled', false);
@@ -78,6 +93,7 @@ define(function(require) {
         } else {
           btnTransactions.setAttribute('caption', 'Transactions');
           btnTransactions.setAttribute('disabled', true);
+          menuTransactions.setAttribute('caption', 'Transactions');
         }
       });
 
@@ -85,8 +101,11 @@ define(function(require) {
 
       function updateTxCounter() {
         sandbox.transactions(function(err, transactions) {
-          if (err) console.error(err);
-          else btnTransactions.setAttribute(
+          if (err) return console.error(err);
+          btnTransactions.setAttribute(
+            'caption', 'Transactions (' + transactions.length + ')'
+          );
+          menuTransactions.setAttribute(
             'caption', 'Transactions (' + transactions.length + ')'
           );
         });
