@@ -1,6 +1,7 @@
 define(function(require, exports, module) {
   main.consumes = [
-    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings', 'tree', 'menus',
+    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save',
+    'settings', 'tree', 'menus', 'debugger',
     'ethergit.libs',
     'ethergit.sandbox',
     'ethergit.solidity.compiler',
@@ -23,6 +24,7 @@ define(function(require, exports, module) {
     var settings = imports.settings;
     var workspace = imports.tree;
     var menus = imports.menus;
+    var debug = imports['debugger'];
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var compiler = imports['ethergit.solidity.compiler'];
@@ -93,6 +95,21 @@ define(function(require, exports, module) {
               if (err) {
                 updateButton();
                 logger.error(err);
+              } else {
+                var process = {
+                  name: 'ethereum-sandbox',
+                  runner: {
+                    'debugger': 'solidity'
+                  },
+                  STARTED: 1,
+                  running: 1,
+                  meta: {},
+                  on: function(event, cb) {}
+                };
+                debug.debug(process, false, function(err) {
+                  if (err) console.log('got an error: ' + err);
+                  else console.log('debugger has been started');
+                });
               }
             });
           });
@@ -147,6 +164,7 @@ define(function(require, exports, module) {
               updateButton();
               logger.error(err);
             }
+            debug.stop();
             if (typeof cb === 'function') cb(err);
           });
         });
@@ -329,8 +347,9 @@ define(function(require, exports, module) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
+              } else {
+                cb(null, compiled);
               }
-              else cb(null, compiled);
             });
           }
 
