@@ -1,6 +1,7 @@
 define(function(require, exports, module) {
   main.consumes = [
-    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save', 'settings', 'tree', 'menus',
+    'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save',
+    'settings', 'tree', 'menus',
     'ethergit.libs',
     'ethergit.sandbox',
     'ethergit.solidity.compiler',
@@ -325,12 +326,19 @@ define(function(require, exports, module) {
         function compile(files, cb) {
           if (files.length === 0) cb(null, []);
           else {
-            compiler.binaryAndABI(files, results.config.contracts, function(err, compiled) {
+            compiler.binaryAndABI(files, results.config.contracts, function(err, output) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
+              } else {
+                if (output.warnings) {
+                  ethConsole.logger(function(err, logger) {
+                    if (err) console.error(err);
+                    else logger.error('<pre>' + output.warnings + '</pre>');
+                  });
+                }
+                cb(null, output.contracts);
               }
-              else cb(null, compiled);
             });
           }
 
