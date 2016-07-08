@@ -120,11 +120,12 @@ define(function(require, exports, module) {
             return cb(e);
           }
           if (account.hasOwnProperty('source')) {
-            compiler.binaryAndABI([account.source], projectDir, function(err, compiled) {
+            compiler.binaryAndABI([account.source], projectDir, function(err, output) {
               if (err) return cb('compilation error: ' + err.message);
-              if (compiled.length !== 1)
+              
+              if (output.contracts.length !== 1)
                 return cb('File specified in source property of ethereum.json should contain only one contract');
-              account.runCode = compiled[0];
+              account.runCode = output.contracts[0];
               cb();
             });
           } else cb();

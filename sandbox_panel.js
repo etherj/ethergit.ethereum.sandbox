@@ -157,7 +157,7 @@ define(function(require) {
     
     var rendering = false;
     panel.render = function() {
-      if ($sandbox === null) return;
+      if (!$sandbox) return;
 
       updatePinAndId();
       showOrHideProjectName(sandbox);
