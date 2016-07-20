@@ -219,7 +219,7 @@ define(function(require, exports, module) {
     function stop(cb) {
       _.invoke(filters, 'stopWatching');
       connectionWatcher.stop();
-      http.request(sandboxUrl + id, { method: 'DELETE' }, function(err, data) {
+      http.request(sandboxUrl + id, { method: 'DELETE', timeout: 20000 }, function(err, data) {
         if (err) console.error(err);
         id = null;
         emit('select');
@@ -228,7 +228,7 @@ define(function(require, exports, module) {
     }
 
     function list(cb) {
-      http.request(sandboxUrl, { method: 'GET' }, cb);
+      http.request(sandboxUrl, { method: 'GET', timeout: 20000 }, cb);
     }
 
     plugin.freezePublicAPI({
