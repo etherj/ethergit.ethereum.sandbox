@@ -162,7 +162,8 @@ define(function(require, exports, module) {
           contentType: 'application/json',
           body: JSON.stringify({
             plugins: config.hasOwnProperty('plugins') ? config.plugins : {}
-          })
+          }),
+          timeout: 20000
         }, function(err, data) {
           if (err) return cb(err);
           id = data.id;
