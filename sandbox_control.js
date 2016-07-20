@@ -98,6 +98,7 @@ define(function(require, exports, module) {
               } else {
                 var process = {
                   name: 'ethereum-sandbox',
+                  web3: sandbox.web3,
                   runner: {
                     'debugger': 'solidity'
                   },
@@ -343,12 +344,18 @@ define(function(require, exports, module) {
         function compile(files, cb) {
           if (files.length === 0) cb(null, []);
           else {
-            compiler.binaryAndABI(files, results.config.contracts, function(err, compiled) {
+            compiler.binaryAndABI(files, results.config.contracts, function(err, output) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
               } else {
-                cb(null, compiled);
+                if (output.warnings) {
+                  ethConsole.logger(function(err, logger) {
+                    if (err) console.error(err);
+                    else logger.error('<pre>' + output.warnings + '</pre>');
+                  });
+                }
+                cb(null, output.contracts);
               }
             });
           }

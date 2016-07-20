@@ -80,6 +80,11 @@ define(function(require, exports, module) {
           name: 'setProjectName',
           call: 'sandbox_setProjectName',
           params: 1
+        }),
+        new web3._extend.Method({
+          name: 'setBreakpoint',
+          call: 'sandbox_setBreakpoint',
+          params: 2
         })
       ],
       properties: [

@@ -8,8 +8,11 @@ define(function(require, exports, module) {
     var debug = imports['debugger'];
 
     var type = 'solidity';
+    var web3, socket;
     
     var plugin = new Plugin('ether.camp', main.consumes);
+    var emit = plugin.getEmitter();
+    emit.setMaxListeners(1000);
 
     plugin.on('load', function() {
       debug.registerDebugger(type, plugin);
@@ -19,15 +22,28 @@ define(function(require, exports, module) {
       debug.unregisterDebugger(type, plugin);
     });
 
-    function getProxySource(process){
-      console.log(debug.proxySource);
+    function getProxySource(process) {
+      web3 = process.web3;
       return debug.proxySource
         .replace(/\/\/.*/g, "")
         .replace(/[\n\r]/g, "")
-        .replace(/\{PORT\}/, process.runner.debugport);
+        .replace(/\{PORT\}/, process.runner.debuggerport);
+    }
+
+    function attach(s, reconnect, callback) {
+      socket = s;
+      socket.on("error", function(err) {
+        emit("error", err);
+      }, plugin);
+
+      var breakpoints = emit('getBreakpoints');
+      console.log(breakpoints);
+
+      console.log(web3.version.node);
+      
+      callback();
     }
  
-
     plugin.freezePublicAPI({
       type: type,
       features: {
@@ -39,7 +55,8 @@ define(function(require, exports, module) {
         setBreakBehavior: false,
         executeCode: false
       },
-      getProxySource: getProxySource
+      getProxySource: getProxySource,
+      attach: attach
     });
 
     register(null, { 'ether.camp.debugger.solidity': plugin });
