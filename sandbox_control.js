@@ -93,7 +93,7 @@ define(function(require, exports, module) {
             run(false, function(err) {
               if (err) {
                 updateButton();
-                logger.error(err);
+                logger.error('Could not start sandbox: ' + getErrorMessage(err));
               }
             });
           });
@@ -117,7 +117,7 @@ define(function(require, exports, module) {
             run(true, function(err) {
               if (err) {
                 updateButton();
-                logger.error(err);
+                logger.error('Could not start sandbox: ' + getErrorMessage(err));
               }
             });
           });
@@ -181,6 +181,16 @@ define(function(require, exports, module) {
         settings.on('user/general/@skin', function(newTheme, oldTheme) {
           $el.removeClass(oldTheme).addClass(newTheme);
         }, control);
+      }
+
+      function getErrorMessage(err) {
+        if (err.message) return err.message;
+        if (err.target) {
+          if (err.target.status == 0) return 'Sandbox is not available';
+          else return err.target.status + ' - ' + err.target.statusText;
+        }
+        console.error(err);
+        return 'Unknown error';
       }
     });
 
