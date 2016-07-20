@@ -271,7 +271,7 @@ define(function(require) {
               else {
                 if (method.constant) {
                   $method.find('[data-name=ret]')
-                    .text('Returned value: ' + result)
+                    .text(result)
                     .parent().show();
                 } else {
                   $method.find('[data-name=ret]').text(
@@ -294,7 +294,9 @@ define(function(require) {
                   else if (!receipt) return;
                   else {
                     window.clearTimeout(timeout);
-                    $ret.text('Returned value: ' + receipt.returnValue);
+                    if (receipt.exception) $ret.text('exception: ' + receipt.exception);
+                    else $ret.text(receipt.returnValue);
+                    latestBlock.stopWatching();
                   }
                 });
               });
