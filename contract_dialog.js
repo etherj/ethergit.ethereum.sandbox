@@ -294,7 +294,8 @@ define(function(require) {
                   else if (!receipt) return;
                   else {
                     window.clearTimeout(timeout);
-                    $ret.text(receipt.returnValue);
+                    if (receipt.exception) $ret.text('exception: ' + receipt.exception);
+                    else $ret.text(receipt.returnValue);
                     latestBlock.stopWatching();
                   }
                 });
