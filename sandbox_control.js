@@ -426,7 +426,7 @@ define(function(require, exports, module) {
                   sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
                     if (error) return cb(error);
                     if (receipt.exception) return cb('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
-                    else cb(err);
+                    else cb('Contract ' + contract.name + ' has no code.');
                   });
                 } else cb(err);
               }
