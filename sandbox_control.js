@@ -184,6 +184,7 @@ define(function(require, exports, module) {
       }
 
       function getErrorMessage(err) {
+        if (typeof err == 'string') return err;
         if (err.message) return err.message;
         if (err.target) {
           if (err.target.status == 0) return 'Sandbox is not available';
