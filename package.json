@@ -1,7 +1,7 @@
 {
   "name": "ethergit.ethereum.sandbox",
   "description": "Ethereum sandbox plugin for Etheregit IDE.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "Ethergit",
   "contributors": [
     {
