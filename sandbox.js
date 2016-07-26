@@ -103,7 +103,18 @@ define(function(require, exports, module) {
         })
       ]
     });
-
+    
+    web3._extend({
+      property: 'debug',
+      methods: [
+        new web3._extend.Method({
+          name: 'setBreakpoints',
+          call: 'debug_setBreakpoints',
+          params: 1
+        })
+      ]
+    });
+    
     function select(sandboxId) {
       pinnedId = null;
       if (id) {
