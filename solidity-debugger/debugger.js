@@ -12,10 +12,14 @@ define(function(require, exports, module) {
     var async = require('async');
 
     var _ = libs.lodash();
+
+    var Frame = debug.Frame;
+    var Source = debug.Source;
     
     var type = 'solidity';
     var workspaceDir = '/root/workspace';
-    var web3, socket, attached = false;
+    var web3, socket, state = null, attached = false,
+        breakpointFilterWatcher, breakpointFilterNum;
     
     var plugin = new Plugin('ether.camp', main.consumes);
     var emit = plugin.getEmitter();
@@ -43,35 +47,53 @@ define(function(require, exports, module) {
         emit("error", err);
       }, plugin);
 
-      async.map(emit('getBreakpoints'), function(breakpoint, cb) {
-        fs.readFile(breakpoint.path, function(err, data) {
-          if (err) return cb(err);
-          var line = breakpoint.line;
-          var from = 0;
-          while (line-- > 0) {
-            from = data.indexOf('\n', from) + 1;
-            if (from == 0)
-              return cb(breakpoint.path + ' does not have line ' + breakpoint.line + ' with a breakpoint.');
-          }
-          
-          from += breakpoint.column;
-          var len = data.indexOf('\n', from) - from;
-          if (len < 0) len = data.length - from;
-          
-          cb(null, {
-            from: from,
-            len: len,
-            source: workspaceDir + breakpoint.path
-          });
-        });
-      }, function(err, breakpoints) {
+      var breakpoints = emit('getBreakpoints');
+      var sandboxBreakpoints = _.map(breakpoints, function(breakpoint) {
+        return {
+          line: breakpoint.line,
+          column: breakpoint.column,
+          source: workspaceDir + breakpoint.path
+        }
+      });
+
+      web3.debug.setBreakpoints(sandboxBreakpoints, function(err) {
         if (err) return cb(err);
+        attached = true;
         
-        web3.debug.setBreakpoints(breakpoints, function(err) {
+        web3.debug.newBreakpointFilter(function(err, filterNum) {
           if (err) return cb(err);
-          attached = true;
+          
+          breakpointFilterNum = filterNum;
+          breakpointFilterWatcher = setInterval(function() {
+            web3.debug.getFilterChanges(filterNum, function(err, changes) {
+              if (err) return console.error(err);
+              if (changes.length > 0 && _.startsWith(changes[0].path, '/root/workspace')) {
+                state = 'stopped';
+                var frame = createFrame(changes[0]);
+                emit('break', { frame: frame, frames: [frame] });
+                emit('stateChange', { state: state });
+              }
+            });
+          }, 1000);
+          
+          emit('attach', { breakpoints: breakpoints });
           cb();
         });
+      });
+    }
+
+    function createFrame(bp) {
+      var base = '/root/workspace';
+      var name = bp.path.substring(bp.path.lastIndexOf('/'));
+      var path = bp.path.substring(base.length);
+      return new Frame({
+        index: 0,
+        name: name,
+        column: bp.column,
+        line: bp.line,
+        id: '1',
+        script: name,
+        path: path
       });
     }
 
@@ -79,12 +101,38 @@ define(function(require, exports, module) {
       emit("frameActivate", { frame: null });
       emit("stateChange", { state: null });
 
+      clearInterval(breakpointFilterWatcher);
+      web3.debug.uninstallFilter(breakpointFilterNum, function(err) {
+        if (err) console.error(err);
+      });
+      
       socket = null;
       attached = false;
+      state = null;
 
       emit('detach');
     }
- 
+
+    function getScope(frame, scope, cb) {
+      cb(null, [], scope, frame);
+    }
+
+    function resume(cb) {
+      web3.debug.resume(function(err) {
+        if (err) {
+          if (cb) return cb(err);
+          else return console.error(err);
+        }
+        state = 'running';
+        emit('stateChange', state);
+        emit('frameActivate', { frame: null });
+      });
+    }
+
+    function stepInto(cb) {
+      web3.debug.stepInto(cb ? cb : function(err) { if (err) console.error(err); });
+    }
+    
     plugin.freezePublicAPI({
       type: type,
       features: {
@@ -97,9 +145,13 @@ define(function(require, exports, module) {
         executeCode: false
       },
       get attached() { return attached; },
+      get state() { return state; },
       getProxySource: getProxySource,
       attach: attach,
-      detach: detach
+      detach: detach,
+      getScope: getScope,
+      resume: resume,
+      stepInto: stepInto
     });
 
     register(null, { 'ether.camp.debugger.solidity': plugin });

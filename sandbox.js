@@ -111,6 +111,31 @@ define(function(require, exports, module) {
           name: 'setBreakpoints',
           call: 'debug_setBreakpoints',
           params: 1
+        }),
+        new web3._extend.Method({
+          name: 'newBreakpointFilter',
+          call: 'debug_newBreakpointFilter',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'getFilterChanges',
+          call: 'debug_getFilterChanges',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'uninstallFilter',
+          call: 'debug_uninstallFilter',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'resume',
+          call: 'debug_resume',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepInto',
+          call: 'debug_stepInto',
+          params: 0
         })
       ]
     });
