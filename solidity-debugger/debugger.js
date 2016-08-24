@@ -15,6 +15,8 @@ define(function(require, exports, module) {
 
     var Frame = debug.Frame;
     var Source = debug.Source;
+    var Scope = debug.Scope;
+    var Variable = debug.Variable;
     
     var type = 'solidity';
     var workspaceDir = '/root/workspace';
@@ -68,6 +70,7 @@ define(function(require, exports, module) {
             web3.debug.getFilterChanges(filterNum, function(err, changes) {
               if (err) return console.error(err);
               if (changes.length > 0 && _.startsWith(changes[0].path, '/root/workspace')) {
+                console.log(changes[0]);
                 state = 'stopped';
                 var frame = createFrame(changes[0]);
                 emit('break', { frame: frame, frames: [frame] });
@@ -86,15 +89,32 @@ define(function(require, exports, module) {
       var base = '/root/workspace';
       var name = bp.path.substring(bp.path.lastIndexOf('/'));
       var path = bp.path.substring(base.length);
-      return new Frame({
+      var frame = new Frame({
         index: 0,
         name: name,
         column: bp.column,
         line: bp.line,
         id: '1',
         script: name,
-        path: path
+        path: path,
+        scopes: [ new Scope({
+          index: 0,
+          type: 'storage',
+          frameIndex: 0,
+          variables: _.map(bp.vars, function(variable) {
+            return new Variable({
+              name: variable.name,
+              scope: 'storage',
+              value: variable.value,
+              type: variable.type,
+              ref: variable.name,
+              children: false
+            });
+          })
+        }) ]
       });
+      console.log(frame);
+      return frame;
     }
 
     function detach() {
