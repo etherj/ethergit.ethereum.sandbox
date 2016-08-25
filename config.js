@@ -52,6 +52,11 @@ define(function(require, exports, module) {
         }
         config.contracts = projectDir + config.contracts;
         if (!_.endsWith(config.contracts, '/')) config.contracts += '/';
+
+        if (config.hasOwnProperty('deploy')) {
+          if (!_.isArray(config.deploy)) return cb('Field deploy in ethereum.json should be an array');
+          if (!_.all(config.deploy, _.isString)) return cb('Deploy array in ethereum.json should contain only strings');
+        }
         
         try {
           adjustBlock();
@@ -120,7 +125,7 @@ define(function(require, exports, module) {
             return cb(e);
           }
           if (account.hasOwnProperty('source')) {
-            compiler.binaryAndABI([account.source], projectDir, function(err, output) {
+            compiler.binaryAndABI(true, [account.source], projectDir, function(err, output) {
               if (err) return cb('compilation error: ' + err.message);
               
               if (output.contracts.length !== 1)

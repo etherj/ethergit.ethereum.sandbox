@@ -337,7 +337,7 @@ define(function(require, exports, module) {
         function compile(files, cb) {
           if (files.length === 0) cb(null, []);
           else {
-            compiler.binaryAndABI(files, results.config.contracts, function(err, output) {
+            compiler.binaryAndABI(!results.config.deploy, files, results.config.contracts, function(err, output) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
@@ -369,7 +369,15 @@ define(function(require, exports, module) {
         sandbox.start(projectName, config, cb);
       }
       function createContracts(config, contracts, cb) {
-        async.eachSeries(contracts, deploy, cb);
+        if (config.deploy) {
+          async.eachSeries(config.deploy, function(name, cb) {
+            var contract = _.find(contracts, { name: name });
+            if (!contract) return cb('Could not find the contract ' + name);
+            deploy(contract, cb);
+          }, cb);
+        } else {
+          async.eachSeries(contracts, deploy, cb);
+        }
         
         function deploy(contract, cb) {
           if (contract.address) return cb();
