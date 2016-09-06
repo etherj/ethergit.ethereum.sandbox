@@ -124,14 +124,22 @@ define(function(require, exports, module) {
           } catch (e) {
             return cb(e);
           }
-          if (account.hasOwnProperty('source')) {
-            compiler.binaryAndABI(true, [account.source], projectDir, function(err, output) {
-              if (err) return cb('compilation error: ' + err.message);
-              
-              if (output.contracts.length !== 1)
-                return cb('File specified in source property of ethereum.json should contain only one contract');
-              account.runCode = output.contracts[0];
-              cb();
+          if (account.hasOwnProperty('deploy')) {
+            if (typeof account.deploy != 'object' ||
+                !account.deploy.hasOwnProperty('contract') || typeof account.deploy.contract != 'string' ||
+                !account.deploy.hasOwnProperty('source') || typeof account.deploy.source != 'string')
+              return cb('deploy field of an account object should be an object with fields source and contract');
+            
+            compiler.binaryAndABI([account.deploy.source], projectDir, function(err, output) {
+              if (err) return cb('Compilation error: ' + err.message);
+
+              var contract = _.find(output.contracts, { name: account.deploy.contract });
+              if (contract) {
+                account.runCode = contract;
+                cb();
+              } else {
+                cb('There is no contract ' + account.deploy.contract + ' in the file ' + account.deploy.source);
+              }
             });
           } else cb();
         }

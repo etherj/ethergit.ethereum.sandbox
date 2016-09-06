@@ -337,7 +337,7 @@ define(function(require, exports, module) {
         function compile(files, cb) {
           if (files.length === 0) cb(null, []);
           else {
-            compiler.binaryAndABI(!results.config.deploy, files, results.config.contracts, function(err, output) {
+            compiler.binaryAndABI(files, results.config.contracts, function(err, output) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
