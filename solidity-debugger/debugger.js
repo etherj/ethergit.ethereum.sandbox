@@ -74,7 +74,7 @@ define(function(require, exports, module) {
           breakpointFilterWatcher = setInterval(function() {
             web3.debug.getFilterChanges(filterNum, function(err, changes) {
               if (err) return console.error(err);
-              if (changes.length > 0 && _.startsWith(changes[0].path, '/root/workspace')) {
+              if (changes.length > 0 && _.startsWith(changes[0].source, '/root/workspace')) {
                 console.log(changes[0]);
                 state = 'stopped';
                 variables = changes[0].vars;
