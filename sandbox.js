@@ -125,7 +125,7 @@ define(function(require, exports, module) {
         new web3._extend.Method({
           name: 'uninstallFilter',
           call: 'debug_uninstallFilter',
-          params: 0
+          params: 1
         }),
         new web3._extend.Method({
           name: 'resume',
@@ -135,6 +135,16 @@ define(function(require, exports, module) {
         new web3._extend.Method({
           name: 'stepInto',
           call: 'debug_stepInto',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepOver',
+          call: 'debug_stepOver',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepOut',
+          call: 'debug_stepOut',
           params: 0
         })
       ]

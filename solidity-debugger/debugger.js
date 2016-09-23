@@ -1,12 +1,11 @@
 define(function(require, exports, module) {
-  main.consumes = ['Plugin', 'debugger', 'fs', 'ethergit.libs'];
+  main.consumes = ['Plugin', 'debugger', 'ethergit.libs'];
   main.provides = ['ether.camp.debugger.solidity'];
   return main;
 
   function main(options, imports, register) {
     var Plugin = imports.Plugin;
     var debug = imports['debugger'];
-    var fs = imports.fs;
     var libs = imports['ethergit.libs'];
 
     var async = require('async');
@@ -17,11 +16,12 @@ define(function(require, exports, module) {
     var Source = debug.Source;
     var Scope = debug.Scope;
     var Variable = debug.Variable;
-    
+
     var type = 'solidity';
     var workspaceDir = '/root/workspace';
-    var web3, socket, state = null, attached = false,
-        breakpointFilterWatcher, breakpointFilterNum;
+    var web3, socket, state = null, attached = false, variables = [],
+        breakpointFilterWatcher, breakpointFilterNum,
+        breakOnExceptions, breakOnUncaughtExceptions;
     
     var plugin = new Plugin('ether.camp', main.consumes);
     var emit = plugin.getEmitter();
@@ -50,21 +50,26 @@ define(function(require, exports, module) {
       }, plugin);
 
       var breakpoints = emit('getBreakpoints');
-      var sandboxBreakpoints = _.map(breakpoints, function(breakpoint) {
+      var sandboxBreakpoints = _.map(breakpoints, function(bp) {
         return {
-          line: breakpoint.line,
-          column: breakpoint.column,
-          source: workspaceDir + breakpoint.path
-        }
+          line: bp.line,
+          source: workspaceDir + bp.path
+        };
       });
-
-      web3.debug.setBreakpoints(sandboxBreakpoints, function(err) {
+      async.series([
+        web3.debug.setBreakpoints.bind(web3.debug, sandboxBreakpoints),
+        setupWatcher
+      ], function(err) {
         if (err) return cb(err);
         attached = true;
-        
+        emit('attach', { breakpoints: breakpoints });
+        cb();
+      });
+
+      function setupWatcher(cb) {
         web3.debug.newBreakpointFilter(function(err, filterNum) {
           if (err) return cb(err);
-          
+
           breakpointFilterNum = filterNum;
           breakpointFilterWatcher = setInterval(function() {
             web3.debug.getFilterChanges(filterNum, function(err, changes) {
@@ -72,49 +77,69 @@ define(function(require, exports, module) {
               if (changes.length > 0 && _.startsWith(changes[0].path, '/root/workspace')) {
                 console.log(changes[0]);
                 state = 'stopped';
-                var frame = createFrame(changes[0]);
-                emit('break', { frame: frame, frames: [frame] });
+                variables = changes[0].vars;
+                var frames = createFrames(changes[0]);
+                emit('break', { frame: _.last(frames), frames: frames });
                 emit('stateChange', { state: state });
               }
             });
           }, 1000);
           
-          emit('attach', { breakpoints: breakpoints });
           cb();
         });
+      }
+    }
+
+    function createFrames(bp) {
+      var scope = createStorageScope(bp);
+      return _(bp.callStack)
+        .map(createFrame.bind(null, scope))
+        .reverse()
+        .value();
+    }
+
+    function createFrame(storageScope, func, idx) {
+      var base = '/root/workspace';
+      var path = func.source.substring(base.length);
+      return new Frame({
+        index: idx,
+        name: func.name,
+        column: 0,
+        line: func.line,
+        id: func.name,
+        script: path,
+        path: path,
+        scopes: [ storageScope ]
       });
     }
 
-    function createFrame(bp) {
-      var base = '/root/workspace';
-      var name = bp.path.substring(bp.path.lastIndexOf('/'));
-      var path = bp.path.substring(base.length);
-      var frame = new Frame({
+    function createStorageScope(bp) {
+      return new Scope({
         index: 0,
-        name: name,
-        column: bp.column,
-        line: bp.line,
-        id: '1',
-        script: name,
-        path: path,
-        scopes: [ new Scope({
-          index: 0,
-          type: 'storage',
-          frameIndex: 0,
-          variables: _.map(bp.vars, function(variable) {
-            return new Variable({
-              name: variable.name,
-              scope: 'storage',
-              value: variable.value,
-              type: variable.type,
-              ref: variable.name,
-              children: false
-            });
-          })
-        }) ]
-      });
-      console.log(frame);
-      return frame;
+        type: 'storage',
+        frameIndex: 0,
+        
+        variables: _.map(bp.vars, function(variable, index) {
+          var properties;
+          var value = variable.value;
+          if (_.isArray(value)) {
+            properties = _.map(value, createVariable);
+            value = '[array]';
+          } else if (_.isObject(value)) {
+            properties = _.map(value, createVariable);
+            value = '[object]';
+          }
+          var v = new Variable({
+            name: variable.name,
+            scope: 'storage',
+            value: value,
+            type: variable.type,
+            children: !!properties
+          });
+          if (properties) v.properties = properties;
+          return v;
+        })
+      })
     }
 
     function detach() {
@@ -152,6 +177,53 @@ define(function(require, exports, module) {
     function stepInto(cb) {
       web3.debug.stepInto(cb ? cb : function(err) { if (err) console.error(err); });
     }
+
+    function stepOver(cb) {
+      web3.debug.stepOver(cb ? cb : function(err) { if (err) console.error(err); });
+    }
+
+    function stepOut(cb) {
+      web3.debug.stepOut(cb ? cb : function(err) { if (err) console.error(err); });
+    }
+
+    function getProperties(variable, cb) {
+      var properties = _.map(variables[variable.ref].value, createVariable);
+      variable.properties = properties;
+      cb(null, properties, variable);
+    }
+
+    function createVariable(value, name) {
+      var properties;
+      if (typeof value == 'object') {
+        properties = _.map(value, createVariable);
+        value = '[object]';
+      } else if (typeof value == 'array') {
+        properties = _.map(value, createVariable);
+        value = '[array]';
+      }
+      var v = new Variable({
+        name: name,
+        scope: 'storage',
+        value: value,
+        type: '',
+        children: !!properties
+      });
+      if (properties) v.properties = properties;
+      return v;
+    }
+    
+    function setBreakBehavior(type, enabled, callback) {
+      breakOnExceptions = enabled ? type == "all" : false;
+      breakOnUncaughtExceptions = enabled ? type == "uncaught" : false;
+    }
+
+    function evaluate(expression, frame, global, disableBreak, cb) {
+      var variable = new Variable({
+        name: 'Eval',
+        value: 'Not implemented'
+      });
+      cb(null, variable);
+    }
     
     plugin.freezePublicAPI({
       type: type,
@@ -170,8 +242,13 @@ define(function(require, exports, module) {
       attach: attach,
       detach: detach,
       getScope: getScope,
+      getProperties: getProperties,
       resume: resume,
-      stepInto: stepInto
+      stepInto: stepInto,
+      stepOver: stepOver,
+      stepOut: stepOut,
+      setBreakBehavior: setBreakBehavior,
+      evaluate: evaluate
     });
 
     register(null, { 'ether.camp.debugger.solidity': plugin });

@@ -355,7 +355,6 @@ define(function(require, exports, module) {
                     else logger.error('<pre>' + output.warnings + '</pre>');
                   });
                 }
-                console.log(output.contracts);
                 cb(null, output.contracts);
               }
             });
