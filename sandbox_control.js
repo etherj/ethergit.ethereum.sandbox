@@ -95,22 +95,6 @@ define(function(require, exports, module) {
               if (err) {
                 updateButton();
                 logger.error(err);
-              } else {
-                var process = {
-                  name: 'ethereum-sandbox',
-                  web3: sandbox.web3,
-                  runner: {
-                    'debugger': 'solidity'
-                  },
-                  STARTED: 1,
-                  running: 1,
-                  meta: {},
-                  on: function(event, cb) {}
-                };
-                debug.debug(process, false, function(err) {
-                  if (err) console.log('got an error: ' + err);
-                  else console.log('debugger has been started');
-                });
               }
             });
           });
@@ -223,6 +207,7 @@ define(function(require, exports, module) {
         if (err) cb(err);
         else async.series([
           startSandbox.bind(this, params.projectName, params.config),
+          startDebugger,
           createContracts.bind(this, params.config, params.contracts)
         ], cb);
       });
@@ -374,6 +359,26 @@ define(function(require, exports, module) {
 
       function startSandbox(projectName, config, cb) {
         sandbox.start(projectName, config, cb);
+      }
+      function startDebugger(cb) {
+        var process = {
+          name: 'ethereum-sandbox',
+          web3: sandbox.web3,
+          runner: {
+            'debugger': 'solidity'
+          },
+          STARTED: 1,
+          running: 1,
+          meta: {},
+          on: function(event, cb) {}
+        };
+        debug.debug(process, false, function(err) {
+          if (err) return cb('Could not start a debugger: ' + err);
+          else {
+            console.log('debugger has been started');
+            cb();
+          }
+        });
       }
       function createContracts(config, contracts, cb) {
         async.eachSeries(contracts, deploy, cb);
