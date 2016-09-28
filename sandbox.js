@@ -168,7 +168,7 @@ define(function(require, exports, module) {
       }
     }
     
-    function start(projectName, config, cb) {
+    function start(projectName, debug, config, cb) {
       var accounts = _(config.env.accounts)
           .pairs()
           .filter(function(account) {
@@ -212,6 +212,7 @@ define(function(require, exports, module) {
           query: query,
           contentType: 'application/json',
           body: JSON.stringify({
+            debug: debug,
             plugins: config.hasOwnProperty('plugins') ? config.plugins : {}
           })
         }, function(err, data) {

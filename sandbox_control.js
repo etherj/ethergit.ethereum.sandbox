@@ -44,6 +44,8 @@ define(function(require, exports, module) {
       var runCommands = {
         'runAllContracts': 'Run All Contracts',
         'runCurrentContract': 'Run Active Contract',
+        'runAllContractsDebug': 'Run All with Debug',
+        'runCurrentContractDebug': 'Run Active with Debug',
         'stopSandbox': 'Stop Sandbox'
       };
       var choosenCommand = 'runAllContracts';
@@ -83,6 +85,26 @@ define(function(require, exports, module) {
         }
       });
 
+      $widget.find('[data-name=runAllDebug]').click(function() {
+        if (sandbox.getId()) stopSandbox(run);
+        else run();
+        
+        function run() {
+          choosenCommand = 'runAllContractsDebug';
+          commands.exec(choosenCommand, tabs.focussedTab.editor);
+        }
+      });
+
+      $widget.find('[data-name=runCurrentDebug]').click(function() {
+        if (sandbox.getId()) stopSandbox(run);
+        else run();
+        
+        function run() {
+          choosenCommand = 'runCurrentContractDebug';
+          commands.exec(choosenCommand, tabs.focussedTab.editor);
+        }
+      });
+
       commands.addCommand({
         name: 'runAllContracts',
         bindKey: 'F7',
@@ -91,7 +113,7 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(false, function(err) {
+            run(false, false, function(err) {
               if (err) {
                 updateButton();
                 logger.error(err);
@@ -115,7 +137,52 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(true, function(err) {
+            run(true, false, function(err) {
+              if (err) {
+                updateButton();
+                logger.error(err);
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'runAllContractsDebug',
+        bindKey: 'Shift-F7',
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(false, true, function(err) {
+              if (err) {
+                updateButton();
+                logger.error(err);
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'runCurrentContractDebug',
+        bindKey: { 
+          mac: 'Shift-Command-F7', 
+          win: 'Shift-Ctrl-F7'
+        },
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(true, true, function(err) {
               if (err) {
                 updateButton();
                 logger.error(err);
@@ -132,8 +199,8 @@ define(function(require, exports, module) {
         name: 'stopSandbox',
         exec: stopSandbox,
         bindKey: { 
-          mac: 'Shift-Command-F7', 
-          win: 'Ctrl-Shift-F7'
+          mac: 'Alt-F7', 
+          win: 'Alt-F7'
         },
         isAvailable: function(editor) {
           return !!sandbox.getId();
@@ -157,7 +224,9 @@ define(function(require, exports, module) {
 
       menus.addItemByPath('Run/Run All Contracts', new ui.item({ command: 'runAllContracts' }), 1280, control);
       menus.addItemByPath('Run/Run Active Contract', new ui.item({ command: 'runCurrentContract' }), 1290, control);
-      menus.addItemByPath('Run/Stop Sandbox', new ui.item({ command: 'stopSandbox' }), 1300, control);
+      menus.addItemByPath('Run/Run All Contracts with Debug', new ui.item({ command: 'runAllContractsDebug' }), 1292, control);
+      menus.addItemByPath('Run/Run Active Contract with Debug', new ui.item({ command: 'runCurrentContractDebug' }), 1294, control);
+      menus.addItemByPath('Run/Stop Sandbox', new ui.item({ command: 'stopSandbox' }), 1296, control);
 
       function disableButton() {
         $run.children().text('Processing...');
@@ -186,7 +255,7 @@ define(function(require, exports, module) {
       }
     });
 
-    function run(current, cb) {
+    function run(current, withDebug, cb) {
       var selected = workspace.selected;
       var selectProjectMsg = 'Please, select a project to run in the workspace panel. Project directory has to be placed in the workspace directory.';
       var noProjectMsg = 'Could not find any project with ethereum.json in the workspace directory.';
@@ -206,7 +275,7 @@ define(function(require, exports, module) {
       ], function(err, params) {
         if (err) cb(err);
         else async.series([
-          startSandbox.bind(this, params.projectName, params.config),
+          startSandbox.bind(this, params.projectName, withDebug, params.config),
           startDebugger,
           createContracts.bind(this, params.config, params.contracts)
         ], cb);
@@ -357,28 +426,30 @@ define(function(require, exports, module) {
         }
       }
 
-      function startSandbox(projectName, config, cb) {
-        sandbox.start(projectName, config, cb);
+      function startSandbox(projectName, debug, config, cb) {
+        sandbox.start(projectName, debug, config, cb);
       }
       function startDebugger(cb) {
-        var process = {
-          name: 'ethereum-sandbox',
-          web3: sandbox.web3,
-          runner: {
-            'debugger': 'solidity'
-          },
-          STARTED: 1,
-          running: 1,
-          meta: {},
-          on: function(event, cb) {}
-        };
-        debug.debug(process, false, function(err) {
-          if (err) return cb('Could not start a debugger: ' + err);
-          else {
-            console.log('debugger has been started');
-            cb();
-          }
-        });
+        if (withDebug) {
+          var process = {
+            name: 'ethereum-sandbox',
+            web3: sandbox.web3,
+            runner: {
+              'debugger': 'solidity'
+            },
+            STARTED: 1,
+            running: 1,
+            meta: {},
+            on: function(event, cb) {}
+          };
+          debug.debug(process, false, function(err) {
+            if (err) return cb('Could not start a debugger: ' + err);
+            else {
+              console.log('debugger has been started');
+              cb();
+            }
+          });
+        } else cb();
       }
       function createContracts(config, contracts, cb) {
         async.eachSeries(contracts, deploy, cb);
