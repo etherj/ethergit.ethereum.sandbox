@@ -113,6 +113,11 @@ define(function(require, exports, module) {
           params: 1
         }),
         new web3._extend.Method({
+          name: 'removeBreakpoints',
+          call: 'debug_removeBreakpoints',
+          params: 1
+        }),
+        new web3._extend.Method({
           name: 'newBreakpointFilter',
           call: 'debug_newBreakpointFilter',
           params: 0

@@ -62,7 +62,9 @@ define(function(require, exports, module) {
       ], function(err) {
         if (err) return cb(err);
         attached = true;
+        state = 'running';
         emit('attach', { breakpoints: breakpoints });
+        emit('stateChange', { state: state });
         cb();
       });
 
@@ -169,7 +171,7 @@ define(function(require, exports, module) {
           else return console.error(err);
         }
         state = 'running';
-        emit('stateChange', state);
+        emit('stateChange', { state: state });
         emit('frameActivate', { frame: null });
       });
     }
@@ -224,7 +226,32 @@ define(function(require, exports, module) {
       });
       cb(null, variable);
     }
-    
+
+    function setBreakpoint(bp, cb) {
+      var sandboxBp = {
+        line: bp.line,
+        source: workspaceDir + bp.path
+      };
+      web3.debug.setBreakpoints([sandboxBp], cb || showError);
+    }
+
+    function changeBreakpoint(bp, cb) {
+      if (bp.enabled) setBreakpoint(bp, cb);
+      else clearBreakpoint(bp, cb);
+    }
+
+    function clearBreakpoint(bp, cb) {
+      var sandboxBp = {
+        line: bp.line,
+        source: workspaceDir + bp.path
+      };
+      web3.debug.removeBreakpoints([sandboxBp], cb || showError);
+    }
+
+    function showError(err) {
+      if (err) console.error(err);
+    }
+
     plugin.freezePublicAPI({
       type: type,
       features: {
@@ -248,7 +275,10 @@ define(function(require, exports, module) {
       stepOver: stepOver,
       stepOut: stepOut,
       setBreakBehavior: setBreakBehavior,
-      evaluate: evaluate
+      evaluate: evaluate,
+      setBreakpoint: setBreakpoint,
+      changeBreakpoint: changeBreakpoint,
+      clearBreakpoint: clearBreakpoint
     });
 
     register(null, { 'ether.camp.debugger.solidity': plugin });
