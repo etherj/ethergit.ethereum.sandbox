@@ -177,15 +177,24 @@ define(function(require, exports, module) {
     }
 
     function stepInto(cb) {
-      web3.debug.stepInto(cb ? cb : function(err) { if (err) console.error(err); });
+      state = 'running';
+      emit('stateChange', { state: state });
+      emit('frameActivate', { frame: null });
+      web3.debug.stepInto(cb || showError);
     }
 
     function stepOver(cb) {
-      web3.debug.stepOver(cb ? cb : function(err) { if (err) console.error(err); });
+      state = 'running';
+      emit('stateChange', { state: state });
+      emit('frameActivate', { frame: null });      
+      web3.debug.stepOver(cb || showError);
     }
 
     function stepOut(cb) {
-      web3.debug.stepOut(cb ? cb : function(err) { if (err) console.error(err); });
+      state = 'running';
+      emit('stateChange', { state: state });
+      emit('frameActivate', { frame: null });
+      web3.debug.stepOut(cb || showError);
     }
 
     function getProperties(variable, cb) {
