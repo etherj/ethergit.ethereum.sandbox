@@ -116,7 +116,7 @@ define(function(require, exports, module) {
             run(false, false, function(err) {
               if (err) {
                 updateButton();
-                logger.error(err);
+                logger.error('Could not start sandbox: ' + getErrorMessage(err));
               }
             });
           });
@@ -185,7 +185,7 @@ define(function(require, exports, module) {
             run(true, true, function(err) {
               if (err) {
                 updateButton();
-                logger.error(err);
+                logger.error('Could not start sandbox: ' + getErrorMessage(err));
               }
             });
           });
@@ -252,6 +252,17 @@ define(function(require, exports, module) {
         settings.on('user/general/@skin', function(newTheme, oldTheme) {
           $el.removeClass(oldTheme).addClass(newTheme);
         }, control);
+      }
+
+      function getErrorMessage(err) {
+        if (typeof err == 'string') return err;
+        if (err.message) return err.message;
+        if (err.target) {
+          if (err.target.status == 0) return 'Sandbox is not available';
+          else return err.target.status + ' - ' + err.target.statusText;
+        }
+        console.error(err);
+        return 'Unknown error';
       }
     });
 
@@ -452,7 +463,15 @@ define(function(require, exports, module) {
         } else cb();
       }
       function createContracts(config, contracts, cb) {
-        async.eachSeries(contracts, deploy, cb);
+        if (config.deploy) {
+          async.eachSeries(config.deploy, function(name, cb) {
+            var contract = _.find(contracts, { name: name });
+            if (!contract) return cb('Could not find the contract ' + name);
+            deploy(contract, cb);
+          }, cb);
+        } else {
+          async.eachSeries(contracts, deploy, cb);
+        }
         
         function deploy(contract, cb) {
           if (contract.address) return cb();
@@ -519,8 +538,9 @@ define(function(require, exports, module) {
                 if (err.message === 'The contract code couldn\'t be stored, please check your gas amount.') {
                   sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
                     if (error) return cb(error);
-                    if (receipt.exception) return cb('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
-                    else cb(err);
+                    if (receipt.exception) log('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
+                    else log('Contract ' + contract.name + ' has no code.');
+                    cb();
                   });
                 } else cb(err);
               }
@@ -539,6 +559,13 @@ define(function(require, exports, module) {
 
     function stop(cb) {
       sandbox.stop(cb);
+    }
+
+    function log(message) {
+      ethConsole.logger(function(err, logger) {
+        if (err) console.error(err);
+        else logger.error(message);
+      });
     }
 
     ui.insertCss(require('text!./sandbox_control.css'), false, control);

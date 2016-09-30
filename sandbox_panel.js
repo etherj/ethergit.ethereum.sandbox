@@ -23,6 +23,7 @@ define(function(require) {
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+    var BN = libs.BigNumber();
 
     var folder = require('./folder')(_);
     var formatter = require('./formatter')(_);
@@ -157,7 +158,7 @@ define(function(require) {
     
     var rendering = false;
     panel.render = function() {
-      if ($sandbox === null) return;
+      if (!$sandbox) return;
 
       updatePinAndId();
       showOrHideProjectName(sandbox);
@@ -235,7 +236,7 @@ define(function(require) {
             cb();
 
             function parseNumber(number) {
-              return number ? parseInt(number.substr(2), 16) : 0;
+              return number ? new BN(number.substr(2), 16).toString() : 0;
             }
           }
           function showStorage(cb) {
