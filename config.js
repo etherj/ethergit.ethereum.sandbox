@@ -130,7 +130,7 @@ define(function(require, exports, module) {
                 !account.deploy.hasOwnProperty('source') || typeof account.deploy.source != 'string')
               return cb('deploy field of an account object should be an object with fields source and contract');
             
-            compiler.binaryAndABI([account.deploy.source], projectDir, function(err, output) {
+            compiler.binaryAndABI([account.deploy.source], projectDir, false, function(err, output) {
               if (err) return cb('Compilation error: ' + err.message);
 
               var contract = _.find(output.contracts, { name: account.deploy.contract });
