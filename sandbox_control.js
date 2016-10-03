@@ -276,7 +276,7 @@ define(function(require, exports, module) {
         getProjectName,
         saveAll,
         function(results, cb) {
-          config.parse(results.projectDir, function(err, config) {
+          config.parse(results.projectDir, withDebug, function(err, config) {
             if (err) return cb(err);
             results.config = config;
             cb(null, results);
@@ -288,6 +288,7 @@ define(function(require, exports, module) {
         else async.series([
           startSandbox.bind(this, params.projectName, withDebug, params.config),
           startDebugger,
+          createAccounts.bind(this, params.config),
           createContracts.bind(this, params.config, params.contracts)
         ], cb);
       });
@@ -461,6 +462,9 @@ define(function(require, exports, module) {
             }
           });
         } else cb();
+      }
+      function createAccounts(config, cb) {
+        sandbox.web3.sandbox.createAccounts(config.env.accounts, cb);
       }
       function createContracts(config, contracts, cb) {
         if (config.deploy) {

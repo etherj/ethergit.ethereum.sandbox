@@ -197,7 +197,6 @@ define(function(require, exports, module) {
         },
         web3.sandbox.setProjectName.bind(web3.sandbox, projectName),
         web3.sandbox.setBlock.bind(web3.sandbox, config.env.block),
-        web3.sandbox.createAccounts.bind(web3.sandbox, config.env.accounts),
         web3.sandbox.addAccounts.bind(web3.sandbox, accounts),
         setDefaultAccount,
         async.asyncify(setupFilters),
@@ -228,7 +227,7 @@ define(function(require, exports, module) {
         });
       }
     }
-    
+
     function setupFilters() {
       filters['block'] = web3.eth.filter('latest');
       filters['block'].watch(function(err, result) {
