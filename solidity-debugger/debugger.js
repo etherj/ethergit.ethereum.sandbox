@@ -93,11 +93,14 @@ define(function(require, exports, module) {
     }
 
     function createFrames(bp) {
-      var scope = createStorageScope(bp);
-      return _(bp.callStack)
-        .map(createFrame.bind(null, scope))
-        .reverse()
-        .value();
+      var storageScope = createScope('storage', bp.vars.storage);
+      var funcScope = createScope('function', bp.vars.func);
+      var frames = _(bp.callStack)
+          .map(createFrame.bind(null, storageScope))
+          .reverse()
+          .value();
+      frames[0].scopes.push(funcScope);
+      return frames;
     }
 
     function createFrame(storageScope, func, idx) {
@@ -115,13 +118,13 @@ define(function(require, exports, module) {
       });
     }
 
-    function createStorageScope(bp) {
+    function createScope(type, vars) {
       return new Scope({
         index: 0,
-        type: 'storage',
+        type: type,
         frameIndex: 0,
         
-        variables: _.map(bp.vars, function(variable, index) {
+        variables: _.map(vars, function(variable, index) {
           var properties;
           var value = variable.value;
           if (_.isArray(value)) {
@@ -133,7 +136,7 @@ define(function(require, exports, module) {
           }
           var v = new Variable({
             name: variable.name,
-            scope: 'storage',
+            scope: type,
             value: value,
             type: variable.type,
             children: !!properties
@@ -186,7 +189,7 @@ define(function(require, exports, module) {
     function stepOver(cb) {
       state = 'running';
       emit('stateChange', { state: state });
-      emit('frameActivate', { frame: null });      
+      emit('frameActivate', { frame: null });
       web3.debug.stepOver(cb || showError);
     }
 
