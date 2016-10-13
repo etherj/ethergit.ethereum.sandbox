@@ -79,7 +79,7 @@ define(function(require, exports, module) {
               if (changes.length > 0 && _.startsWith(changes[0].source, '/root/workspace')) {
                 console.log(changes[0]);
                 state = 'stopped';
-                variables = changes[0].vars;
+                variables = changes[0].storageVars;
                 var frames = createFrames(changes[0]);
                 emit('break', { frame: _.last(frames), frames: frames });
                 emit('stateChange', { state: state });
@@ -93,28 +93,26 @@ define(function(require, exports, module) {
     }
 
     function createFrames(bp) {
-      var storageScope = createScope('storage', bp.vars.storage);
-      var funcScope = createScope('function', bp.vars.func);
+      var storageScope = createScope('storage', bp.storageVars);
       var frames = _(bp.callStack)
           .map(createFrame.bind(null, storageScope))
           .reverse()
           .value();
-      frames[0].scopes.push(funcScope);
       return frames;
     }
 
     function createFrame(storageScope, func, idx) {
       var base = '/root/workspace';
-      var path = func.source.substring(base.length);
+      var path = func.mapping.source.substring(base.length);
       return new Frame({
         index: idx,
         name: func.name,
         column: 0,
-        line: func.line,
+        line: func.mapping.line,
         id: func.name,
         script: path,
         path: path,
-        scopes: [ storageScope ]
+        scopes: [ storageScope, createScope('function', func.vars) ]
       });
     }
 
