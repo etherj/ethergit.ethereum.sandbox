@@ -103,12 +103,12 @@ define(function(require, exports, module) {
 
     function createFrame(storageScope, func, idx) {
       var base = '/root/workspace';
-      var path = func.mapping.source.substring(base.length);
+      var path = func.mapping ? func.mapping.path.substring(base.length) : '/no-source';
       return new Frame({
         index: idx,
         name: func.name,
         column: 0,
-        line: func.mapping.line,
+        line: func.mapping ? func.mapping.line : null,
         id: func.name,
         script: path,
         path: path,
