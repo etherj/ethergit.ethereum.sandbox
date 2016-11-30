@@ -2,7 +2,8 @@ define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'layout', 'commands', 'fs', 'ext', 'c9', 'vfs', 'menus', 'Menu',
     'ethergit.sandbox', 'ethergit.libs',
-    'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console'
+    'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console',
+    'ethergit.dialog.upload.sources.to.harmony'
   ];
   main.provides = ['ethergit.dialog.send.to.net'];
   return main;
@@ -23,6 +24,7 @@ define(function(require) {
     var config = imports['ethergit.sandbox.config'];
     var sentTxs = imports['ethergit.sent.txs.editor'];
     var ethConsole = imports['ethereum-console'];
+    var uploadToHarmonyDialog = imports['ethergit.dialog.upload.sources.to.harmony'];
 
     var async = require('async');
     var utils = require('../utils');
@@ -31,6 +33,7 @@ define(function(require) {
     var url = 'https://frontier-lb.ether.camp';
 
     var net = 'live';
+    var isHarmony = false;
     var nets = {
       test: {
         genesis: '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368',
@@ -62,7 +65,8 @@ define(function(require) {
           '<td data-name="gasPrice"></td>' +
           '</tr>';
     
-    var $form, $pkey, $error, $success, $loadingContainer, $loading, $contracts, $url, $hidePkey;
+    var $form, $pkey, $error, $success, $loadingContainer, $loading, $contracts,
+        $url, $hidePkey, $jsonRpcUrlMsg;
 
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-send-to-net',
@@ -89,7 +93,7 @@ define(function(require) {
         api.connect(5600, function(err, meta) {
           if (err) return console.error(err);
           proxy = meta.stream;
-          if (web3) {
+          if (web3 && web3.currentProvider.destroy) {
             web3.currentProvider.destroy();
             web3.setProvider(new ProxyProvider(proxy, url));
           }
@@ -151,10 +155,21 @@ define(function(require) {
       $loading = $root.find('[data-name=loading]');
       $contracts = $root.find('[data-name=contracts]');
       $url = $root.find('[data-name=url]');
+      $jsonRpcUrlMsg = $root.find('#jsonRpcUrlMsg');
       $url.val(url);
 
       $hidePkey.on('change', function() {
         $pkey.attr('type', $hidePkey.is(':checked') ? 'password' : 'text');
+      });
+
+      $root.click(function(e) {
+        if ($(e.target).data('href') == 'updateNetworkDetails') {
+          e.preventDefault();
+          updateNetworkDetails(function(err) {
+            loading(false);
+            if (err) $error.html(err);
+          });
+        }
       });
 
       $root.keydown(function(e) { e.stopPropagation(); });
@@ -164,10 +179,91 @@ define(function(require) {
       });
     });
 
+    function updateNetworkDetails(cb) {
+      loading('Updating network details');
+      $url.val($url.val().trim());
+      if (!validate($url.val())) return cb('JSON RPC URL is not valid.');
+
+      $error.text('');
+      url = $url.val();
+      if (_.startsWith(url, 'https')) {
+        web3 = new Web3(new Web3.providers.HttpProvider(url));
+        updateWithSSLCheck(cb);
+      } else {
+        if (web3 && web3.currentProvider.destroy)
+          web3.currentProvider.destroy();
+        web3 = new Web3(new ProxyProvider(proxy, url));
+        update(cb);
+      }
+      
+      function validate(val) {
+        return /^(http|https):\/\/[^ ]+$/i.test(val);
+      }
+      function update(cb) {
+        async.parallel([
+          updateNetworkId,
+          updateGasPrice,
+          checkHarmony
+        ], cb);
+      }
+      function updateWithSSLCheck(cb) {
+        $.ajax(url)
+          .done(update.bind(null, cb))
+          .fail(function(xhr) {
+            if (xhr.readyState == 0) {
+              cb('The JSON RPC URL seems to have a self-signed certificate. ' +
+                 'Please, add the certificate to trusted on the peer\'s page: ' +
+                 '<a href="' + url + '" target="_blank">' + url + '</a> ' +
+                 'and <a data-href="updateNetworkDetails" href="">update</a> the dialog. ' +
+                 '<span class="glyphicon glyphicon-info-sign" aria-hidden="true" title="' +
+                 'It might be that the problem is not in a certificate. The domain might be unavailable or the response does not have CORS headers.' +
+                 '"></span>');
+            } else update(cb);
+          });
+      }
+      function updateNetworkId(cb) {
+        web3.eth.getBlock(0, false, function(err, genesis) {
+          if (err) return cb('Could not get details from ' + url + ': ' + err.message);
+          net = _.findKey(nets, { genesis: genesis.hash });
+          disableSourcePublish(!net);
+          cb();
+        });
+
+        function disableSourcePublish(disable) {
+          $contracts.find('tr').each(function(index, el) {
+            var $el = $(el);
+            if ($el.find('[data-name=toSend] input').is(':checked'))
+              $el.find('[data-name=publish] input').prop('disabled', disable);
+          });
+        }
+      }
+      function updateGasPrice(cb) {
+        web3.eth.getGasPrice(function(err, gasPrice) {
+          if (err) return cb('Could not get gas price from ' + url + ': ' + err.message);
+          $contracts.find('[data-name=gasPrice] input').val(gasPrice.toString());
+          cb();
+        });
+      }
+      function checkHarmony(cb) {
+        if (!_.startsWith(url, 'https')) {
+          isHarmony = false;
+          cb();
+        } else {
+          web3.version.getNode(function(err, result) {
+            if (err) return cb('Could not get node version from ' + url + ': ' + err.message);
+            isHarmony = _.startsWith(result, 'Harmony/');
+            cb();
+          });
+        }
+      }
+    }
+    
     dialog.on('show', function() {
       setFormDefaults();
       $form.off('keypress');
       $pkey.focus();
+      $jsonRpcUrlMsg.hide();
+      $url.one('focus', $jsonRpcUrlMsg.show.bind($jsonRpcUrlMsg));
 
       async.series([
         showContracts,
@@ -231,52 +327,11 @@ define(function(require) {
 
           $url.off('change').on('change', updateNetworkDetails.bind(null, function(err) {
             loading(false);
-            if (err) $error.text(err);
+            if (err) $error.html(err);
           }));
 
           cb();
         });
-      }
-      function updateNetworkDetails(cb) {
-        loading('Updating network details');
-        $url.val($url.val().trim());
-        if (!validate($url.val())) return cb('JSON RPC URL is not valid.');
-
-        $error.text('');
-        url = $url.val();
-        if (web3) web3.currentProvider.destroy();
-        web3 = new Web3(new ProxyProvider(proxy, url));
-        async.parallel([
-          updateNetworkId,
-          updateGasPrice
-        ], cb);
-
-        function validate(val) {
-          return /^(http|https):\/\/[^ ]+$/i.test(val);
-        }
-        function updateNetworkId(cb) {
-          web3.eth.getBlock(0, false, function(err, genesis) {
-            if (err) return cb('Could not get details from ' + url + ': ' + err.message);
-            net = _.findKey(nets, { genesis: genesis.hash });
-            disableSourcePublish(!net);
-            cb();
-          });
-
-          function disableSourcePublish(disable) {
-            $contracts.find('tr').each(function(index, el) {
-              var $el = $(el);
-              if ($el.find('[data-name=toSend] input').is(':checked'))
-                $el.find('[data-name=publish] input').prop('disabled', disable);
-            });
-          }
-        }
-        function updateGasPrice(cb) {
-          web3.eth.getGasPrice(function(err, gasPrice) {
-            if (err) return cb('Could not get gas price from ' + url + ': ' + err.message);
-            $contracts.find('[data-name=gasPrice] input').val(gasPrice.toString());
-            cb();
-          });
-        }
       }
     });
 
@@ -356,6 +411,7 @@ define(function(require) {
       function sendContracts(cb) {
         web3.eth.getTransactionCount(address, 'pending', function(err, nonce) {
           if (err) return cb(err);
+          var numOfNotMinedTxs = parsed.length;
           async.eachSeries(parsed, function(vals, cb) {
             var nextNonce = nonce++;
             web3.eth.sendRawTransaction(utils.createTx({
@@ -368,14 +424,26 @@ define(function(require) {
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               var newAddress = utils.calcNewAddress(address, nextNonce);
+              vals.address = newAddress;
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
-                web3: new Web3(new ProxyProvider(proxy, url)),
+                web3: new Web3(
+                  _.startsWith(url, 'https') ?
+                    new Web3.providers.HttpProvider(url) :
+                    new ProxyProvider(proxy, url)),
                 net: net,
-                onMined: net && vals.publish ?
-                  _.partial(waitForSync, _, net, uploadSources.bind(null, newAddress, vals, net)) :
-                  null
+                onMined: function(txHash) {
+                  if (net && vals.publish) {
+                    waitForSync(txHash, net, uploadSources.bind(null, newAddress, vals, net));
+                  }
+                  if (isHarmony) {
+                    numOfNotMinedTxs--;
+                    if (numOfNotMinedTxs == 0) {
+                      uploadToHarmonyDialog.showWithContracts(url, parsed);
+                    }
+                  }
+                }
               });
               cb();
             });

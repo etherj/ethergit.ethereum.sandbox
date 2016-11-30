@@ -47,6 +47,13 @@
           <label class="col-sm-3 control-label">JSON RPC URL</label>
           <div class="col-sm-9">
             <input data-name="url" type="text" class="form-control">
+            <span id="jsonRpcUrlMsg" class="help-block" style="display:none">
+              Since IDE works through HTTPS, it cannot connect to HTTP peers due to security concerns.
+              To connect to an HTTP peer IDE sends requests through its server, hence the peer has to be available for such requests.
+              If you want to deploy your contracts to a private peer which is open only for your browser (like a localhost peer),
+              you may run <a href="https://github.com/ether-camp/ethereum-harmony" target="_blank">Harmony</a>.
+              It accepts JSON RPC requests through HTTPS.
+            </span>
           </div>
         </div>
       </form>
