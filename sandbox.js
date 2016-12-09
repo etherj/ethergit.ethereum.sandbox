@@ -26,7 +26,7 @@ define(function(require, exports, module) {
     var plugin = new Plugin('Ethergit', main.consumes);
     var emit = plugin.getEmitter();
     var id, pinnedId = null, filters = {};
-    var sandboxUrl = '//' + window.location.hostname + ':8555/sandbox/';
+    var sandboxUrl = 'http://localhost:8555/sandbox/';
 
     web3._extend({
       property: 'sandbox',
