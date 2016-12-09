@@ -97,11 +97,13 @@ define(function(require) {
       });
     }
 
-    loadProxy();
-
-    c9.on('connect', loadProxy);
-    c9.on('disconnect', function() { proxy = null; });
-
+    if (options.mode == 'remote') {
+      loadProxy();
+      
+      c9.on('connect', loadProxy);
+      c9.on('disconnect', function() { proxy = null; });
+    }
+    
     dialog.on('load', function() {
       commands.addCommand({
         name: 'showSendToNet',
@@ -244,8 +246,12 @@ define(function(require) {
 
         $error.text('');
         url = $url.val();
-        if (web3) web3.currentProvider.destroy();
-        web3 = new Web3(new ProxyProvider(proxy, url));
+        if (web3 && web3.currentProvider.destroy) web3.currentProvider.destroy();
+        web3 = new Web3(
+          options.mode == 'remote' ?
+            new ProxyProvider(proxy, url) :
+            new Web3.providers.HttpProvider(url)
+        );
         async.parallel([
           updateNetworkId,
           updateGasPrice
@@ -371,7 +377,11 @@ define(function(require) {
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
-                web3: new Web3(new ProxyProvider(proxy, url)),
+                web3: new Web3(
+                  options.mode == 'remote' ?
+                    new ProxyProvider(proxy, url) :
+                    new Web3.providers.HttpProvider(url)
+                ),
                 net: net,
                 onMined: net && vals.publish ?
                   _.partial(waitForSync, _, net, uploadSources.bind(null, newAddress, vals, net)) :
