@@ -1,5 +1,6 @@
 define(function(require) {
   var EthJS = require('./ethereumjs-tx');
+  var Buffer = EthJS.Buffer.Buffer;
 
   return {
     strToHex: function(str) {
@@ -23,7 +24,7 @@ define(function(require) {
     },
     calcNewAddress: function(from, nonce) {
       return '0x' + EthJS.Util
-        .generateAddress(new EthJS.Buffer(from.substr(2), 'hex'), nonce)
+        .generateAddress(new Buffer(from.substr(2), 'hex'), nonce)
         .toString('hex');
     },
     // Workaround for https://github.com/c9/core/issues/71
@@ -48,18 +49,18 @@ define(function(require) {
     },
     toAddress: function(pkey) {
       return '0x' + EthJS.Util
-        .privateToAddress(new EthJS.Buffer(pkey.substr(2), 'hex'))
+        .privateToAddress(new Buffer(pkey.substr(2), 'hex'))
         .toString('hex');
     },
     createTx: function(options) {
       var tx = new EthJS.Tx({
         nonce: options.nonce,
         value: options.value,
-        data: new EthJS.Buffer(options.data.substr(2), 'hex'),
+        data: new Buffer(options.data.substr(2), 'hex'),
         gasLimit: options.gasLimit,
         gasPrice: options.gasPrice
       });
-      tx.sign(new EthJS.Buffer(options.pkey.substr(2), 'hex'));
+      tx.sign(new Buffer(options.pkey.substr(2), 'hex'));
       return '0x' + tx.serialize().toString('hex');
     }
   };
