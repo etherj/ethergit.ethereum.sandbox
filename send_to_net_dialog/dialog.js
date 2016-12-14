@@ -2,7 +2,8 @@ define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'layout', 'commands', 'fs', 'ext', 'c9', 'vfs', 'menus', 'Menu',
     'ethergit.sandbox', 'ethergit.libs',
-    'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console'
+    'ethergit.sandbox.config', 'ethergit.sent.txs.editor', 'ethereum-console',
+    'ethergit.dialog.upload.sources.to.harmony'
   ];
   main.provides = ['ethergit.dialog.send.to.net'];
   return main;
@@ -23,6 +24,7 @@ define(function(require) {
     var config = imports['ethergit.sandbox.config'];
     var sentTxs = imports['ethergit.sent.txs.editor'];
     var ethConsole = imports['ethereum-console'];
+    var uploadToHarmonyDialog = imports['ethergit.dialog.upload.sources.to.harmony'];
 
     var async = require('async');
     var utils = require('../utils');
@@ -31,6 +33,7 @@ define(function(require) {
     var url = 'https://frontier-lb.ether.camp';
 
     var net = 'live';
+    var isHarmony = false;
     var nets = {
       test: {
         genesis: '0x34288454de81f95812b9e20ad6a016817069b13c7edc99639114b73efbc21368',
@@ -254,7 +257,8 @@ define(function(require) {
         );
         async.parallel([
           updateNetworkId,
-          updateGasPrice
+          updateGasPrice,
+          checkHarmony
         ], cb);
 
         function validate(val) {
@@ -280,6 +284,13 @@ define(function(require) {
           web3.eth.getGasPrice(function(err, gasPrice) {
             if (err) return cb('Could not get gas price from ' + url + ': ' + err.message);
             $contracts.find('[data-name=gasPrice] input').val(gasPrice.toString());
+            cb();
+          });
+        }
+        function checkHarmony(cb) {
+          web3.version.getNode(function(err, result) {
+            if (err) return cb('Could not get node version from ' + url + ': ' + err.message);
+            isHarmony = _.startsWith(result, 'Harmony/');
             cb();
           });
         }
@@ -362,6 +373,7 @@ define(function(require) {
       function sendContracts(cb) {
         web3.eth.getTransactionCount(address, 'pending', function(err, nonce) {
           if (err) return cb(err);
+          var numOfNotMinedTxs = parsed.length;
           async.eachSeries(parsed, function(vals, cb) {
             var nextNonce = nonce++;
             web3.eth.sendRawTransaction(utils.createTx({
@@ -374,6 +386,7 @@ define(function(require) {
             }), function(err, result) {
               if (err) return cb('Could not send ' + vals.name + ': ' + err.message);
               var newAddress = utils.calcNewAddress(address, nextNonce);
+              vals.address = newAddress;
               sentTxs.addTx({
                 hash: result,
                 contract: newAddress,
@@ -383,9 +396,17 @@ define(function(require) {
                     new Web3.providers.HttpProvider(url)
                 ),
                 net: net,
-                onMined: net && vals.publish ?
-                  _.partial(waitForSync, _, net, uploadSources.bind(null, newAddress, vals, net)) :
-                  null
+                onMined: function(txHash) {
+                  if (net && vals.publish) {
+                    waitForSync(txHash, net, uploadSources.bind(null, newAddress, vals, net));
+                  }
+                  if (isHarmony) {
+                    numOfNotMinedTxs--;
+                    if (numOfNotMinedTxs == 0) {
+                      uploadToHarmonyDialog.showWithContracts(url, parsed);
+                    }
+                  }
+                }
               });
               cb();
             });
