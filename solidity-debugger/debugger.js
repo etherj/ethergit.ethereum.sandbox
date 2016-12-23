@@ -77,7 +77,6 @@ define(function(require, exports, module) {
             web3.debug.getFilterChanges(filterNum, function(err, changes) {
               if (err) return console.error(err);
               if (changes.length > 0 && _.startsWith(changes[0].source, '/root/workspace')) {
-                console.log(changes[0]);
                 state = 'stopped';
                 variables = changes[0].storageVars;
                 var frames = createFrames(changes[0]);
@@ -95,13 +94,13 @@ define(function(require, exports, module) {
     function createFrames(bp) {
       var storageScope = createScope('storage', bp.storageVars);
       var frames = _(bp.callStack)
-          .map(createFrame.bind(null, storageScope))
+          .map(createFrame)
           .reverse()
           .value();
       return frames;
     }
 
-    function createFrame(storageScope, func, idx) {
+    function createFrame(func, idx) {
       var base = '/root/workspace';
       var path = func.mapping ? func.mapping.path.substring(base.length) : '/no-source';
       return new Frame({
@@ -112,7 +111,10 @@ define(function(require, exports, module) {
         id: func.name,
         script: path,
         path: path,
-        scopes: [ storageScope, createScope('function', func.vars) ]
+        scopes: [
+          createScope('storage', func.storage),
+          createScope('function', func.vars)
+        ]
       });
     }
 
