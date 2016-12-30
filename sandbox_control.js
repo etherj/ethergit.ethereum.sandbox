@@ -286,7 +286,7 @@ define(function(require, exports, module) {
       ], function(err, params) {
         if (err) cb(err);
         else async.series([
-          startSandbox.bind(this, params.projectName, withDebug, params.config),
+          startSandbox.bind(this, params.projectName, params.projectDir, withDebug, params.config),
           startDebugger,
           createAccounts.bind(this, params.config),
           createContracts.bind(this, params.config, params.contracts)
@@ -438,8 +438,8 @@ define(function(require, exports, module) {
         }
       }
 
-      function startSandbox(projectName, debug, config, cb) {
-        sandbox.start(projectName, debug, config, cb);
+      function startSandbox(projectName, projectDir, debug, config, cb) {
+        sandbox.start(projectName, projectDir, debug, config, cb);
       }
       function startDebugger(cb) {
         if (withDebug) {
