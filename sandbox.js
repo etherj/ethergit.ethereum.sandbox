@@ -80,6 +80,11 @@ define(function(require, exports, module) {
           name: 'setProjectName',
           call: 'sandbox_setProjectName',
           params: 1
+        }),
+        new web3._extend.Method({
+          name: 'setProjectDir',
+          call: 'sandbox_setProjectDir',
+          params: 1
         })
       ],
       properties: [
@@ -95,6 +100,10 @@ define(function(require, exports, module) {
         new web3._extend.Property({
           name: 'projectName',
           getter: 'sandbox_projectName'
+        }),
+        new web3._extend.Property({
+          name: 'projectDir',
+          getter: 'sandbox_projectDir'
         })
       ]
     });
@@ -117,7 +126,7 @@ define(function(require, exports, module) {
       }
     }
     
-    function start(projectName, config, cb) {
+    function start(projectName, projectDir, config, cb) {
       var accounts = _(config.env.accounts)
           .pairs()
           .filter(function(account) {
@@ -140,6 +149,7 @@ define(function(require, exports, module) {
           cb();
         },
         web3.sandbox.setProjectName.bind(web3.sandbox, projectName),
+        web3.sandbox.setProjectDir.bind(web3.sandbox, projectDir),
         web3.sandbox.setBlock.bind(web3.sandbox, config.env.block),
         web3.sandbox.createAccounts.bind(web3.sandbox, config.env.accounts),
         web3.sandbox.addAccounts.bind(web3.sandbox, accounts),
