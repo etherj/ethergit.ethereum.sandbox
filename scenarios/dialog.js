@@ -1,7 +1,7 @@
 define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'layout', 'commands', 'menus', 'Menu', 'fs',
-    'ethergit.libs', 'ethergit.sandbox'
+    'ethergit.libs', 'ethergit.sandbox', 'ethergit.dialog.scenario'
   ];
   main.provides = ['ethergit.dialog.scenarios'];
   return main;
@@ -16,6 +16,7 @@ define(function(require) {
     var fs = imports.fs;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
+    var scenarioDialog = imports['ethergit.dialog.scenario'];
 
     var async = require('async');
     
@@ -79,6 +80,20 @@ define(function(require) {
       var $root = $(e.html);
       $scenarios = $root.find('[data-name=scenarios]');
       $error = $root.find('[data-name=error]');
+
+      $scenarios.click(function(e) {
+        var scenario = $(e.target).data('name');
+        if (scenario) { 
+          e.preventDefault();
+          scenarioDialog.showScenario(scenario);
+        }
+      });
+      
+      $root.keydown(function(e) { e.stopPropagation(); });
+      $root.keyup(function(e) {
+        e.stopPropagation();
+        if (e.keyCode == 27) hide();
+      });
     });
 
     dialog.on('show', function() {
@@ -112,7 +127,11 @@ define(function(require) {
             }, function(err, scenarios) {
               if (err) return $error.text(err);
               _.each(scenarios, function(scenario) {
-                $scenarios.append('<li>' + scenario.name + '</li>');
+                $scenarios.append(
+                  '<li><a href="#" data-name="' + scenario.name + '">' +
+                    scenario.name +
+                    '</a></li>'
+                );
               });
             });
           });
