@@ -1,7 +1,8 @@
 define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'layout', 'commands', 'menus', 'Menu', 'fs',
-    'ethergit.libs', 'ethergit.sandbox', 'ethergit.dialog.scenario'
+    'ethergit.libs', 'ethergit.sandbox', 'ethergit.dialog.scenario',
+    'ethereum-console'
   ];
   main.provides = ['ethergit.dialog.scenarios'];
   return main;
@@ -17,6 +18,7 @@ define(function(require) {
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var scenarioDialog = imports['ethergit.dialog.scenario'];
+    var ethConsole = imports['ethereum-console'];
 
     var async = require('async');
     
@@ -25,6 +27,12 @@ define(function(require) {
 
     var $scenarios, $error;
 
+    var scenarioTmpl = _.template(
+      '<li>' +
+        '<a href="#" data-action="open" data-name="<%= name %>"><%= name %></a> ' +
+        '<a href="#" data-action="run" data-name="<%= name %>" class="glyphicon glyphicon-play"></a>' +
+        '</li>'
+    );
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-scenarios',
       allowClose: true,
@@ -82,10 +90,15 @@ define(function(require) {
       $error = $root.find('[data-name=error]');
 
       $scenarios.click(function(e) {
-        var scenario = $(e.target).data('name');
-        if (scenario) { 
+        var $el = $(e.target);
+        var action = $el.data('action');
+        if (action) {
           e.preventDefault();
-          scenarioDialog.showScenario(scenario);
+          if (action == 'open') {
+            scenarioDialog.showScenario($el.data('name'));
+          } else if (action == 'run') {
+            runScenario($el.data('name'));
+          }
         }
       });
       
@@ -127,11 +140,9 @@ define(function(require) {
             }, function(err, scenarios) {
               if (err) return $error.text(err);
               _.each(scenarios, function(scenario) {
-                $scenarios.append(
-                  '<li><a href="#" data-name="' + scenario.name + '">' +
-                    scenario.name +
-                    '</a></li>'
-                );
+                $scenarios.append(scenarioTmpl({
+                  name: scenario.name
+                }));
               });
             });
           });
@@ -141,6 +152,37 @@ define(function(require) {
     
     function hide() {
       dialog.hide();
+    }
+
+    function runScenario(name) {
+      $error.empty();
+
+      sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+        if (err) return $error.text(err);
+
+        var file = projectDir + 'scenarios/' + name + '.json';
+        fs.readFile(file, function(err, content) {
+          if (err) return $error.text(err);
+
+          try {
+            var txs = JSON.parse(content);
+            ethConsole.logger(function(err, logger) {
+              if (err) return console.error(err);
+              logger.log('Running scenario <b>' + name + '</b>');
+              async.each(txs, runTx, function(err) {
+                if (err) logger.error(err);
+                else logger.log('Scenario has been executed successfully');
+              });
+            });
+          } catch (e) {
+            $error.text(e);
+          }
+        });
+      });
+    }
+
+    function runTx(params, cb) {
+      sandbox.web3.eth.sendTransaction(params, cb);
     }
 
     dialog.freezePublicAPI({});
