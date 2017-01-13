@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'fs', 'ui', 'ethergit.libs', 'ethergit.sandbox'
+    'Dialog', 'fs', 'ui', 'ethergit.libs', 'ethergit.sandbox', 'ethereum-console'
   ];
   main.provides = ['ethergit.dialog.scenario'];
   return main;
@@ -11,13 +11,15 @@ define(function(require) {
     var ui = imports.ui;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
+    var ethConsole = imports['ethereum-console'];
 
     var $ = libs.jquery();
     var _ = libs.lodash();
 
+    var async = require('async');
     var folder = require('../folder')(_);
-    
-    var $error, $name, $txs;
+
+    var scenarioName, $error, $name, $txs;
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-scenario',
@@ -25,6 +27,10 @@ define(function(require) {
       title: 'Scenario',
       width: 600,
       elements: [
+        {
+          type: 'button', id: 'run', color: 'green',
+          caption: 'Run', onclick: runScenario
+        },
         {
           type: 'button', id: 'close', color: 'blue',
           caption: 'Close', 'default': true, onclick: hide
@@ -53,6 +59,8 @@ define(function(require) {
     });
 
     function showScenario(name) {
+      scenarioName = name;
+      
       dialog.show();
       $error.empty();
       $txs.empty();
@@ -86,6 +94,37 @@ define(function(require) {
 
     function hide() {
       dialog.hide();
+    }
+
+    function runScenario() {
+      $error.empty();
+
+      sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+        if (err) return $error.text(err);
+
+        var file = projectDir + 'scenarios/' + scenarioName + '.json';
+        fs.readFile(file, function(err, content) {
+          if (err) return $error.text(err);
+
+          try {
+            var txs = JSON.parse(content);
+            ethConsole.logger(function(err, logger) {
+              if (err) return console.error(err);
+              logger.log('Running scenario <b>' + scenarioName + '</b>');
+              async.each(txs, runTx, function(err) {
+                if (err) logger.error(err);
+                else logger.log('Scenario has been executed successfully');
+              });
+            });
+          } catch (e) {
+            $error.text(e);
+          }
+        });
+      });
+    }
+
+    function runTx(params, cb) {
+      sandbox.web3.eth.sendTransaction(params, cb);
     }
 
     dialog.freezePublicAPI({
