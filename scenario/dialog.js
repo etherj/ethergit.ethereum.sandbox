@@ -69,10 +69,10 @@ define(function(require) {
             _.each(txs, function(tx) {
               $txs.append(
                 '<tr>' +
-                  '<td>' + tx.from + '</td>' +
-                  '<td>' + tx.to + '</td>' +
-                  '<td>' + tx.value + '</td>' +
-                  '<td data-folder class="long-string folder">' + tx.data + '</td>' +
+                  '<td><span data-folder class="long-string folder">' + tx.from + '</span></td>' +
+                  '<td><span data-folder class="long-string folder">' + (tx.to || '[creation]') + '</span></td>' +
+                  '<td>' + (tx.value || 0) + '</td>' +
+                  '<td><span data-folder class="long-string folder">' + (tx.data || 'none') + '</span></td>' +
                   '</tr>'
               );
             });
