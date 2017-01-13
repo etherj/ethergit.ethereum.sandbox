@@ -1,0 +1,8 @@
+.scenario .long-string {
+    width: 80%;
+    overflow-wrap: break-word;
+}
+
+.scenario .folder {
+    cursor: pointer;
+}
