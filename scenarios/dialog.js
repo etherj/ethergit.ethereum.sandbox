@@ -30,7 +30,8 @@ define(function(require) {
     var scenarioTmpl = _.template(
       '<li>' +
         '<a href="#" data-action="open" data-name="<%= name %>"><%= name %></a> ' +
-        '<a href="#" data-action="run" data-name="<%= name %>" class="glyphicon glyphicon-play"></a>' +
+        '<a href="#" data-action="run" data-name="<%= name %>" class="glyphicon glyphicon-play"></a> ' +
+        '<a href="#" data-action="remove" data-name="<%= name %>" class="glyphicon glyphicon-remove"></a> ' +
         '</li>'
     );
     var dialog = new Dialog('Ethergit', main.consumes, {
@@ -98,6 +99,8 @@ define(function(require) {
             scenarioDialog.showScenario($el.data('name'));
           } else if (action == 'run') {
             runScenario($el.data('name'));
+          } else if (action == 'remove') {
+            removeScenario($el.data('name'));
           }
         }
       });
@@ -177,6 +180,20 @@ define(function(require) {
           } catch (e) {
             $error.text(e);
           }
+        });
+      });
+    }
+
+    function removeScenario(name) {
+      $error.empty();
+
+      sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+        if (err) return $error.text(err);
+
+        var file = projectDir + 'scenarios/' + name + '.json';
+        fs.rmfile(file, function(err) {
+          if (err) return $error.text(err);
+          $scenarios.find('[data-name=' + name + ']').parent().remove();
         });
       });
     }
