@@ -24,6 +24,7 @@ define(function(require) {
     
     var $ = libs.jquery();
     var _ = libs.lodash();
+    var yaml = libs.yaml();
 
     var $scenarios, $error;
 
@@ -130,7 +131,7 @@ define(function(require) {
           fs.readdir(scenariosDir, function(err, files) {
             if (err) return console.error(err);
             files = _.filter(files, function(file) {
-              return _.endsWith(file.name, '.json');
+              return _.endsWith(file.name, '.yaml');
             });
             async.map(files, function(file, cb) {
               fs.readFile(scenariosDir + file.name, function(err, content) {
@@ -163,12 +164,12 @@ define(function(require) {
       sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
         if (err) return $error.text(err);
 
-        var file = projectDir + 'scenarios/' + name + '.json';
+        var file = projectDir + 'scenarios/' + name + '.yaml';
         fs.readFile(file, function(err, content) {
           if (err) return $error.text(err);
 
           try {
-            var txs = JSON.parse(content);
+            var txs = yaml.safeLoad(content);
             ethConsole.logger(function(err, logger) {
               if (err) return console.error(err);
               logger.log('Running scenario <b>' + name + '</b>');
@@ -190,7 +191,7 @@ define(function(require) {
       sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
         if (err) return $error.text(err);
 
-        var file = projectDir + 'scenarios/' + name + '.json';
+        var file = projectDir + 'scenarios/' + name + '.yaml';
         fs.rmfile(file, function(err) {
           if (err) return $error.text(err);
           $scenarios.find('[data-name=' + name + ']').parent().remove();
