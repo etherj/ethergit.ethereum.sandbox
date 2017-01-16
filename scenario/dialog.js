@@ -15,6 +15,7 @@ define(function(require) {
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+    var yaml = libs.yaml();
 
     var async = require('async');
     var folder = require('../folder')(_);
@@ -69,11 +70,11 @@ define(function(require) {
       sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
         if (err) return $error.text(err);
 
-        var file = projectDir + 'scenarios/' + name + '.json';
+        var file = projectDir + 'scenarios/' + name + '.yaml';
         fs.readFile(file, function(err, content) {
           if (err) return $error.text(err);
           try {
-            var txs = JSON.parse(content);
+            var txs = yaml.safeLoad(content);
             _.each(txs, function(tx) {
               $txs.append(
                 '<tr>' +
@@ -102,12 +103,12 @@ define(function(require) {
       sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
         if (err) return $error.text(err);
 
-        var file = projectDir + 'scenarios/' + scenarioName + '.json';
+        var file = projectDir + 'scenarios/' + scenarioName + '.yaml';
         fs.readFile(file, function(err, content) {
           if (err) return $error.text(err);
 
           try {
-            var txs = JSON.parse(content);
+            var txs = yaml.safeLoad(content);
             ethConsole.logger(function(err, logger) {
               if (err) return console.error(err);
               logger.log('Running scenario <b>' + scenarioName + '</b>');

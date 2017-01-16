@@ -38,6 +38,7 @@ define(function(require) {
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+    var yaml = libs.yaml();
 
     var $txs, $error;
     
@@ -198,8 +199,8 @@ define(function(require) {
           if (err) return $error.text(err);
           findNotUsedName(projectDir, function(err, name) {
             if (err) return $error.text(err);
-            var file = projectDir + 'scenarios/' + name + '.json';
-            fs.writeFile(file, JSON.stringify(scenario, null, 2), function(err) {
+            var file = projectDir + 'scenarios/' + name + '.yaml';
+            fs.writeFile(file, yaml.safeDump(scenario), function(err) {
               if (err) return $error.text(err);
               scenarioDialog.showScenario(name);
             });
@@ -211,7 +212,7 @@ define(function(require) {
     function findNotUsedName(projectDir, cb) {
       var num = 1;
       var prefix = projectDir + 'scenarios/' + 'Scenario';
-      var suffix = '.json';
+      var suffix = '.yaml';
       var tries = 100;
       async.during(
         function(cb) {
