@@ -170,16 +170,25 @@ define(function(require) {
 
           try {
             var txs = yaml.safeLoad(content);
-            ethConsole.logger(function(err, logger) {
-              if (err) return console.error(err);
-              logger.log('Running scenario <b>' + name + '</b>');
-              async.each(txs, runTx, function(err) {
-                if (err) logger.error(err);
-                else logger.log('Scenario has been executed successfully');
+            var errors = validateScenario(txs);
+            if (errors.length > 0) {
+              $error.html(
+                _.reduce(errors, function(html, error) {
+                  return html + error + '<br/>';
+                }, '')
+              );
+            } else {
+              ethConsole.logger(function(err, logger) {
+                if (err) return console.error(err);
+                logger.log('Running scenario <b>' + name + '</b>');
+                async.each(txs, runTx, function(err) {
+                  if (err) logger.error(err);
+                  else logger.log('Scenario has been executed successfully');
+                });
               });
-            });
+            }
           } catch (e) {
-            $error.text(e);
+            $error.html('<pre>' + e + '</pre>');
           }
         });
       });
@@ -201,6 +210,45 @@ define(function(require) {
 
     function runTx(params, cb) {
       sandbox.web3.eth.sendTransaction(params, cb);
+    }
+
+    function validateScenario(scenario) {
+      if (!_.isArray(scenario))
+        return ['Scenario must be an array of objects with details of its transactions.'];
+
+      return _(scenario)
+        .map(function(tx, num) {
+          var errors = [];
+          num++;
+          if (!_.has(tx, 'from')) {
+            errors.push('Transaction ' + num + ' must have a field [from]');
+          } else if (!isAddress(tx.from)) {
+            errors.push('Transaction ' + num + ' must contain an address in the field [from]');
+          }
+          console.log(tx.to);
+          if (_.has(tx, 'to') && !_.isNull(tx.to) && !isAddress(tx.to)) {
+            errors.push('Transaction ' + num + ' must contain an address in the field [to]');
+          }
+          if (_.has(tx, 'value') && !_.isNull(tx.value) && !isNumber(tx.value)) {
+            errors.push('Transaction ' + num + ' must contain a number in the field [value]');
+          }
+          if (_.has(tx, 'data') && !_.isNull(tx.data) && !isHex(tx.data)) {
+            errors.push('Transaction ' + num + ' must contain a hex-data in the field [data]');
+          }
+          return errors;
+        })
+        .flatten()
+        .value();
+
+      function isAddress(str) {
+        return /^0x[\dabcdef]{40}$/.test(str.toLowerCase());
+      }
+      function isNumber(value) {
+        return _.isNumber(value) || /^0x[\dabcdef]+$/.test(value.toLowerCase());
+      }
+      function isHex(value) {
+        return /^0x[\dabcdef]+$/.test(value.toLowerCase());
+      }
     }
 
     dialog.freezePublicAPI({});
