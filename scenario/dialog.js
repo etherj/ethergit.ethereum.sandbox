@@ -159,7 +159,6 @@ define(function(require) {
           } else if (!isAddress(tx.from)) {
             errors.push('Transaction ' + num + ' must contain an address in the field [from]');
           }
-          console.log(tx.to);
           if (_.has(tx, 'to') && !_.isNull(tx.to) && !isAddress(tx.to)) {
             errors.push('Transaction ' + num + ' must contain an address in the field [to]');
           }

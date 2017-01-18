@@ -50,6 +50,13 @@ define(function(require) {
         '<td><%= to %></td>' +
         '</tr>'
     );
+    var scenarioHeaderTmpl = _.template(
+      '# \n' +
+        '# <%= name %> \n' +
+        '# \n' +
+        '# Created on: <%= time %> \n' +
+        '# \n\n'
+    );
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'sandbox-transactions',
@@ -200,7 +207,7 @@ define(function(require) {
           findNotUsedName(projectDir, function(err, name) {
             if (err) return $error.text(err);
             var file = projectDir + 'scenarios/' + name + '.yaml';
-            fs.writeFile(file, yaml.safeDump(scenario), function(err) {
+            fs.writeFile(file, addComments(name, yaml.safeDump(scenario)), function(err) {
               if (err) return $error.text(err);
               scenarioDialog.showScenario(name);
             });
@@ -227,6 +234,14 @@ define(function(require) {
           cb(err, 'Scenario' + num);
         }
       );
+    }
+
+    function addComments(name, scenario) {
+      var header = scenarioHeaderTmpl({
+        name: name,
+        time: new Date().toLocaleString()
+      });
+      return header + scenario;
     }
     
     function hideDialog() {
