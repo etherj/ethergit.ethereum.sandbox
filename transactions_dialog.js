@@ -55,7 +55,7 @@ define(function(require) {
         '# <%= name %> \n' +
         '# \n' +
         '# Created on: <%= time %> \n' +
-        '# \n\n'
+        '# \n'
     );
     
     var dialog = new Dialog('Ethergit', main.consumes, {
@@ -126,7 +126,7 @@ define(function(require) {
       sandbox.on('changed', updateTxCounter);
 
       function updateTxCounter() {
-        sandbox.transactions(function(err, transactions) {
+        sandbox.transactions(false, function(err, transactions) {
           if (err) return console.error(err);
           btnTransactions.setAttribute(
             'caption', 'Transactions (' + transactions.length + ')'
@@ -160,7 +160,7 @@ define(function(require) {
     
     function render() {
       var $container = $('[data-name=transactions]').empty();
-      sandbox.transactions(function(err, transactions) {
+      sandbox.transactions(false, function(err, transactions) {
         if (err) return $error.text(err);
         transactions.forEach(function(tx, id) {
           $container.append(txTmpl({
@@ -195,11 +195,20 @@ define(function(require) {
         $error.text('Select transactions for the new scenario.');
         return;
       }
-      sandbox.transactions(function(err, transactions) {
+      sandbox.transactions(true, function(err, transactions) {
         if (err) return $error.text(err);
         var scenario = [];
+        var comments = [];
         _.each(_.pick(transactions, nums), function(tx) {
-          scenario.push(_.pick(tx, ['from', 'to', 'value', 'data']));
+          var comment, details;
+          if (_.has(tx, 'contract')) {
+            details =  _.pick(tx, ['from', 'to', 'value', 'contract']);
+            comment = 'Create contract ' + details.contract.name;
+          } else {
+            details = _.pick(tx, ['from', 'to', 'value', 'data']);
+          }
+          scenario.push(details);
+          comments.push(comment);
         });
 
         sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
@@ -207,7 +216,7 @@ define(function(require) {
           findNotUsedName(projectDir, function(err, name) {
             if (err) return $error.text(err);
             var file = projectDir + 'scenarios/' + name + '.yaml';
-            fs.writeFile(file, addComments(name, yaml.safeDump(scenario)), function(err) {
+            fs.writeFile(file, addComments(name, comments, yaml.safeDump(scenario)), function(err) {
               if (err) return $error.text(err);
               scenarioDialog.showScenario(name);
             });
@@ -236,12 +245,21 @@ define(function(require) {
       );
     }
 
-    function addComments(name, scenario) {
+    function addComments(name, comments, scenario) {
       var header = scenarioHeaderTmpl({
         name: name,
         time: new Date().toLocaleString()
       });
-      return header + scenario;
+      scenario = header + scenario;
+      var parts = scenario.split('\n-');
+      scenario = parts.shift();
+      while (parts.length > 0) {
+        scenario += '\n';
+        var comment = comments.shift();
+        if (comment) scenario += '\n# ' + comment;
+        scenario += '\n-' + parts.shift();
+      }
+      return scenario;
     }
     
     function hideDialog() {

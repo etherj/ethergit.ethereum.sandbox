@@ -69,7 +69,7 @@ define(function(require, exports, module) {
         new web3._extend.Method({
           name: 'transactions',
           call: 'sandbox_transactions',
-          params: 0
+          params: 1
         }),
         new web3._extend.Method({
           name: 'receipt',
