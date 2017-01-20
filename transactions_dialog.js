@@ -202,6 +202,8 @@ define(function(require) {
         _.each(_.pick(transactions, nums), function(tx) {
           var comment, details;
           if (_.has(tx, 'contract')) {
+            var dir = tx.contract.dir;
+            tx.contract.dir = dir.substr(dir.indexOf('/', 1) + 1);
             details =  _.pick(tx, ['from', 'to', 'value', 'contract']);
             comment = 'Create contract ' + details.contract.name;
           } else {

@@ -1,6 +1,8 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'fs', 'ui', 'ethergit.libs', 'ethergit.sandbox', 'ethereum-console'
+    'Dialog', 'fs', 'ui',
+    'ethergit.solidity.compiler', 'ethergit.libs',
+    'ethergit.sandbox', 'ethereum-console'
   ];
   main.provides = ['ethergit.dialog.scenario'];
   return main;
@@ -12,6 +14,7 @@ define(function(require) {
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var ethConsole = imports['ethereum-console'];
+    var compiler = imports['ethergit.solidity.compiler'];
 
     var $ = libs.jquery();
     var _ = libs.lodash();
@@ -45,6 +48,7 @@ define(function(require) {
         '<li><strong>From:</strong> <%= from %></li>' +
         '<li><strong>Value:</strong> <%= value %></li>' +
         '<li><strong>Contract name:</strong> <%= contract.name %></li>' +
+        '<li><strong>Directory:</strong> <%= contract.dir %></li>' +
         '<li><strong>Sources:</strong> <%= contract.sources %></li>' +
         '<li><strong>Args:</strong> <%= contract.args %></li>' +
         '</ul>' +
@@ -121,6 +125,7 @@ define(function(require) {
                     value: tx.value,
                     contract: {
                       name: tx.contract.name,
+                      dir: tx.contract.dir,
                       sources: tx.contract.sources.join(', '),
                       args: JSON.stringify(tx.contract.args)
                     }
@@ -161,7 +166,7 @@ define(function(require) {
 
           try {
             var txs = yaml.safeLoad(content);
-            var errors = validateScenario(txs);
+            var errors = [];//validateScenario(txs);
             if (errors.length > 0) {
               $error.html(
                 _.reduce(errors, function(html, error) {
@@ -172,7 +177,7 @@ define(function(require) {
               ethConsole.logger(function(err, logger) {
                 if (err) return console.error(err);
                 logger.log('Running scenario <b>' + scenarioName + '</b>');
-                async.each(txs, runTx, function(err) {
+                async.each(txs, runTx.bind(null, projectDir), function(err) {
                   if (err) logger.error(err);
                   else logger.log('Scenario has been executed successfully');
                 });
@@ -185,8 +190,111 @@ define(function(require) {
       });
     }
 
-    function runTx(params, cb) {
-      sandbox.web3.eth.sendTransaction(params, cb);
+    function runTx(projectDir, params, cb) {
+      if (_.has(params, 'contract')) {
+        async.waterfall([
+          compile,
+          send
+        ], cb);
+      } else {
+        sandbox.web3.eth.sendTransaction(params, cb);
+      }
+
+      function compile(cb) {
+        compiler.binaryAndABI(
+          params.contract.sources,
+          projectDir + params.contract.dir,
+          function(err, output) {
+            if (err) {
+              cb('<pre>' + err.message + '</pre>');
+            } else {
+              cb(null, output.contracts);
+            }
+          }
+        );
+      }
+      function send(contracts, cb) {
+        var contract = _.find(contracts, { name: params.contract.name });
+        if (!contract) return cb('Could not find the contract ' + params.contract.name);
+
+        deploy(contract, cb);
+
+        function deploy(contract, cb) {
+          if (contract.address) return cb();
+          
+          try {
+            var libs = findLibs();
+          } catch (err) {
+            return cb(err);
+          }
+          
+          if (libs.length != 0) {
+            async.eachSeries(libs, deploy, function(err) {
+              if (err) return cb(err);
+              _.each(libs, function(lib) {
+                putLibAddress(lib.name, lib.address);
+              });
+              deploy(contract, cb);
+            });
+          } else sendTx(params.contract.args, cb);
+
+          function findLibs() {
+            var match, libs = [], libRe = /[^_]__(\w{36})__[^_]/g;
+            while (match = libRe.exec(contract.binary)) {
+              if (_.some(libs, matchName.bind(null, match[1]))) continue;
+              
+              var lib = _.find(contracts, matchName.bind(null, match[1]));
+              if (!lib) throw "There is no lib to link with " + match[1];
+              libs.push(lib);
+            }
+            return libs;
+            
+            function matchName(nameWithUnderscores, lib) {
+              var name = lib.name;
+              if (name.length > 36) name = name.substr(0, 36);
+              else if (name.length < 36) name += _.repeat('_', 36 - name.length);
+              return nameWithUnderscores == name;
+            }
+          }
+          function putLibAddress(name, address) {
+            if (name.length > 36) name = name.substr(0, 36);
+            var placeholder = '__' + name + '__';
+            placeholder = placeholder + _.repeat('_', 40 - placeholder.length);
+            var re = new RegExp(placeholder, 'g');
+            contract.binary = contract.binary.replace(re, address.substr(2));
+          }
+          function sendTx(args, cb) {
+            var txHash;
+
+            contract.args = _.clone(args);
+
+            args.push({
+              contract: contract,
+              data: contract.binary.length == 0 ? '0x00' : '0x' + contract.binary
+            });
+            args.push(function(err, newContract) {
+              if (err) {
+                // web3 doesn't check exceptions, so here's a workaround to show user an exception
+                if (err.message === 'The contract code couldn\'t be stored, please check your gas amount.') {
+                  sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
+                    if (error) return cb(error);
+                    if (receipt.exception) log('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
+                    else log('Contract ' + contract.name + ' has no code.');
+                    cb();
+                  });
+                } else cb(err);
+              }
+              else if (newContract.address) {
+                contract.address = newContract.address;
+                cb();
+              }
+              else txHash = newContract.transactionHash;
+            });
+            var newContract = sandbox.web3.eth.contract(contract.abi);
+            newContract.new.apply(newContract, args);
+          }
+        }
+      }
     }
 
     function validateScenario(scenario) {
@@ -225,6 +333,13 @@ define(function(require) {
       function isHex(value) {
         return /^0x[\dabcdef]+$/.test(value.toLowerCase());
       }
+    }
+
+    function log(message) {
+      ethConsole.logger(function(err, logger) {
+        if (err) console.error(err);
+        else logger.error(message);
+      });
     }
 
     dialog.freezePublicAPI({
