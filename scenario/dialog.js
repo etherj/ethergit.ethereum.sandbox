@@ -21,6 +21,23 @@ define(function(require) {
     var folder = require('../folder')(_);
 
     var scenarioName, $error, $name, $txs;
+
+    var txTmpl = _.template(
+      '<div>' +
+        '<h4>Transaction <%= num %></h4>' +
+        '<ul class="list-unstyled">' +
+        '<li><strong>from:</strong> <%= from %></li>' +
+        '<% if (to) { %><li><strong>to:</strong> <%= to %></li><% } %>' +
+        '<li><strong>value:</strong> <%= value %></li>' +
+        '<% if (data) { %>' +
+        '<li>' +
+        '<strong>data:</strong> ' +
+        '<span data-folder class="long-string folder"><%= data %></span>' +
+        '</li>' +
+        '<% } %>' +
+        '</ul>' +
+        '</div>'
+    );
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-scenario',
@@ -83,15 +100,14 @@ define(function(require) {
                 }, '')
               );
             } else {
-              _.each(txs, function(tx) {
-                $txs.append(
-                  '<tr>' +
-                    '<td><span data-folder class="long-string folder">' + tx.from + '</span></td>' +
-                    '<td><span data-folder class="long-string folder">' + (tx.to || '[creation]') + '</span></td>' +
-                    '<td>' + (tx.value || 0) + '</td>' +
-                    '<td><span data-folder class="long-string folder">' + (tx.data || 'none') + '</span></td>' +
-                    '</tr>'
-                );
+              _.each(txs, function(tx, num) {
+                $txs.append(txTmpl({
+                  num: num + 1,
+                  from: tx.from,
+                  to: tx.to,
+                  value: tx.value,
+                  data: tx.data
+                }));
               });
               folder.init($txs);
             }
