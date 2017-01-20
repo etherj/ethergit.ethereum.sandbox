@@ -26,15 +26,27 @@ define(function(require) {
       '<div>' +
         '<h4>Transaction <%= num %></h4>' +
         '<ul class="list-unstyled">' +
-        '<li><strong>from:</strong> <%= from %></li>' +
-        '<% if (to) { %><li><strong>to:</strong> <%= to %></li><% } %>' +
-        '<li><strong>value:</strong> <%= value %></li>' +
+        '<li><strong>From:</strong> <%= from %></li>' +
+        '<% if (to) { %><li><strong>To:</strong> <%= to %></li><% } %>' +
+        '<li><strong>Value:</strong> <%= value %></li>' +
         '<% if (data) { %>' +
         '<li>' +
-        '<strong>data:</strong> ' +
+        '<strong>Data:</strong> ' +
         '<span data-folder class="long-string folder"><%= data %></span>' +
         '</li>' +
         '<% } %>' +
+        '</ul>' +
+        '</div>'
+    );
+    var contractCreationTmpl = _.template(
+      '<div>' +
+        '<h4>Transaction <%= num %></h4>' +
+        '<ul class="list-unstyled">' +
+        '<li><strong>From:</strong> <%= from %></li>' +
+        '<li><strong>Value:</strong> <%= value %></li>' +
+        '<li><strong>Contract name:</strong> <%= contract.name %></li>' +
+        '<li><strong>Sources:</strong> <%= contract.sources %></li>' +
+        '<li><strong>Args:</strong> <%= contract.args %></li>' +
         '</ul>' +
         '</div>'
     );
@@ -101,13 +113,28 @@ define(function(require) {
               );
             } else {
               _.each(txs, function(tx, num) {
-                $txs.append(txTmpl({
-                  num: num + 1,
-                  from: tx.from,
-                  to: tx.to,
-                  value: tx.value,
-                  data: tx.data
-                }));
+                var html;
+                if (_.has(tx, 'contract')) {
+                  html = contractCreationTmpl({
+                    num: num + 1,
+                    from: tx.from,
+                    value: tx.value,
+                    contract: {
+                      name: tx.contract.name,
+                      sources: tx.contract.sources.join(', '),
+                      args: JSON.stringify(tx.contract.args)
+                    }
+                  });
+                } else {
+                  html = txTmpl({
+                    num: num + 1,
+                    from: tx.from,
+                    to: tx.to,
+                    value: tx.value,
+                    data: tx.data
+                  });
+                }
+                $txs.append(html);
               });
               folder.init($txs);
             }
