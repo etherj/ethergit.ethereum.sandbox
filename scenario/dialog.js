@@ -201,17 +201,21 @@ define(function(require) {
       }
 
       function compile(cb) {
-        compiler.binaryAndABI(
-          params.contract.sources,
-          projectDir + params.contract.dir,
-          function(err, output) {
-            if (err) {
-              cb('<pre>' + err.message + '</pre>');
-            } else {
-              cb(null, output.contracts);
+        sandbox.web3.debug.getEnabled(function(err, enabled) {
+          if (err) return cb(err);
+          compiler.binaryAndABI(
+            params.contract.sources,
+            projectDir + params.contract.dir,
+            enabled,
+            function(err, output) {
+              if (err) {
+                cb('<pre>' + err.message + '</pre>');
+              } else {
+                cb(null, output.contracts);
+              }
             }
-          }
-        );
+          );
+        });
       }
       function send(contracts, cb) {
         var contract = _.find(contracts, { name: params.contract.name });

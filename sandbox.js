@@ -161,6 +161,12 @@ define(function(require, exports, module) {
           call: 'debug_stepOut',
           params: 0
         })
+      ],
+      properties: [
+        new web3._extend.Property({
+          name: 'enabled',
+          getter: 'debug_enabled'
+        })
       ]
     });
     
