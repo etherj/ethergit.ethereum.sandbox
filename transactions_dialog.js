@@ -203,7 +203,8 @@ define(function(require) {
           var comment, details;
           if (_.has(tx, 'contract')) {
             var dir = tx.contract.dir;
-            tx.contract.dir = dir.substr(dir.indexOf('/', 1) + 1);
+            // remove /root/workspace/project-dir
+            tx.contract.dir = dir.substr(dir.indexOf('/', 16) + 1);
             details =  _.pick(tx, ['from', 'to', 'value', 'contract']);
             comment = 'Create contract ' + details.contract.name;
           } else {

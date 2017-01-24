@@ -82,6 +82,11 @@ define(function(require, exports, module) {
           params: 1
         }),
         new web3._extend.Method({
+          name: 'setBreakpoint',
+          call: 'sandbox_setBreakpoint',
+          params: 2
+        }),
+        new web3._extend.Method({
           name: 'setProjectDir',
           call: 'sandbox_setProjectDir',
           params: 1
@@ -107,7 +112,64 @@ define(function(require, exports, module) {
         })
       ]
     });
-
+    
+    web3._extend({
+      property: 'debug',
+      methods: [
+        new web3._extend.Method({
+          name: 'setBreakpoints',
+          call: 'debug_setBreakpoints',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'removeBreakpoints',
+          call: 'debug_removeBreakpoints',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'newBreakpointFilter',
+          call: 'debug_newBreakpointFilter',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'getFilterChanges',
+          call: 'debug_getFilterChanges',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'uninstallFilter',
+          call: 'debug_uninstallFilter',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'resume',
+          call: 'debug_resume',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepInto',
+          call: 'debug_stepInto',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepOver',
+          call: 'debug_stepOver',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepOut',
+          call: 'debug_stepOut',
+          params: 0
+        })
+      ],
+      properties: [
+        new web3._extend.Property({
+          name: 'enabled',
+          getter: 'debug_enabled'
+        })
+      ]
+    });
+    
     function select(sandboxId) {
       pinnedId = null;
       if (id) {
@@ -126,7 +188,7 @@ define(function(require, exports, module) {
       }
     }
     
-    function start(projectName, projectDir, config, cb) {
+    function start(projectName, projectDir, debug, config, cb) {
       var accounts = _(config.env.accounts)
           .pairs()
           .filter(function(account) {
@@ -151,7 +213,6 @@ define(function(require, exports, module) {
         web3.sandbox.setProjectName.bind(web3.sandbox, projectName),
         web3.sandbox.setProjectDir.bind(web3.sandbox, projectDir),
         web3.sandbox.setBlock.bind(web3.sandbox, config.env.block),
-        web3.sandbox.createAccounts.bind(web3.sandbox, config.env.accounts),
         web3.sandbox.addAccounts.bind(web3.sandbox, accounts),
         setDefaultAccount,
         async.asyncify(setupFilters),
@@ -171,6 +232,7 @@ define(function(require, exports, module) {
           query: query,
           contentType: 'application/json',
           body: JSON.stringify({
+            debug: debug,
             plugins: config.hasOwnProperty('plugins') ? config.plugins : {}
           }),
           timeout: 20000
@@ -181,7 +243,7 @@ define(function(require, exports, module) {
         });
       }
     }
-    
+
     function setupFilters() {
       filters['block'] = web3.eth.filter('latest');
       filters['block'].watch(function(err, result) {
