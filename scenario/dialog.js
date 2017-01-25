@@ -166,7 +166,7 @@ define(function(require) {
 
           try {
             var txs = yaml.safeLoad(content);
-            var errors = [];//validateScenario(txs);
+            var errors = validateScenario(txs);
             if (errors.length > 0) {
               $error.html(
                 _.reduce(errors, function(html, error) {
@@ -307,27 +307,64 @@ define(function(require) {
 
       return _(scenario)
         .map(function(tx, num) {
-          var errors = [];
           num++;
-          if (!_.has(tx, 'from')) {
-            errors.push('Transaction ' + num + ' must have a field [from]');
-          } else if (!isAddress(tx.from)) {
-            errors.push('Transaction ' + num + ' must contain an address in the field [from]');
-          }
-          if (_.has(tx, 'to') && !_.isNull(tx.to) && !isAddress(tx.to)) {
-            errors.push('Transaction ' + num + ' must contain an address in the field [to]');
-          }
-          if (_.has(tx, 'value') && !_.isNull(tx.value) && !isNumber(tx.value)) {
-            errors.push('Transaction ' + num + ' must contain a number in the field [value]');
-          }
-          if (_.has(tx, 'data') && !_.isNull(tx.data) && !isHex(tx.data)) {
-            errors.push('Transaction ' + num + ' must contain a hex-data in the field [data]');
-          }
+          var errors;
+          if (_.has(tx, 'contract')) errors = validateContractCreation(tx, num);
+          else errors = validateTx(tx, num);
           return errors;
         })
         .flatten()
         .value();
 
+      function validateTx(tx, num) {
+        var errors = [];
+        if (!_.has(tx, 'from')) {
+          errors.push('Transaction ' + num + ' must have a field [from]');
+        } else if (!isAddress(tx.from)) {
+          errors.push('Transaction ' + num + ' must contain an address in the field [from]');
+        }
+        if (_.has(tx, 'to') && !_.isNull(tx.to) && !isAddress(tx.to)) {
+          errors.push('Transaction ' + num + ' must contain an address in the field [to]');
+        }
+        if (_.has(tx, 'value') && !_.isNull(tx.value) && !isNumber(tx.value)) {
+          errors.push('Transaction ' + num + ' must contain a number in the field [value]');
+        }
+        if (_.has(tx, 'data') && !_.isNull(tx.data) && !isHex(tx.data)) {
+          errors.push('Transaction ' + num + ' must contain a hex-data in the field [data]');
+        }
+        return errors;
+      }
+      function validateContractCreation(tx, num) {
+        var errors = [];
+        if (!_.has(tx, 'from')) {
+          errors.push('Transaction ' + num + ' must have a field [from]');
+        } else if (!isAddress(tx.from)) {
+          errors.push('Transaction ' + num + ' must contain an address in the field [from]');
+        }
+        if (_.has(tx, 'to') && !_.isNull(tx.to)) {
+          errors.push('Transaction ' + num + ' must contain null in the field [to]');
+        }
+        if (_.has(tx, 'value') && !_.isNull(tx.value) && !isNumber(tx.value)) {
+          errors.push('Transaction ' + num + ' must contain a number in the field [value]');
+        }
+        if (!_.has(tx, 'contract') || !_.isObject(tx.contract)) {
+          errors.push('Transaction ' + num + ' must contain an object in the field [contract]');
+        }
+        if (!_.has(tx.contract, 'name') || !_.isString(tx.contract.name)) {
+          errors.push('Transaction ' + num + ' must contain a string in the field [contract.name]');
+        }
+        if (!_.has(tx.contract, 'dir') || !_.isString(tx.contract.dir)) {
+          errors.push('Transaction ' + num + ' must contain a string in the field [contract.dir]');
+        }
+        if (!_.has(tx.contract, 'sources') || !_.isArray(tx.contract.sources) ||
+            !_.all(tx.contract.sources, _.isString)) {
+          errors.push('Transaction ' + num + ' must contain an array of strings in the field [contract.sources]');
+        }
+        if (!_.has(tx.contract, 'args') || !_.isArray(tx.contract.args)) {
+          errors.push('Transaction ' + num + ' must contain an array in the field [contract.args]');
+        }
+        return errors;
+      }
       function isAddress(str) {
         return /^0x[\dabcdef]{40}$/.test(str.toLowerCase());
       }
