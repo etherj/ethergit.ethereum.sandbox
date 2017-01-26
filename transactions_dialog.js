@@ -208,7 +208,6 @@ define(function(require) {
             details = _.pick(tx, ['from', 'to', 'value', 'contract']);
             comment = 'Create contract ' + details.contract.name;
           } else if (_.has(tx, 'call')) {
-            console.log(tx);
             details = _.pick(tx, ['from', 'to', 'value', 'call', 'args']);
             comment = 'Call method ' + details.call;
           } else {

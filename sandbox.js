@@ -67,6 +67,11 @@ define(function(require, exports, module) {
           params: 0
         }),
         new web3._extend.Method({
+          name: 'contract',
+          call: 'sandbox_contract',
+          params: 1
+        }),
+        new web3._extend.Method({
           name: 'transactions',
           call: 'sandbox_transactions',
           params: 1
