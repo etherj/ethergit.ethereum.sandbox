@@ -264,7 +264,9 @@ define(function(require) {
               value: value,
               gas: gasLimit,
               gasPrice: gasPrice,
-              from: sender
+              from: sender,
+              call: method.name + '(' + getTypes(method.inputs) + ')',
+              args: _.clone(args)
             });
             args.push(function(err, result) {
               if (err) $error.text(err.message);

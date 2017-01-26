@@ -205,8 +205,12 @@ define(function(require) {
             var dir = tx.contract.dir;
             // remove /root/workspace/project-dir
             tx.contract.dir = dir.substr(dir.indexOf('/', 16) + 1);
-            details =  _.pick(tx, ['from', 'to', 'value', 'contract']);
+            details = _.pick(tx, ['from', 'to', 'value', 'contract']);
             comment = 'Create contract ' + details.contract.name;
+          } else if (_.has(tx, 'call')) {
+            console.log(tx);
+            details = _.pick(tx, ['from', 'to', 'value', 'call', 'args']);
+            comment = 'Call method ' + details.call;
           } else {
             details = _.pick(tx, ['from', 'to', 'value', 'data']);
           }
