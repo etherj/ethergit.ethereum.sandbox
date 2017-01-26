@@ -330,6 +330,7 @@ define(function(require) {
           num++;
           var errors;
           if (_.has(tx, 'contract')) errors = validateContractCreation(tx, num);
+          if (_.has(tx, 'call')) errors = validateMethodCall(tx, num);
           else errors = validateTx(tx, num);
           return errors;
         })
@@ -382,6 +383,27 @@ define(function(require) {
         }
         if (!_.has(tx.contract, 'args') || !_.isArray(tx.contract.args)) {
           errors.push('Transaction ' + num + ' must contain an array in the field [contract.args]');
+        }
+        return errors;
+      }
+      function validateMethodCall(tx, num) {
+        var errors = [];
+        if (!_.has(tx, 'from')) {
+          errors.push('Transaction ' + num + ' must have a field [from]');
+        } else if (!isAddress(tx.from)) {
+          errors.push('Transaction ' + num + ' must contain an address in the field [from]');
+        }
+        if (!_.has(tx, 'to') || !isAddress(tx.to)) {
+          errors.push('Transaction ' + num + ' must contain an address in the field [to]');
+        }
+        if (_.has(tx, 'value') && !_.isNull(tx.value) && !isNumber(tx.value)) {
+          errors.push('Transaction ' + num + ' must contain a number in the field [value]');
+        }
+        if (!_.has(tx, 'call') || !_.isString(tx.call)) {
+          errors.push('Transaction ' + num + ' must contain a string in the field [call]');
+        }
+        if (!_.has(tx, 'args') || !_.isArray(tx.args)) {
+          errors.push('Transaction ' + num + ' must contain an array in the field [args]');
         }
         return errors;
       }
