@@ -215,22 +215,16 @@ define(function(require) {
           compile,
           send
         ], cb);
+      } else if (_.has(params, 'call')) {
+        async.waterfall([
+          getABI,
+          call
+        ], cb);
       } else {
         sandbox.web3.eth.sendTransaction(params, cb);
       }
 
       function compile(cb) {
-        compiler.binaryAndABI(
-          params.contract.sources,
-          projectDir + params.contract.dir,
-          function(err, output) {
-            if (err) {
-              cb('<pre>' + err.message + '</pre>');
-            } else {
-              cb(null, output.contracts);
-            }
-          }
-        );
         sandbox.web3.debug.getEnabled(function(err, enabled) {
           if (err) return cb(err);
           compiler.binaryAndABI(
@@ -328,6 +322,21 @@ define(function(require) {
             newContract.new.apply(newContract, args);
           }
         }
+      }
+      function getABI(cb) {
+        sandbox.web3.sandbox.contract(params.to, function(err, contract) {
+          if (err) cb(err);
+          else cb(null, contract.abi);
+        });
+      }
+      function call(abi, cb) {
+        var args = _.clone(params.args);
+        args.push(params);
+        args.push(cb);
+        var methodName = params.call.substr(0, params.call.indexOf('('));
+        var methodInputs = params.call.substring(params.call.indexOf('(') + 1, params.call.length - 1);
+        var contract = sandbox.web3.eth.contract(abi).at(params.to);
+        contract[methodName][methodInputs].apply(contract, args);
       }
     }
 
