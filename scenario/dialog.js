@@ -54,6 +54,18 @@ define(function(require) {
         '</ul>' +
         '</div>'
     );
+    var methodCallTmpl = _.template(
+      '<div>' +
+        '<h4>Transaction <%= num %></h4>' +
+        '<ul class="list-unstyled">' +
+        '<li><strong>From:</strong> <%= from %></li>' +
+        '<li><strong>To:</strong> <%= from %></li>' +
+        '<li><strong>Value:</strong> <%= value %></li>' +
+        '<li><strong>Method:</strong> <%= call %></li>' +
+        '<li><strong>Args:</strong> <%= JSON.stringify(args) %></li>' +
+        '</ul>' +
+        '</div>'
+    );
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'ethergit-dialog-scenario',
@@ -129,6 +141,15 @@ define(function(require) {
                       sources: tx.contract.sources.join(', '),
                       args: JSON.stringify(tx.contract.args)
                     }
+                  });
+                } else if (_.has(tx, 'call')) {
+                  html = methodCallTmpl({
+                    num: num + 1,
+                    from: tx.from,
+                    to: tx.to,
+                    value: tx.value,
+                    call: tx.call,
+                    args: tx.args
                   });
                 } else {
                   html = txTmpl({
