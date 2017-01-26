@@ -198,7 +198,7 @@ define(function(require) {
               ethConsole.logger(function(err, logger) {
                 if (err) return console.error(err);
                 logger.log('Running scenario <b>' + scenarioName + '</b>');
-                async.each(txs, runTx.bind(null, projectDir), function(err) {
+                async.eachSeries(txs, runTx.bind(null, projectDir), function(err) {
                   if (err) logger.error(err);
                   else logger.log('Scenario has been executed successfully');
                 });
@@ -328,17 +328,22 @@ define(function(require) {
       function getABI(cb) {
         sandbox.web3.sandbox.contract(params.to, function(err, contract) {
           if (err) cb(err);
-          else cb(null, contract.abi);
+          else if (contract) cb(null, contract.abi);
+          else cb('Could not find contract details for address ' + params.to);
         });
       }
       function call(abi, cb) {
-        var args = _.clone(params.args);
-        args.push(params);
-        args.push(cb);
         var methodName = params.call.substr(0, params.call.indexOf('('));
         var methodInputs = params.call.substring(params.call.indexOf('(') + 1, params.call.length - 1);
         var contract = sandbox.web3.eth.contract(abi).at(params.to);
-        contract[methodName][methodInputs].apply(contract, args);
+        var method = contract[methodName];
+        if (method) method = method[methodInputs];
+        if (!method) return cb('Could not find a method with signature ' + params.call);
+
+        var args = _.clone(params.args);
+        args.push(params);
+        args.push(cb);
+        method.apply(contract, args);
       }
     }
 
