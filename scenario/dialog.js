@@ -111,8 +111,8 @@ define(function(require) {
       $error.empty();
       $txs.empty();
       $name.text(name);
-      
-      sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+
+      sandbox.getProjectDir(function(err, projectDir) {
         if (err) return $error.text(err);
 
         var file = projectDir + 'scenarios/' + name + '.yaml';
@@ -178,7 +178,7 @@ define(function(require) {
     function runScenario() {
       $error.empty();
 
-      sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+      sandbox.getProjectDir(function(err, projectDir) {
         if (err) return $error.text(err);
 
         var file = projectDir + 'scenarios/' + scenarioName + '.yaml';
@@ -227,7 +227,7 @@ define(function(require) {
       }
 
       function compile(cb) {
-        sandbox.web3.debug.getEnabled(function(err, enabled) {
+        sandbox.isDebugEnabled(function(err, enabled) {
           if (err) return cb(err);
           compiler.binaryAndABI(
             params.contract.sources,
@@ -356,7 +356,7 @@ define(function(require) {
           num++;
           var errors;
           if (_.has(tx, 'contract')) errors = validateContractCreation(tx, num);
-          if (_.has(tx, 'call')) errors = validateMethodCall(tx, num);
+          else if (_.has(tx, 'call')) errors = validateMethodCall(tx, num);
           else errors = validateTx(tx, num);
           return errors;
         })

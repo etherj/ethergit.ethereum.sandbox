@@ -217,7 +217,7 @@ define(function(require) {
           comments.push(comment);
         });
 
-        sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+        sandbox.getProjectDir(function(err, projectDir) {
           if (err) return $error.text(err);
           findNotUsedName(projectDir, function(err, name) {
             if (err) return $error.text(err);

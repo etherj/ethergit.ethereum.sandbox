@@ -113,7 +113,7 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(false, false, function(err) {
+            run(false, false, true, function(err) {
               if (err) {
                 updateButton();
                 logger.error('Could not start sandbox: ' + getErrorMessage(err));
@@ -137,10 +137,30 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(true, false, function(err) {
+            run(true, false, true, function(err) {
               if (err) {
                 updateButton();
                 logger.error(err);
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'startSandbox',
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(false, false, false, function(err) {
+              if (err) {
+                updateButton();
+                logger.error('Could not start sandbox: ' + getErrorMessage(err));
               }
             });
           });
@@ -158,7 +178,7 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(false, true, function(err) {
+            run(false, true, true, function(err) {
               if (err) {
                 updateButton();
                 logger.error(err);
@@ -182,10 +202,31 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(true, true, function(err) {
+            run(true, true, true, function(err) {
               if (err) {
                 updateButton();
                 logger.error('Could not start sandbox: ' + getErrorMessage(err));
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'startSandboxDebug',
+        bindKey: 'Shift-F7',
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(false, true, false, function(err) {
+              if (err) {
+                updateButton();
+                logger.error(err);
               }
             });
           });
@@ -266,7 +307,7 @@ define(function(require, exports, module) {
       }
     });
 
-    function run(current, withDebug, cb) {
+    function run(current, withDebug, deployContracts, cb) {
       var selected = workspace.selected;
       var selectProjectMsg = 'Please, select a project to run in the workspace panel. Project directory has to be placed in the workspace directory.';
       var noProjectMsg = 'Could not find any project with ethereum.json in the workspace directory.';
@@ -374,6 +415,8 @@ define(function(require, exports, module) {
       }
 
       function compileContracts(results, cb) {
+        if (!deployContracts) return cb(null, results);
+
         async.waterfall([
           getFiles.bind(null, current),
           compile
@@ -467,6 +510,8 @@ define(function(require, exports, module) {
         sandbox.web3.sandbox.createAccounts(config.env.accounts, cb);
       }
       function createContracts(config, contracts, cb) {
+        if (!deployContracts) return cb();
+
         if (config.deploy) {
           async.eachSeries(config.deploy, function(name, cb) {
             var contract = _.find(contracts, { name: name });

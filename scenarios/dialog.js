@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'layout', 'commands', 'menus', 'Menu', 'fs',
+    'Dialog', 'ui', 'layout', 'commands', 'menus', 'Menu', 'fs', 'tree', 'c9',
     'ethergit.libs', 'ethergit.sandbox', 'ethergit.dialog.scenario',
     'ethereum-console', 'ethergit.solidity.compiler'
   ];
@@ -15,6 +15,8 @@ define(function(require) {
     var menus = imports.menus;
     var Menu = imports.Menu;
     var fs = imports.fs;
+    var tree = imports.tree;
+    var c9 = imports.c9;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var scenarioDialog = imports['ethergit.dialog.scenario'];
@@ -84,6 +86,69 @@ define(function(require) {
       sandbox.on('select', function() {
         btn.setAttribute('disabled', !sandbox.getId());
       });
+
+      var ctxRunScenario = new ui.item({
+        match: 'file',
+        enabled: !c9.readonly,
+        caption: 'Run Scenario',
+        isAvailable: function() {
+          if (!tree.selectedNode || tree.selectedNode.isFolder ||
+              !_.endsWith(tree.selectedNode.path, '.yaml')) return false;
+
+          if (sandbox.getId()) {
+            var pathRx = RegExp('^' + sandbox.getProjectDir() + 'scenarios/[\\w\\s]+\\.yaml$');
+            return pathRx.test(tree.selectedNode.path) && !sandbox.isDebugEnabled();
+          } else return true;
+        },
+        onclick: function() {
+          var scenario = tree.selected.substring(tree.selected.lastIndexOf('/') + 1, tree.selected.length - 5);
+          if (sandbox.getId()) {
+            runScenario(scenario, function(err) {
+              if (err) log(err);
+            });
+          } else {
+            sandbox.once('select', function() {
+              runScenario(scenario, function(err) {
+                if(err) log(err);
+              });
+            });
+            commands.exec('startSandbox');
+          }
+        }
+      });
+      var ctxRunScenarioWithDebug = new ui.item({
+        match: 'file',
+        enabled: !c9.readonly,
+        caption: 'Run Scenario with Debug',
+        isAvailable: function() {
+          if (!tree.selectedNode || tree.selectedNode.isFolder ||
+              !_.endsWith(tree.selectedNode.path, '.yaml')) return false;
+
+          if (sandbox.getId()) {
+            var pathRx = RegExp('^' + sandbox.getProjectDir() + 'scenarios/[\\w\\s]+\\.yaml$');
+            return pathRx.test(tree.selectedNode.path) && sandbox.isDebugEnabled();
+          } else return true;
+        },
+        onclick: function() {
+          var scenario = tree.selected.substring(tree.selected.lastIndexOf('/') + 1, tree.selected.length - 5);
+          if (sandbox.getId()) {
+            runScenario(scenario, function(err) {
+              if (err) log(err);
+            });
+          } else {
+            sandbox.once('select', function() {
+              runScenario(scenario, function(err) {
+                if(err) log(err);
+              });
+            });
+            commands.exec('startSandboxDebug');
+          }
+        }
+      });
+      tree.getElement('mnuCtxTree', function(mnuCtxTree) {
+        menus.addItemToMenu(mnuCtxTree, ctxRunScenario, 180, dialog);
+        menus.addItemToMenu(mnuCtxTree, ctxRunScenarioWithDebug, 185, dialog);
+      });
     });
 
     dialog.on('draw', function(e) {
@@ -100,7 +165,10 @@ define(function(require) {
           if (action == 'open') {
             scenarioDialog.showScenario($el.data('name'));
           } else if (action == 'run') {
-            runScenario($el.data('name'));
+            $error.empty();
+            runScenario($el.data('name'), function(err) {
+              if (err) $error.html(err);
+            });
           } else if (action == 'remove') {
             removeScenario($el.data('name'));
           }
@@ -159,25 +227,22 @@ define(function(require) {
       dialog.hide();
     }
 
-    function runScenario(name) {
-      $error.empty();
-
+    function runScenario(name, cb) {
       sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
-        if (err) return $error.text(err);
+        if (err) return cb(err);
 
         var file = projectDir + 'scenarios/' + name + '.yaml';
         fs.readFile(file, function(err, content) {
-          if (err) return $error.text(err);
+          if (err) return cb(err);
 
           try {
             var txs = yaml.safeLoad(content);
             var errors = validateScenario(txs);
+            console.log(errors);
             if (errors.length > 0) {
-              $error.html(
-                _.reduce(errors, function(html, error) {
-                  return html + error + '<br/>';
-                }, '')
-              );
+              cb(_.reduce(errors, function(html, error) {
+                return html + error + '<br/>';
+              }, ''));
             } else {
               ethConsole.logger(function(err, logger) {
                 if (err) return console.error(err);
@@ -189,7 +254,7 @@ define(function(require) {
               });
             }
           } catch (e) {
-            $error.html('<pre>' + e + '</pre>');
+            cb('<pre>' + e + '</pre>');
           }
         });
       });
@@ -225,7 +290,7 @@ define(function(require) {
       }
 
       function compile(cb) {
-        sandbox.web3.debug.getEnabled(function(err, enabled) {
+        sandbox.isDebugEnabled(function(err, enabled) {
           if (err) return cb(err);
           compiler.binaryAndABI(
             params.contract.sources,
@@ -354,7 +419,7 @@ define(function(require) {
           num++;
           var errors;
           if (_.has(tx, 'contract')) errors = validateContractCreation(tx, num);
-          if (_.has(tx, 'call')) errors = validateMethodCall(tx, num);
+          else if (_.has(tx, 'call')) errors = validateMethodCall(tx, num);
           else errors = validateTx(tx, num);
           return errors;
         })
@@ -440,6 +505,13 @@ define(function(require) {
       function isHex(value) {
         return /^0x[\dabcdef]+$/.test(value.toLowerCase());
       }
+    }
+
+    function log(message) {
+      ethConsole.logger(function(err, logger) {
+        if (err) console.error(err);
+        else logger.error(message);
+      });
     }
 
     dialog.freezePublicAPI({});

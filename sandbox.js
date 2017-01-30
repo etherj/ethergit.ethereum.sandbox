@@ -174,6 +174,17 @@ define(function(require, exports, module) {
         })
       ]
     });
+
+    var cache = {
+      data: {},
+      init: function() {
+        plugin.on('select', this.reset.bind(this));
+      },
+      reset: function() {
+        this.data = {};
+      }
+    };
+    cache.init();
     
     function select(sandboxId) {
       pinnedId = null;
@@ -309,6 +320,56 @@ define(function(require, exports, module) {
       http.request(sandboxUrl, { method: 'GET', timeout: 20000 }, cb);
     }
 
+    function isDebugEnabled(cb) {
+      if (!id) {
+        var msg = 'There is no active sandbox';
+        if (cb) cb(msg);
+        else throw msg;
+      } else {
+        if (_.has(cache.data, 'isDebugEnabled')) {
+          if (cb) cb(null, cache.data.isDebugEnabled);
+          else return cache.data.isDebugEnabled;
+        } else {
+          if (cb) {
+            web3.debug.getEnabled(function(err, enabled) {
+              if (err) return cb(err);
+              cache.data.isDebugEnabled = enabled;
+              cb(null, enabled);
+            });
+          } else {
+            var enabled = web3.debug.enabled;
+            cache.data.isDebugEnabled = enabled;
+            return enabled;
+          }
+        }
+      }
+    }
+
+    function getProjectDir(cb) {
+      if (!id) {
+        var msg = 'There is no active sandbox';
+        if (cb) cb(msg);
+        else throw msg;
+      } else {
+        if (_.has(cache.data, 'projectDir')) {
+          if (cb) cb(null, cache.data.projectDir);
+          else return cache.data.projectDir;
+        } else {
+          if (cb) {
+            web3.sandbox.getProjectDir(function(err, projectDir) {
+              if (err) return cb(err);
+              cache.data.projectDir = projectDir;
+              cb(null, projectDir);
+            });
+          } else {
+            var projectDir = web3.sandbox.projectDir;
+            cache.data.projectDir = projectDir;
+            return projectDir;
+          }
+        }
+      }
+    }
+
     plugin.freezePublicAPI({
       get web3() { return web3; },
       getId: function() { return id; },
@@ -322,7 +383,9 @@ define(function(require, exports, module) {
       accounts: web3.sandbox.accounts.bind(web3.sandbox),
       contracts: web3.sandbox.contracts.bind(web3.sandbox),
       transactions: web3.sandbox.transactions.bind(web3.sandbox),
-      coinbase: web3.eth.getCoinbase.bind(web3.eth)
+      coinbase: web3.eth.getCoinbase.bind(web3.eth),
+      isDebugEnabled: isDebugEnabled,
+      getProjectDir: getProjectDir
     });
     
     register(null, {
