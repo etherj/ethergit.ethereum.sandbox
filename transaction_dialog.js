@@ -47,7 +47,7 @@ define(function(require) {
     function showTransaction(sandbox, id) {
       dialog.show();
       var $container = $('[data-name=transaction]');
-      sandbox.transactions(function(err, transactions) {
+      sandbox.transactions(false, function(err, transactions) {
         var tx = transactions[id];
         displayFields.forEach(function(field) {
           $container.find('[data-name=' + field + ']').text(tx[field]);
