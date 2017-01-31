@@ -1,6 +1,7 @@
 define(function(require) {
   main.consumes = [
-    'Dialog', 'ui', 'layout', 'commands', 'menus', 'Menu', 'fs', 'tree', 'c9',
+    'Dialog', 'ui', 'layout', 'commands', 'menus', 'Menu', 'fs', 'tree',
+    'c9', 'dialog.confirm',
     'ethergit.libs', 'ethergit.sandbox', 'ethergit.dialog.scenario',
     'ethereum-console', 'ethergit.solidity.compiler'
   ];
@@ -17,6 +18,7 @@ define(function(require) {
     var fs = imports.fs;
     var tree = imports.tree;
     var c9 = imports.c9;
+    var confirm = imports['dialog.confirm'].show;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var scenarioDialog = imports['ethergit.dialog.scenario'];
@@ -263,15 +265,21 @@ define(function(require) {
     function removeScenario(name) {
       $error.empty();
 
-      sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
-        if (err) return $error.text(err);
-
-        var file = projectDir + 'scenarios/' + name + '.yaml';
-        fs.rmfile(file, function(err) {
-          if (err) return $error.text(err);
-          $scenarios.find('[data-name=' + name + ']').parent().remove();
-        });
-      });
+      confirm(
+        'Remove ' + name + '?',
+        '',
+        'Do you want to remove the scenario ' + name + '?',
+        function() {
+          sandbox.web3.sandbox.getProjectDir(function(err, projectDir) {
+            if (err) return $error.text(err);
+            var file = projectDir + 'scenarios/' + name + '.yaml';
+            fs.rmfile(file, function(err) {
+              if (err) return $error.text(err);
+              $scenarios.find('[data-name=' + name + ']').parent().remove();
+            });
+          });
+        }
+      );
     }
 
     function runTx(projectDir, params, cb) {
