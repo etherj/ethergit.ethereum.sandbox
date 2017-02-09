@@ -137,7 +137,10 @@ define(function(require, exports, module) {
         container = e.htmlNode;
         
         var html = require("text!./welcome.html");
-        var nodes = ui.insertHtml(container, html, plugin);
+        var htmlReadonly = require("text!./welcome-ro.html");
+        var nodes = ui.insertHtml(container,
+                                  options.readonly ? htmlReadonly : html,
+                                  plugin);
         var node = nodes[0];
         
         intro = node.querySelector(".intro");
@@ -264,25 +267,27 @@ define(function(require, exports, module) {
         container.querySelector(".configure .more").onclick = function(){
           commands.exec("openpreferences");
         };
-        container.querySelector(".openterminal").onclick = function(){
-          tabManager.openEditor("terminal", true, function(){});
-        };
-        container.querySelector(".openconsole").onclick = function(){
-          commands.exec("toggleconsole");
-        };
-        container.querySelector(".newfile").onclick = function(){
-          commands.exec("newfile");
-        };
-        container.querySelector(".openethereumjson").onclick = function(){
-          tabManager.openFile("/example-project/ethereum.json");
-        };
-        container.querySelector(".opencontractsol").onclick = function(){
-          tabManager.openFile("/example-project/contracts/contract.sol");
-        };
-        container.querySelector(".runcontract").onclick = function(){
-          workspace.select("/example-project");
-          commands.exec("runAllContracts");
-        };
+        if (!options.readonly) {
+          container.querySelector(".openterminal").onclick = function(){
+            tabManager.openEditor("terminal", true, function(){});
+          };
+          container.querySelector(".openconsole").onclick = function(){
+            commands.exec("toggleconsole");
+          };
+          container.querySelector(".newfile").onclick = function(){
+            commands.exec("newfile");
+          };
+          container.querySelector(".openethereumjson").onclick = function(){
+            tabManager.openFile("/example-project/ethereum.json");
+          };
+          container.querySelector(".opencontractsol").onclick = function(){
+            tabManager.openFile("/example-project/contracts/contract.sol");
+          };
+          container.querySelector(".runcontract").onclick = function(){
+            workspace.select("/example-project");
+            commands.exec("runAllContracts");
+          };
+        }
       });
       
       /***** Method *****/
