@@ -162,7 +162,7 @@ define(function(require, exports, module) {
           return res;
         }
         function parseAddress(val) {
-          if (typeof val !== 'string' || !val.match(/^0x[\dabcdef]{40}$/))
+          if (typeof val !== 'string' || !val.toLowerCase().match(/^0x[\dabcdef]{40}$/))
             throw 'Address should be a string with 0x prefix and 40 characters';
           return val;
         }
