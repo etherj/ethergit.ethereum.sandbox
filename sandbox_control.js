@@ -589,8 +589,11 @@ define(function(require, exports, module) {
                 if (err.message === 'The contract code couldn\'t be stored, please check your gas amount.') {
                   sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
                     if (error) return cb(error);
-                    if (receipt.exception) log('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
-                    else log('Contract ' + contract.name + ' has no code.');
+                    if (receipt.exception) {
+                      var e = receipt.exception;
+                      if (e == 'out of gas') e += '. Consider increasing env.block.gasLimit in the ethereum.json';
+                      log('Exception in ' + contract.name + ' constructor: ' + e);
+                    } else log('Contract ' + contract.name + ' has no code.');
                     cb();
                   });
                 } else cb(err);
