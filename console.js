@@ -136,7 +136,7 @@ define(function(require) {
                 Object.create(Contract).init(address, options.contracts[address]) :
                 null;
           if (!contract) {
-            logger.log(log(address, [data], topics));
+            logger.log(logRaw(address, data, topics));
           } else {
             var event = topics.length > 0 ? contract.findEvent(topics[0]) : null;
             if (event) {
@@ -172,6 +172,15 @@ define(function(require) {
               $data.append($value);
             })
             .value();
+          return $el;
+        }
+        function logRaw(address, data, topics) {
+          var $el = $('<span>Sandbox raw LOG (' + address + '):  data: <span data-name="data"></span>, topics: <span data-name="topics"></span></span>');
+          $el.find('[data-name=data]').append(formatter(data));
+          var $topics = $el.find('[data-name=topics]');
+          _.each(topics, function(topic) {
+            $topics.append(formatter(topic));
+          });
           return $el;
         }
 
