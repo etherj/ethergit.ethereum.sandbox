@@ -219,6 +219,7 @@ define(function(require) {
 
         sandbox.getProjectDir(function(err, projectDir) {
           if (err) return $error.text(err);
+          if (!projectDir) return $error.text('The sandbox is not connected to any project');
           findNotUsedName(projectDir, function(err, name) {
             if (err) return $error.text(err);
             var file = projectDir + 'scenarios/' + name + '.yaml';
