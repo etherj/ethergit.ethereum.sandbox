@@ -3,6 +3,12 @@
     overflow: visible;
 }
 
+/* a hack for "save all" dialog */
+.btn-default-css3 .caption {
+    padding-left: 18px;
+    padding-right: 18px;
+}
+
 .btn.eci-btn-default {
     background-color: transparent;
     font-size: 12px;
