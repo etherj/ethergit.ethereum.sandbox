@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'editors', 'Editor', 'ui', 'tabManager', 'settings',
+    'editors', 'Editor', 'ui', 'tabManager', 'settings', 'tabManager',
     'ethergit.libs', 'ethergit.sandbox'
   ];
   main.provides = ['ethereum-console'];
@@ -13,6 +13,7 @@ define(function(require) {
     var ui = imports.ui;
     var tabs = imports.tabManager;
     var settings = imports.settings;
+    var tabManager = imports.tabManager;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
 
@@ -57,6 +58,7 @@ define(function(require) {
         $log = $root.find('ul[data-name=ethereum-console]');
         installTheme($log);
         $root.click(folder.handler);
+        $root.click(actionsHandler);
       });
 
       ethConsole.on('documentLoad', function(e) {
@@ -116,7 +118,7 @@ define(function(require) {
           message = Object.create(messageFilter).init(sandbox.web3, function(msg) {
             show(function(err, logger) {
               if (err) return console.error(err);
-              logger.error(msg.text);
+              logger.error(createMessageText(msg));
             });
           });
         }
@@ -200,6 +202,24 @@ define(function(require) {
             (object && object.constructor && object.constructor.name === 'BigNumber');
         };
       }
+
+      function createMessageText(msg) {
+        var text = msg.text;
+        if (msg.id == 'NEW_CONTRACT_AT_NOT_EMPTY_ACCOUNT') {
+          var projectDir = sandbox.getProjectDir();
+          var linkToEthereumJson;
+          if (!projectDir) {
+            linkToEthereumJson = 'ethereum.json';
+          } else {
+            var path = projectDir + 'ethereum.json';
+            linkToEthereumJson = '<a href="#" data-action="open-file" data-path="' + path + '">ethereum.json</a>';
+          }
+          text = 'You are creating a contract at address ' + msg.address +
+            ' but it is not empty already. You probably defined this account ' +
+            'in the ' + linkToEthereumJson + '.';
+        }
+        return text;
+      }
     });
     
     handle.freezePublicAPI({
@@ -264,5 +284,14 @@ define(function(require) {
         });
       }
     };
+
+    function actionsHandler(e) {
+      var $el = $(e.target);
+      var action = $el.data('action');
+      if (action == 'open-file') {
+        e.preventDefault();
+        tabManager.openFile($el.data('path'), true);
+      }
+    }
   }
 });
