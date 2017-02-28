@@ -96,17 +96,28 @@ define(function(require) {
 
     var inProcess = false, pendingEntries = [];
     handle.on('load', function() {
-      var filter;
+      var log;
+      var message;
       sandbox.on('select', function() {
-        if (filter) {
-          filter.stopWatching();
-          filter = null;
+        if (log) {
+          log.stopWatching();
+          log = null;
+        }
+        if (message) {
+          message.destroy();
+          message = null;
         }
         if (sandbox.getId()) {
-          filter = sandbox.web3.eth.filter({});
-          filter.watch(function(err, entry) {
+          log = sandbox.web3.eth.filter({});
+          log.watch(function(err, entry) {
             if (err) console.error(err);
             else printLog(entry);
+          });
+          message = Object.create(messageFilter).init(sandbox.web3, function(msg) {
+            show(function(err, logger) {
+              if (err) return console.error(err);
+              logger.error(msg.text);
+            });
           });
         }
       });
@@ -218,5 +229,40 @@ define(function(require) {
         cb(null, tab.editor);
       });
     }
+
+    var messageFilter = {
+      init: function(web3, handler) {
+        var self = this;
+        self.web3 = web3;
+        self.handler = handler;
+        web3.sandbox.newMessageFilter(function(err, filterId) {
+          if (err) return console.error(err);
+          self.id = filterId;
+          self._startWatching();
+        });
+        return self;
+      },
+      _startWatching: function() {
+        var self = this;
+        self.watcher = setInterval(function() {
+          self.web3.sandbox.getFilterChanges(self.id, function(err, changes) {
+            if (err) return console.error(err);
+            _.each(changes, self.handler);
+          });
+        }, 1000);
+      },
+      destroy: function() {
+        var self = this;
+        if (self.watcher) {
+          clearInterval(self.watcher);
+          self.watchier = null;
+        }
+        self.handler = null;
+        self.web3.sandbox.uninstallFilter(self.id, function(err) {
+          if (err) console.error(err);
+          self.web3 = null;
+        });
+      }
+    };
   }
 });

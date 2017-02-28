@@ -95,6 +95,21 @@ define(function(require, exports, module) {
           name: 'setProjectDir',
           call: 'sandbox_setProjectDir',
           params: 1
+        }),
+        new web3._extend.Method({
+          name: 'newMessageFilter',
+          call: 'sandbox_newMessageFilter',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'getFilterChanges',
+          call: 'sandbox_getFilterChanges',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'uninstallFilter',
+          call: 'sandbox_uninstallFilter',
+          params: 1
         })
       ],
       properties: [
