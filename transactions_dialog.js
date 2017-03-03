@@ -40,15 +40,17 @@ define(function(require) {
     var _ = libs.lodash();
     var yaml = libs.yaml();
 
+    var folder = require('./folder')(_);
+
     var $txs, $error;
     
     var txTmpl = _.template(
       '<tr>' +
         '<td><input type="checkbox" checked data-name="toScenario"/></td>' +
         '<td><a class="from" href="#" data-name="hash" data-id="<%= id %>"><%= hash %></a></td>' +
-        '<td data-name="from"><%= from %><span data-name="id" style="display:none"><%= id %></span></td>' +
+        '<td data-name="from"><span data-folder data-folder-len="20"><%= from %></span><span data-name="id" style="display:none"><%= id %></span></td>' +
         '<td><%= nonce %></td>' +
-        '<td><%= to %></td>' +
+        '<td><span data-folder data-folder-len="20"><%= to %></span></td>' +
         '</tr>'
     );
     var scenarioHeaderTmpl = _.template(
@@ -144,6 +146,7 @@ define(function(require) {
       var $root = $(e.html);
       $txs = $root.find('[data-name=transactions]');
       $error = $root.find('[data-name=error]');
+      $(e.html).click(folder.handler);
     });
 
     dialog.on('show', function() {
@@ -173,6 +176,8 @@ define(function(require) {
             to: tx.to ? tx.to : '[contract create]'
           }));
         });
+
+        folder.init($container);
       });
     }
 

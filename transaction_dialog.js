@@ -31,7 +31,7 @@ define(function(require) {
       name: 'sandbox-transaction',
       allowClose: true,
       title: 'Transaction',
-      width: 540,
+      width: 550,
       elements: [
         {
           type: 'button', id: 'closeTransactionDialog', color: 'blue',

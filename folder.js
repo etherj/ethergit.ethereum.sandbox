@@ -1,25 +1,38 @@
 define(['async'], function(async) {
+
+  var MIN_LEN_LOWER = 13;
+
   return function(_) {
     var folder = {
       init: function($container) {
         $container.find('[data-folder]').each(function() {
           var $el = $(this);
+
+          var minLen = $el.data('folder-len') ? parseInt($el.data('folder-len'), 10) : MIN_LEN_LOWER;
+          if (minLen < MIN_LEN_LOWER) {
+            minLen = MIN_LEN_LOWER;
+          }
+
           var text = $el.text();
           var tip = $el.data('bs.tooltip');
           if (tip) {
-            if (text.length > 13) {
+            if (text.length > minLen) {
               tip.options.title = text;
               tip.enable();
               $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
+              $el.addClass('folded');
             } else {
               tip.disable();
+              $el.removeClass('folded');
             }
           } else {
             $el.tooltip({ title: text, trigger: 'manual' });
-            if (text.length > 11) {
+            if (text.length > minLen) {
               $el.text(text.substr(0, 5) + '[...]' + text.substr(-3));
+              $el.addClass('folded');
             } else {
               $el.data('bs.tooltip').disable();
+              $el.removeClass('folded');
             }
           }
         });
