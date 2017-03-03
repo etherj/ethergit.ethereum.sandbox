@@ -45,7 +45,8 @@ define(function(require) {
     var txTmpl = _.template(
       '<tr>' +
         '<td><input type="checkbox" checked data-name="toScenario"/></td>' +
-        '<td data-name="from" class="from"><%= from %><span data-name="id" style="display:none"><%= id %></span></td>' +
+        '<td><a class="from" href="#" data-name="hash" data-id="<%= id %>"><%= hash %></a></td>' +
+        '<td data-name="from"><%= from %><span data-name="id" style="display:none"><%= id %></span></td>' +
         '<td><%= nonce %></td>' +
         '<td><%= to %></td>' +
         '</tr>'
@@ -149,11 +150,12 @@ define(function(require) {
       $error.empty();
       render();
       sandbox.on('changed', render, dialog);
-      
+
       $('[data-name=transactions]').off('click').click(function(e) {
         var $el = $(e.target);
-        if ($el.data('name') === 'from') {
-          transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
+        if ($el.data('name') === 'hash') {
+          e.preventDefault();
+          transactionDialog.showTransaction(sandbox, $el.data('id'));
         }
       });
     });
@@ -164,6 +166,7 @@ define(function(require) {
         if (err) return $error.text(err);
         transactions.forEach(function(tx, id) {
           $container.append(txTmpl({
+            hash: tx.hash.substr(0, 8) + '...',
             from: tx.from,
             id: id,
             nonce: tx.nonce,

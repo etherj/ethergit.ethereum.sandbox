@@ -13,6 +13,7 @@ define(function(require) {
     var $ = libs.jquery();
 
     var displayFields = [
+      'hash',
       'from',
       'nonce',
       'to',
@@ -30,7 +31,7 @@ define(function(require) {
       name: 'sandbox-transaction',
       allowClose: true,
       title: 'Transaction',
-      width: 500,
+      width: 540,
       elements: [
         {
           type: 'button', id: 'closeTransactionDialog', color: 'blue',
