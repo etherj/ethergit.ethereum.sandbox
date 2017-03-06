@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  main.consumes = ['Plugin', 'fs', 'ethergit.libs', 'ethergit.solidity.compiler'];
+  main.consumes = ['Plugin', 'fs', 'ethergit.libs', 'ethergit.solidity.compiler', 'ethereum-console'];
   main.provides = ['ethergit.sandbox.config'];
   return main;
 
@@ -8,6 +8,7 @@ define(function(require, exports, module) {
     var fs = imports.fs;
     var libs = imports['ethergit.libs'];
     var compiler = imports['ethergit.solidity.compiler'];
+    var ethConsole = imports['ethereum-console'];
 
     var config = new Plugin('Ethergit', main.consumes);
 
@@ -20,7 +21,8 @@ define(function(require, exports, module) {
       async.waterfall([
         read,
         adjustValues,
-        calcPrivateKeys
+        calcPrivateKeys,
+        adjustAddresses
       ], cb);
       
       function read(cb) {
@@ -181,6 +183,30 @@ define(function(require, exports, module) {
         } catch (e) {
           return cb(e);
         }
+        cb(null, config);
+      }
+      function adjustAddresses(config, cb) {
+        _.each(config.env.accounts, function(account, address) {
+          if (account.hasOwnProperty('pkey')) {
+            // adjust address if it doesn't match the pkey
+            var derivedAddress = utils.toAddress(account.pkey);
+            if (address !== derivedAddress) {
+              delete config.env.accounts[address];
+              config.env.accounts[derivedAddress] = account;
+
+              // notify user about inconsistence
+              var path = projectDir + 'ethereum.json';
+              ethConsole.logger(function(err, logger) {
+                if (err) return console.error(err);
+                logger.error(
+                  'Account ' + address + ' is inconsistent with its private key. The account has been deployed with ' + derivedAddress + ' address. ' + 
+                  'Check <a href="#" data-action="open-file" data-path="' + path + '">ethereum.json</a> for additional info.'
+                );
+              });
+            }
+          }
+        });
+
         cb(null, config);
       }
     }
