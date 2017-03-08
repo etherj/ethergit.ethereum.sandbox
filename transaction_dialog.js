@@ -51,7 +51,11 @@ define(function(require) {
       sandbox.transactions(false, function(err, transactions) {
         var tx = transactions[id];
         displayFields.forEach(function(field) {
-          $container.find('[data-name=' + field + ']').text(tx[field]);
+          var val = tx[field];
+          if (field == 'value') {
+            val = new BigNumber(val.substr(2), 16).toFixed();
+          }
+          $container.find('[data-name=' + field + ']').text(val);
         });
         folder.init($container);
       });

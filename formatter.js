@@ -11,7 +11,7 @@ define(['./utils', './folder'], function(utils, folderFn) {
       uint: {
         name: 'uint',
         format: function(value) {
-          return new BigNumber(value.substr(2), 16).toString();
+          return new BigNumber(value.substr(2), 16).toFixed();
         }
       },
       int: {
@@ -19,9 +19,9 @@ define(['./utils', './folder'], function(utils, folderFn) {
         format: function(value) {
           value = value.substr(2);
           if (parseInt(value.charAt(0), 16) >= 8)
-            return new BigNumber(value, 16).minus(new BigNumber(2).pow(256)).toString();
+            return new BigNumber(value, 16).minus(new BigNumber(2).pow(256)).toFixed();
           else
-            return new BigNumber(value, 16).toString();
+            return new BigNumber(value, 16).toFixed();
         }
       },
       string: {

@@ -169,7 +169,7 @@ define(function(require) {
           var result = e.decode({ data: data, topics: topics });
           return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
             _(result.args).map(function(val) {
-              if (isBigNumber(val)) return val.toString();
+              if (isBigNumber(val)) return val.toFixed();
               else return JSON.stringify(val);
             }).join(', ');
         }

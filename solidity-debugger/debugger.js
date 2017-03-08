@@ -79,6 +79,7 @@ define(function(require, exports, module) {
               if (changes.length > 0 && _.startsWith(changes[0].source, '/root/workspace')) {
                 state = 'stopped';
                 variables = changes[0].storageVars;
+                console.log(changes[0]);
                 var frames = createFrames(changes[0]);
                 emit('break', { frame: _.last(frames), frames: frames });
                 emit('stateChange', { state: state });
@@ -137,7 +138,7 @@ define(function(require, exports, module) {
           var v = new Variable({
             name: variable.name,
             scope: type,
-            value: value,
+            value: variable.type.includes('int') ? new BigNumber(value).toFixed() : value,
             type: variable.type,
             children: !!properties
           });

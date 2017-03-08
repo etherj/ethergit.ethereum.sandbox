@@ -273,7 +273,7 @@ define(function(require) {
               else {
                 if (method.constant) {
                   $method.find('[data-name=ret]')
-                    .text(result)
+                    .text(isBigNumber(result) ? result.toFixed() : result)
                     .parent().show();
                 } else {
                   $method.find('[data-name=ret]').text(
@@ -313,6 +313,11 @@ define(function(require) {
           }
         }
       }
+    }
+
+    function isBigNumber(object) {
+      return object instanceof BigNumber ||
+        (object && object.constructor && object.constructor.name === 'BigNumber');
     }
 
     function toHex(val) {
