@@ -138,7 +138,7 @@ define(function(require, exports, module) {
           var v = new Variable({
             name: variable.name,
             scope: type,
-            value: variable.type.includes('int') ? new BigNumber(value).toFixed() : value,
+            value: value,
             type: variable.type,
             children: !!properties
           });
