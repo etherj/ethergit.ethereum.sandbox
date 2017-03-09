@@ -532,13 +532,17 @@ define(function(require, exports, module) {
           }
           
           if (libs.length != 0) {
-            async.eachSeries(libs, deploy, function(err) {
-              if (err) return cb(err);
-              _.each(libs, function(lib) {
-                putLibAddress(lib.name, lib.address);
-              });
-              deploy(contract, cb);
-            });
+            async.eachSeries(
+              libs,
+              function(details, cb) { deploy(details.lib, cb); },
+              function(err) {
+                if (err) return cb(err);
+                _.each(libs, function(lib) {
+                  putLibAddress(lib.tag, lib.lib.address);
+                });
+                deploy(contract, cb);
+              }
+            );
           } else {
             var ctor = _.findWhere(contract.abi, { type: 'constructor' });
             if (ctor && ctor.inputs.length > 0) {
@@ -550,29 +554,32 @@ define(function(require, exports, module) {
           }
 
           function findLibs() {
-            var match, libs = [], libRe = /[^_]__(\w{36})__[^_]/g;
+            var match, libs = [], libRe = /[^_](__.{36}__)[^_]/g;
             while (match = libRe.exec(contract.binary)) {
-              if (_.some(libs, matchName.bind(null, match[1]))) continue;
+              // __delegatecall-test.sol:L_______________
+              var tag = match[1];
+              if (_.any(libs, { tag: tag })) continue;
               
-              var lib = _.find(contracts, matchName.bind(null, match[1]));
+              var lib = _.find(contracts, matchName.bind(null, tag));
               if (!lib) throw "There is no lib to link with " + match[1];
-              libs.push(lib);
+              var details = { lib: lib, tag: tag };
+              libs.push(details);
             }
             return libs;
             
-            function matchName(nameWithUnderscores, lib) {
+            function matchName(tag, lib) {
               var name = lib.name;
-              if (name.length > 36) name = name.substr(0, 36);
-              else if (name.length < 36) name += _.repeat('_', 36 - name.length);
-              return nameWithUnderscores == name;
+              var nameIndex = tag.indexOf(':') + 1;
+              var nameLen = 38 - nameIndex;
+              if (name.length > nameLen) name = name.substr(0, nameLen);
+              else if (name.length < nameLen) name += _.repeat('_', nameLen - name.length + 2);
+              return tag.substr(nameIndex) == name;
             }
           }
-          function putLibAddress(name, address) {
-            if (name.length > 36) name = name.substr(0, 36);
-            var placeholder = '__' + name + '__';
-            placeholder = placeholder + _.repeat('_', 40 - placeholder.length);
-            var re = new RegExp(placeholder, 'g');
-            contract.binary = contract.binary.replace(re, address.substr(2));
+          function putLibAddress(tag, address) {
+            while (contract.binary.indexOf(tag) != -1) {
+              contract.binary = contract.binary.replace(tag, address.substr(2));
+            }
           }
           function sendTx(args) {
             var txHash;
