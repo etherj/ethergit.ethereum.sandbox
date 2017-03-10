@@ -79,7 +79,6 @@ define(function(require, exports, module) {
               if (changes.length > 0 && _.startsWith(changes[0].source, '/root/workspace')) {
                 state = 'stopped';
                 variables = changes[0].storageVars;
-                console.log(changes[0]);
                 var frames = createFrames(changes[0]);
                 emit('break', { frame: _.last(frames), frames: frames });
                 emit('stateChange', { state: state });
@@ -138,7 +137,7 @@ define(function(require, exports, module) {
           var v = new Variable({
             name: variable.name,
             scope: type,
-            value: value,
+            value: /^u?int\d{0,3}$/.test(variable.type) ? new BigNumber(value).toFixed() : value,
             type: variable.type,
             children: !!properties
           });
@@ -216,6 +215,12 @@ define(function(require, exports, module) {
         properties = _.map(value, createVariable);
         value = '[array]';
       }
+
+      // try to cast value to BN and format it as fixed
+      try {
+        value = new BigNumber(value).toFixed();
+      } catch(err) {}
+
       var v = new Variable({
         name: name,
         scope: 'storage',
