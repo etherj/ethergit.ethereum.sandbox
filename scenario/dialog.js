@@ -263,7 +263,7 @@ define(function(require) {
               }
             }
 
-            if (++ticks > 10) {
+            if (++ticks > 30) {
               clearInterval(timer);
               cb('Transaction ' + params.id  + ' exceeded waiting timeout');
             }
