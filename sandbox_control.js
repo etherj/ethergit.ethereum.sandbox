@@ -326,12 +326,22 @@ define(function(require, exports, module) {
         compileContracts
       ], function(err, params) {
         if (err) cb(err);
-        else async.series([
+        else { 
+          logMessage('Starting sandbox');
+        
+          async.series([
           startSandbox.bind(this, params.projectName, params.projectDir, withDebug, params.config),
           startDebugger,
           createAccounts.bind(this, params.config),
           createContracts.bind(this, params.config, params.contracts)
-        ], cb);
+          ], function(err) {
+            if (err) cb(err);
+            else { 
+              logMessage('Sandbox is started');
+              cb();
+            }
+          });
+        }
       });
 
       function findProjectDir(cb) {
@@ -607,7 +617,36 @@ define(function(require, exports, module) {
               }
               else if (newContract.address) {
                 contract.address = newContract.address;
-                cb();
+
+                var ticks = 0;
+                var timer = setInterval(function() {
+                  sandbox.web3.sandbox.receipt(txHash, function(err, receipt) {
+
+                    if (err) {
+                      cb(err);
+                      clearInterval(timer);
+                      return;
+                    }
+
+                    if (receipt) {
+                      
+                      clearInterval(timer);
+
+                      if (receipt.exception) {
+                        cb('Contract ' + contract.name + ' got exception: ' + receipt.exception);
+                      } else {
+                        logMessage('Contract ' + contract.name + ' deployed');
+                        cb();
+                      }
+                    }
+
+                    if (++ticks > 30) {
+                      clearInterval(timer);
+                      cb('Contract ' + contract.name + ' deployment exceeded waiting timeout');
+                    }
+
+                  })
+                }, 300);
               }
               else txHash = newContract.transactionHash;
             });
@@ -626,6 +665,13 @@ define(function(require, exports, module) {
       ethConsole.logger(function(err, logger) {
         if (err) console.error(err);
         else logger.error(message);
+      });
+    }
+
+    function logMessage(message) {
+      ethConsole.logger(function(err, logger) {
+        if (err) console.error(err);
+        else logger.log(message);
       });
     }
 
