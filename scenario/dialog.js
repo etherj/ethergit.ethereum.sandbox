@@ -195,10 +195,15 @@ define(function(require) {
                 }, '')
               );
             } else {
+              // set tx ids
+              var id = 0;
+              txs.each(function(tx) {
+                tx.id = ++id;
+              });
               ethConsole.logger(function(err, logger) {
                 if (err) return console.error(err);
                 logger.log('Running scenario <b>' + scenarioName + '</b>');
-                async.eachSeries(txs, runTx.bind(null, projectDir), function(err) {
+                async.eachSeries(txs, runTx.bind(null, projectDir, logger), function(err) {
                   if (err) logger.error(err);
                   else logger.log('Scenario has been executed successfully');
                 });
@@ -211,19 +216,60 @@ define(function(require) {
       });
     }
 
-    function runTx(projectDir, params, cb) {
+    function runTx(projectDir, logger, params, cb) {
       if (_.has(params, 'contract')) {
         async.waterfall([
           compile,
           send
-        ], cb);
+        ], function(err, txHash) {
+          if (err) cb(err); 
+          else onTxHash(txHash, cb);
+        });
       } else if (_.has(params, 'call')) {
         async.waterfall([
           getABI,
           call
-        ], cb);
+        ], function(err, txHash) {
+          if (err) cb(err); 
+          else onTxHash(txHash, cb);
+        });
       } else {
-        sandbox.web3.eth.sendTransaction(params, cb);
+        sandbox.web3.eth.sendTransaction(params, function(err, txHash) {
+          if (err) cb(err);
+          else onTxHash(txHash, cb);
+        });
+      }
+
+      function onTxHash(hash, cb) {
+        var ticks = 0;
+        var timer = setInterval(function() {
+          sandbox.web3.sandbox.receipt(hash, function(err, receipt) {
+
+            if (err) {
+              cb(err);
+              clearInterval(timer);
+              return;
+            }
+
+            if (receipt) {
+              
+              clearInterval(timer);
+
+              if (receipt.exception) {
+                cb('Transaction ' + params.id + ' got exception: ' + receipt.exception);
+              } else {
+                logger.log('Transaction ' + params.id + ' mined');
+                cb();
+              }
+            }
+
+            if (++ticks > 10) {
+              clearInterval(timer);
+              cb('Transaction ' + params.id  + ' exceeded waiting timeout');
+            }
+
+          })
+        }, 300);
       }
 
       function compile(cb) {
@@ -308,15 +354,15 @@ define(function(require) {
                 if (err.message === 'The contract code couldn\'t be stored, please check your gas amount.') {
                   sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
                     if (error) return cb(error);
-                    if (receipt.exception) log('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
-                    else log('Contract ' + contract.name + ' has no code.');
+                    if (receipt.exception) cb('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
+                    else cb('Contract ' + contract.name + ' has no code.');
                     cb();
                   });
                 } else cb(err);
               }
               else if (newContract.address) {
                 contract.address = newContract.address;
-                cb();
+                cb(null, txHash);
               }
               else txHash = newContract.transactionHash;
             });
