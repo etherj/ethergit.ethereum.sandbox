@@ -621,9 +621,10 @@ define(function(require, exports, module) {
                 var ticks = 0;
                 var cleared = false; // workaround to prevent double notifying
                 var timer = setInterval(function() {
-                  if (cleared) return;
                   sandbox.web3.sandbox.receipt(txHash, function(err, receipt) {
 
+                    if (cleared) return;
+                    
                     if (err) {
                       cb(err);
                       clearInterval(timer);

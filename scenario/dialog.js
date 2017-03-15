@@ -244,8 +244,9 @@ define(function(require) {
         var ticks = 0;
         var cleared = false;
         var timer = setInterval(function() {
-          if (cleared) return;
           sandbox.web3.sandbox.receipt(hash, function(err, receipt) {
+
+            if (cleared) return;
 
             if (err) {
               cb(err);
