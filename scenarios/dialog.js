@@ -312,18 +312,22 @@ define(function(require) {
 
       function onTxHash(hash, cb) {
         var ticks = 0;
+        var cleared = false;
         var timer = setInterval(function() {
+          if (cleared) return;
           sandbox.web3.sandbox.receipt(hash, function(err, receipt) {
 
             if (err) {
               cb(err);
               clearInterval(timer);
+              cleared = true;
               return;
             }
 
             if (receipt) {
               
               clearInterval(timer);
+              cleared = true;
 
               if (receipt.exception) {
                 cb('Transaction ' + params.id + ' got exception: ' + receipt.exception);
@@ -335,6 +339,7 @@ define(function(require) {
 
             if (++ticks > 30) {
               clearInterval(timer);
+              cleared = true;
               cb('Transaction ' + params.id  + ' exceeded waiting timeout');
             }
 

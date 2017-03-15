@@ -619,18 +619,22 @@ define(function(require, exports, module) {
                 contract.address = newContract.address;
 
                 var ticks = 0;
+                var cleared = false; // workaround to prevent double notifying
                 var timer = setInterval(function() {
+                  if (cleared) return;
                   sandbox.web3.sandbox.receipt(txHash, function(err, receipt) {
 
                     if (err) {
                       cb(err);
                       clearInterval(timer);
+                      cleared = true;
                       return;
                     }
 
                     if (receipt) {
                       
                       clearInterval(timer);
+                      cleared = true;
 
                       if (receipt.exception) {
                         cb('Contract ' + contract.name + ' got exception: ' + receipt.exception);
@@ -642,6 +646,7 @@ define(function(require, exports, module) {
 
                     if (++ticks > 30) {
                       clearInterval(timer);
+                      cleared = true;
                       cb('Contract ' + contract.name + ' deployment exceeded waiting timeout');
                     }
 
