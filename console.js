@@ -1,6 +1,6 @@
 define(function(require) {
   main.consumes = [
-    'editors', 'Editor', 'ui', 'tabManager', 'settings',
+    'editors', 'Editor', 'ui', 'tabManager', 'settings', 'tabManager',
     'ethergit.libs', 'ethergit.sandbox'
   ];
   main.provides = ['ethereum-console'];
@@ -13,6 +13,7 @@ define(function(require) {
     var ui = imports.ui;
     var tabs = imports.tabManager;
     var settings = imports.settings;
+    var tabManager = imports.tabManager;
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
 
@@ -57,6 +58,7 @@ define(function(require) {
         $log = $root.find('ul[data-name=ethereum-console]');
         installTheme($log);
         $root.click(folder.handler);
+        $root.click(actionsHandler);
       });
 
       ethConsole.on('documentLoad', function(e) {
@@ -96,17 +98,28 @@ define(function(require) {
 
     var inProcess = false, pendingEntries = [];
     handle.on('load', function() {
-      var filter;
+      var log;
+      var message;
       sandbox.on('select', function() {
-        if (filter) {
-          filter.stopWatching();
-          filter = null;
+        if (log) {
+          log.stopWatching();
+          log = null;
+        }
+        if (message) {
+          message.destroy();
+          message = null;
         }
         if (sandbox.getId()) {
-          filter = sandbox.web3.eth.filter({});
-          filter.watch(function(err, entry) {
+          log = sandbox.web3.eth.filter({});
+          log.watch(function(err, entry) {
             if (err) console.error(err);
             else printLog(entry);
+          });
+          message = Object.create(messageFilter).init(sandbox.web3, function(msg) {
+            show(function(err, logger) {
+              if (err) return console.error(err);
+              logger.error(createMessageText(msg));
+            });
           });
         }
       });
@@ -136,7 +149,7 @@ define(function(require) {
                 Object.create(Contract).init(address, options.contracts[address]) :
                 null;
           if (!contract) {
-            logger.log(log(address, [data], topics));
+            logger.log(logRaw(address, data, topics));
           } else {
             var event = topics.length > 0 ? contract.findEvent(topics[0]) : null;
             if (event) {
@@ -156,7 +169,7 @@ define(function(require) {
           var result = e.decode({ data: data, topics: topics });
           return 'Sandbox Event (' + contractName + '.' + event.name + '): ' +
             _(result.args).map(function(val) {
-              if (isBigNumber(val)) return val.toString();
+              if (isBigNumber(val)) return val.toFixed();
               else return JSON.stringify(val);
             }).join(', ');
         }
@@ -174,11 +187,38 @@ define(function(require) {
             .value();
           return $el;
         }
+        function logRaw(address, data, topics) {
+          var $el = $('<span>Sandbox raw LOG (' + address + '):  data: <span data-name="data"></span>, topics: <span data-name="topics"></span></span>');
+          $el.find('[data-name=data]').append(formatter(data));
+          var $topics = $el.find('[data-name=topics]');
+          _.each(topics, function(topic) {
+            $topics.append(formatter(topic));
+          });
+          return $el;
+        }
 
         function isBigNumber(object) {
           return object instanceof BigNumber ||
             (object && object.constructor && object.constructor.name === 'BigNumber');
         };
+      }
+
+      function createMessageText(msg) {
+        var text = msg.text;
+        if (msg.id == 'NEW_CONTRACT_AT_NOT_EMPTY_ACCOUNT') {
+          var projectDir = sandbox.getProjectDir();
+          var linkToEthereumJson;
+          if (!projectDir) {
+            linkToEthereumJson = 'ethereum.json';
+          } else {
+            var path = projectDir + 'ethereum.json';
+            linkToEthereumJson = '<a href="#" data-action="open-file" data-path="' + path + '">ethereum.json</a>';
+          }
+          text = 'You are creating a contract at address ' + msg.address +
+            ' but it is not empty already. You probably defined this account ' +
+            'in the ' + linkToEthereumJson + '.';
+        }
+        return text;
       }
     });
     
@@ -208,6 +248,50 @@ define(function(require) {
         if (!tab.classList.names.contains('tab5')) tab.classList.add('tab5');
         cb(null, tab.editor);
       });
+    }
+
+    var messageFilter = {
+      init: function(web3, handler) {
+        var self = this;
+        self.web3 = web3;
+        self.handler = handler;
+        web3.sandbox.newMessageFilter(function(err, filterId) {
+          if (err) return console.error(err);
+          self.id = filterId;
+          self._startWatching();
+        });
+        return self;
+      },
+      _startWatching: function() {
+        var self = this;
+        self.watcher = setInterval(function() {
+          self.web3.sandbox.getFilterChanges(self.id, function(err, changes) {
+            if (err) return console.error(err);
+            _.each(changes, self.handler);
+          });
+        }, 1000);
+      },
+      destroy: function() {
+        var self = this;
+        if (self.watcher) {
+          clearInterval(self.watcher);
+          self.watchier = null;
+        }
+        self.handler = null;
+        self.web3.sandbox.uninstallFilter(self.id, function(err) {
+          if (err) console.error(err);
+          self.web3 = null;
+        });
+      }
+    };
+
+    function actionsHandler(e) {
+      var $el = $(e.target);
+      var action = $el.data('action');
+      if (action == 'open-file') {
+        e.preventDefault();
+        tabManager.openFile($el.data('path'), true);
+      }
     }
   }
 });

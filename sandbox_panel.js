@@ -236,7 +236,7 @@ define(function(require) {
             cb();
 
             function parseNumber(number) {
-              return number ? new BN(number.substr(2), 16).toString() : 0;
+              return number ? new BN(number.substr(2), 16).toFixed() : 0;
             }
           }
           function showStorage(cb) {
@@ -251,7 +251,7 @@ define(function(require) {
                   ))
                   .append(formatter(
                     value,
-                    '<td><span data-folder data-name="value" data-folder class="folder"><%= value %></span></td>'
+                    '<td><span data-folder data-name="value" data-folder data-folder-len="40" class="folder"><%= value %></span></td>'
                       + '<td><a href="#" data-name="switch" data-folder="" class="button"><%= type %></a></td>'
                   ))
               );

@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  main.consumes = ['Plugin', 'fs', 'ethergit.libs', 'ethergit.solidity.compiler'];
+  main.consumes = ['Plugin', 'fs', 'ethergit.libs', 'ethergit.solidity.compiler', 'ethereum-console'];
   main.provides = ['ethergit.sandbox.config'];
   return main;
 
@@ -8,6 +8,7 @@ define(function(require, exports, module) {
     var fs = imports.fs;
     var libs = imports['ethergit.libs'];
     var compiler = imports['ethergit.solidity.compiler'];
+    var ethConsole = imports['ethereum-console'];
 
     var config = new Plugin('Ethergit', main.consumes);
 
@@ -16,11 +17,12 @@ define(function(require, exports, module) {
 
     var _ = libs.lodash();
 
-    function parse(projectDir, cb) {
+    function parse(projectDir, withDebug, cb) {
       async.waterfall([
         read,
         adjustValues,
-        calcPrivateKeys
+        calcPrivateKeys,
+        adjustAddresses
       ], cb);
       
       function read(cb) {
@@ -130,7 +132,7 @@ define(function(require, exports, module) {
                 !account.deploy.hasOwnProperty('source') || typeof account.deploy.source != 'string')
               return cb('deploy field of an account object should be an object with fields source and contract');
             
-            compiler.binaryAndABI([account.deploy.source], projectDir, function(err, output) {
+            compiler.binaryAndABI([account.deploy.source], projectDir, withDebug, function(err, output) {
               if (err) return cb('Compilation error: ' + err.message);
 
               var contract = _.find(output.contracts, { name: account.deploy.contract });
@@ -162,7 +164,7 @@ define(function(require, exports, module) {
           return res;
         }
         function parseAddress(val) {
-          if (typeof val !== 'string' || !val.match(/^0x[\dabcdef]{40}$/))
+          if (typeof val !== 'string' || !val.toLowerCase().match(/^0x[\dabcdef]{40}$/))
             throw 'Address should be a string with 0x prefix and 40 characters';
           return val;
         }
@@ -181,6 +183,30 @@ define(function(require, exports, module) {
         } catch (e) {
           return cb(e);
         }
+        cb(null, config);
+      }
+      function adjustAddresses(config, cb) {
+        _.each(config.env.accounts, function(account, address) {
+          if (account.hasOwnProperty('pkey')) {
+            // adjust address if it doesn't match the pkey
+            var derivedAddress = utils.toAddress(account.pkey);
+            if (address !== derivedAddress) {
+              delete config.env.accounts[address];
+              config.env.accounts[derivedAddress] = account;
+
+              // notify user about inconsistence
+              var path = projectDir + 'ethereum.json';
+              ethConsole.logger(function(err, logger) {
+                if (err) return console.error(err);
+                logger.error(
+                  'Account ' + address + ' is inconsistent with its private key. The account has been deployed with ' + derivedAddress + ' address. ' + 
+                  'Check <a href="#" data-action="open-file" data-path="' + path + '">ethereum.json</a> for additional info.'
+                );
+              });
+            }
+          }
+        });
+
         cb(null, config);
       }
     }

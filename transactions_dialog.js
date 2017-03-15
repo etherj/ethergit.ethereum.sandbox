@@ -1,13 +1,14 @@
 define(function(require) {
   main.consumes = [
     'Dialog', 'ui', 'dialog.error', 'http', 'tabManager', 'commands', 'layout',
-    'menus', 'Menu', 'MenuItem',
+    'menus', 'Menu', 'MenuItem', 'fs',
     'ethergit.libs',
     'ethergit.ethereum.sandbox.dialog.transaction',
     'ethergit.ethereum.sandbox.dialog.new.tx',
     'ethergit.sandbox',
     'ethergit.ethereum.sandbox.dialog.pkey',
-    'ethergit.dialog.send.to.net'
+    'ethergit.dialog.send.to.net',
+    'ethergit.dialog.scenario'
   ];
   main.provides = ['ethergit.ethereum.sandbox.dialog.transactions'];
   
@@ -24,17 +25,41 @@ define(function(require) {
     var menus = imports.menus;
     var Menu = imports.Menu;
     var MenuItem = imports.MenuItem;
+    var fs = imports.fs;
     var libs = imports['ethergit.libs'];
     var transactionDialog = imports['ethergit.ethereum.sandbox.dialog.transaction'];
     var newTxDialog = imports['ethergit.ethereum.sandbox.dialog.new.tx'];
     var sendToNetDialog = imports['ethergit.dialog.send.to.net'];
     var sandbox = imports['ethergit.sandbox'];
+    var scenarioDialog = imports['ethergit.dialog.scenario'];
     
     var async = require('async');
     var utils = require('./utils');
 
     var $ = libs.jquery();
     var _ = libs.lodash();
+    var yaml = libs.yaml();
+
+    var folder = require('./folder')(_);
+
+    var $txs, $error;
+    
+    var txTmpl = _.template(
+      '<tr>' +
+        '<td><input type="checkbox" checked data-name="toScenario"/></td>' +
+        '<td><a class="from" href="#" data-name="hash" data-id="<%= id %>"><%= hash %></a></td>' +
+        '<td data-name="from"><span data-folder data-folder-len="20"><%= from %></span><span data-name="id" style="display:none"><%= id %></span></td>' +
+        '<td><%= nonce %></td>' +
+        '<td><span data-folder data-folder-len="20"><%= to %></span></td>' +
+        '</tr>'
+    );
+    var scenarioHeaderTmpl = _.template(
+      '# \n' +
+        '# <%= name %> \n' +
+        '# \n' +
+        '# Created on: <%= time %> \n' +
+        '# \n'
+    );
     
     var dialog = new Dialog('Ethergit', main.consumes, {
       name: 'sandbox-transactions',
@@ -42,6 +67,10 @@ define(function(require) {
       title: 'Ethereum Sandbox Transactions',
       width: 800,
       elements: [
+        {
+          type: 'button', id: 'newScenario', color: 'blue',
+          caption: 'New Scenario', 'default': false, onclick: newScenario
+        },
         {
           type: 'button', id: 'transactionsDialogNewTx', color: 'green',
           caption: 'New Transaction', 'default': false, onclick: openNewTxDialog
@@ -100,7 +129,7 @@ define(function(require) {
       sandbox.on('changed', updateTxCounter);
 
       function updateTxCounter() {
-        sandbox.transactions(function(err, transactions) {
+        sandbox.transactions(false, function(err, transactions) {
           if (err) return console.error(err);
           btnTransactions.setAttribute(
             'caption', 'Transactions (' + transactions.length + ')'
@@ -114,31 +143,41 @@ define(function(require) {
     
     dialog.on('draw', function(e) {
       e.html.innerHTML = require('text!./transactions.html');
+      var $root = $(e.html);
+      $txs = $root.find('[data-name=transactions]');
+      $error = $root.find('[data-name=error]');
+      $(e.html).click(folder.handler);
     });
 
     dialog.on('show', function() {
+      $error.empty();
       render();
       sandbox.on('changed', render, dialog);
-      
+
       $('[data-name=transactions]').off('click').click(function(e) {
         var $el = $(e.target);
-        if ($el.data('name') === 'from') {
-          transactionDialog.showTransaction(sandbox, $el.find('[data-name=id]').text());
+        if ($el.data('name') === 'hash') {
+          e.preventDefault();
+          transactionDialog.showTransaction(sandbox, $el.data('id'));
         }
       });
     });
     
     function render() {
       var $container = $('[data-name=transactions]').empty();
-      sandbox.transactions(function(err, transactions) {
+      sandbox.transactions(false, function(err, transactions) {
+        if (err) return $error.text(err);
         transactions.forEach(function(tx, id) {
-          $container.append(
-            $('<tr>')
-              .append('<td data-name="from" class="from">' + tx.from + '<span data-name="id" style="display:none">' + id + '</span></td>')
-              .append('<td>' + tx.nonce + '</td>')
-              .append('<td>' + (tx.to ? tx.to : '[contract create]') + '</td>')
-          );
+          $container.append(txTmpl({
+            hash: tx.hash.substr(0, 8) + '...',
+            from: tx.from,
+            id: id,
+            nonce: tx.nonce,
+            to: tx.to ? tx.to : '[contract create]'
+          }));
         });
+
+        folder.init($container);
       });
     }
 
@@ -151,6 +190,93 @@ define(function(require) {
       newTxDialog.show();
     }
 
+    function newScenario() {
+      $error.empty();
+      var nums = [];
+      $txs.children().each(function(idx, el) {
+        var $tx = $(el);
+        if ($tx.find('[data-name=toScenario]').is(':checked')) {
+          nums.push(parseInt($tx.find('[data-name=id]').text()));
+        }
+      });
+      if (nums.length == 0) {
+        $error.text('Select transactions for the new scenario.');
+        return;
+      }
+      sandbox.transactions(true, function(err, transactions) {
+        if (err) return $error.text(err);
+        var scenario = [];
+        var comments = [];
+        _.each(_.pick(transactions, nums), function(tx) {
+          var comment, details;
+          if (_.has(tx, 'contract')) {
+            var dir = tx.contract.dir;
+            // remove /root/workspace/project-dir
+            tx.contract.dir = dir.substr(dir.indexOf('/', 16) + 1);
+            details = _.pick(tx, ['from', 'to', 'value', 'contract']);
+            comment = 'Create contract ' + details.contract.name;
+          } else if (_.has(tx, 'call')) {
+            details = _.pick(tx, ['from', 'to', 'value', 'call', 'args']);
+            comment = 'Call method ' + details.call;
+          } else {
+            details = _.pick(tx, ['from', 'to', 'value', 'data']);
+          }
+          scenario.push(details);
+          comments.push(comment);
+        });
+
+        sandbox.getProjectDir(function(err, projectDir) {
+          if (err) return $error.text(err);
+          if (!projectDir) return $error.text('The sandbox is not connected to any project');
+          findNotUsedName(projectDir, function(err, name) {
+            if (err) return $error.text(err);
+            var file = projectDir + 'scenarios/' + name + '.yaml';
+            fs.writeFile(file, addComments(name, comments, yaml.safeDump(scenario)), function(err) {
+              if (err) return $error.text(err);
+              scenarioDialog.showScenario(name);
+            });
+          });
+        });
+      });
+    }
+
+    function findNotUsedName(projectDir, cb) {
+      var num = 1;
+      var prefix = projectDir + 'scenarios/' + 'Scenario';
+      var suffix = '.yaml';
+      var tries = 100;
+      async.during(
+        function(cb) {
+          if (--tries < 0) cb('Could not find a free name for the scenario.');
+          else fs.exists(prefix + num + suffix, cb.bind(null, null));
+        },
+        function(cb) {
+          num++;
+          cb();
+        },
+        function(err) {
+          cb(err, 'Scenario' + num);
+        }
+      );
+    }
+
+    function addComments(name, comments, scenario) {
+      var header = scenarioHeaderTmpl({
+        name: name,
+        time: new Date().toLocaleString()
+      });
+      scenario = header + scenario;
+      var parts = scenario.split('\n-');
+      scenario = parts.shift();
+      while (parts.length > 0) {
+        scenario += '\n';
+        var comment = comments.shift();
+        if (comment) scenario += '\n# ' + comment;
+        scenario += '\n-' + parts.shift();
+      }
+      return scenario;
+    }
+    
     function hideDialog() {
       dialog.hide();
     }

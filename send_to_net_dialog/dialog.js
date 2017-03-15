@@ -403,10 +403,19 @@ define(function(require) {
         }
       }
       function uploadSources(address, details, net) {
+        if (!_.startsWith(details.root, c9.workspaceDir)) {
+          return ethConsole.logger(function(error, logger) {
+            if (error) return console.error(error);
+            logger.error('<pre>Could not upload the sources because the project ' + details.root + ' is out of the workspace.</pre>');
+          });
+        }
+
+        var root = details.root.substr(c9.workspaceDir.length);
+        
         var data = new FormData();
         data.append('name', details.name);
         async.reduce(details.sources, {}, function(result, source, cb) {
-          fs.readFile(details.root + source, function(err, content) {
+          fs.readFile(root + source, function(err, content) {
             result[source] = content;
             cb(err, result);
           });

@@ -1,7 +1,7 @@
 define(function(require, exports, module) {
   main.consumes = [
     'Plugin', 'ui', 'layout', 'fs', 'find', 'tabManager', 'commands', 'save',
-    'settings', 'tree', 'menus',
+    'settings', 'tree', 'menus', 'debugger',
     'ethergit.libs',
     'ethergit.sandbox',
     'ethergit.solidity.compiler',
@@ -24,6 +24,7 @@ define(function(require, exports, module) {
     var settings = imports.settings;
     var workspace = imports.tree;
     var menus = imports.menus;
+    var debug = imports['debugger'];
     var libs = imports['ethergit.libs'];
     var sandbox = imports['ethergit.sandbox'];
     var compiler = imports['ethergit.solidity.compiler'];
@@ -43,6 +44,8 @@ define(function(require, exports, module) {
       var runCommands = {
         'runAllContracts': 'Run All Contracts',
         'runCurrentContract': 'Run Active Contract',
+        'runAllContractsDebug': 'Run All with Debug',
+        'runCurrentContractDebug': 'Run Active with Debug',
         'stopSandbox': 'Stop Sandbox'
       };
       var choosenCommand = 'runAllContracts';
@@ -82,6 +85,26 @@ define(function(require, exports, module) {
         }
       });
 
+      $widget.find('[data-name=runAllDebug]').click(function() {
+        if (sandbox.getId()) stopSandbox(run);
+        else run();
+        
+        function run() {
+          choosenCommand = 'runAllContractsDebug';
+          commands.exec(choosenCommand, tabs.focussedTab.editor);
+        }
+      });
+
+      $widget.find('[data-name=runCurrentDebug]').click(function() {
+        if (sandbox.getId()) stopSandbox(run);
+        else run();
+        
+        function run() {
+          choosenCommand = 'runCurrentContractDebug';
+          commands.exec(choosenCommand, tabs.focussedTab.editor);
+        }
+      });
+
       commands.addCommand({
         name: 'runAllContracts',
         bindKey: 'F7',
@@ -90,7 +113,7 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(false, function(err) {
+            run(false, false, true, function(err) {
               if (err) {
                 updateButton();
                 logger.error('Could not start sandbox: ' + getErrorMessage(err));
@@ -114,7 +137,27 @@ define(function(require, exports, module) {
           ethConsole.logger(function(err, logger) {
             if (err) return console.error(err);
             logger.clear();
-            run(true, function(err) {
+            run(true, false, true, function(err) {
+              if (err) {
+                updateButton();
+                logger.error(err);
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'startSandbox',
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(false, false, false, function(err) {
               if (err) {
                 updateButton();
                 logger.error('Could not start sandbox: ' + getErrorMessage(err));
@@ -128,11 +171,77 @@ define(function(require, exports, module) {
       }, control);
 
       commands.addCommand({
+        name: 'runAllContractsDebug',
+        bindKey: 'Shift-F7',
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(false, true, true, function(err) {
+              if (err) {
+                updateButton();
+                logger.error(err);
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'runCurrentContractDebug',
+        bindKey: { 
+          mac: 'Shift-Command-F7', 
+          win: 'Shift-Ctrl-F7'
+        },
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(true, true, true, function(err) {
+              if (err) {
+                updateButton();
+                logger.error('Could not start sandbox: ' + getErrorMessage(err));
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
+        name: 'startSandboxDebug',
+        bindKey: 'Shift-F7',
+        exec: function() {
+          disableButton();
+          ethConsole.logger(function(err, logger) {
+            if (err) return console.error(err);
+            logger.clear();
+            run(false, true, false, function(err) {
+              if (err) {
+                updateButton();
+                logger.error(err);
+              }
+            });
+          });
+        },
+        isAvailable: function(editor) {
+          return !sandbox.getId();
+        }
+      }, control);
+
+      commands.addCommand({
         name: 'stopSandbox',
         exec: stopSandbox,
         bindKey: { 
-          mac: 'Shift-Command-F7', 
-          win: 'Ctrl-Shift-F7'
+          mac: 'Alt-F7', 
+          win: 'Alt-F7'
         },
         isAvailable: function(editor) {
           return !!sandbox.getId();
@@ -148,6 +257,7 @@ define(function(require, exports, module) {
               updateButton();
               logger.error(err);
             }
+            debug.stop();
             if (typeof cb === 'function') cb(err);
           });
         });
@@ -155,7 +265,9 @@ define(function(require, exports, module) {
 
       menus.addItemByPath('Run/Run All Contracts', new ui.item({ command: 'runAllContracts' }), 1280, control);
       menus.addItemByPath('Run/Run Active Contract', new ui.item({ command: 'runCurrentContract' }), 1290, control);
-      menus.addItemByPath('Run/Stop Sandbox', new ui.item({ command: 'stopSandbox' }), 1300, control);
+      menus.addItemByPath('Run/Run All Contracts with Debug', new ui.item({ command: 'runAllContractsDebug' }), 1292, control);
+      menus.addItemByPath('Run/Run Active Contract with Debug', new ui.item({ command: 'runCurrentContractDebug' }), 1294, control);
+      menus.addItemByPath('Run/Stop Sandbox', new ui.item({ command: 'stopSandbox' }), 1296, control);
 
       function disableButton() {
         $run.children().text('Processing...');
@@ -195,7 +307,7 @@ define(function(require, exports, module) {
       }
     });
 
-    function run(current, cb) {
+    function run(current, withDebug, deployContracts, cb) {
       var selected = workspace.selected;
       var selectProjectMsg = 'Please, select a project to run in the workspace panel. Project directory has to be placed in the workspace directory.';
       var noProjectMsg = 'Could not find any project with ethereum.json in the workspace directory.';
@@ -205,7 +317,7 @@ define(function(require, exports, module) {
         getProjectName,
         saveAll,
         function(results, cb) {
-          config.parse(results.projectDir, function(err, config) {
+          config.parse(results.projectDir, withDebug, function(err, config) {
             if (err) return cb(err);
             results.config = config;
             cb(null, results);
@@ -214,10 +326,22 @@ define(function(require, exports, module) {
         compileContracts
       ], function(err, params) {
         if (err) cb(err);
-        else async.series([
-          startSandbox.bind(this, params.projectName, params.config),
+        else { 
+          logMessage('Starting sandbox');
+        
+          async.series([
+          startSandbox.bind(this, params.projectName, params.projectDir, withDebug, params.config),
+          startDebugger,
+          createAccounts.bind(this, params.config),
           createContracts.bind(this, params.config, params.contracts)
-        ], cb);
+          ], function(err) {
+            if (err) cb(err);
+            else { 
+              logMessage('Sandbox is started');
+              cb();
+            }
+          });
+        }
       });
 
       function findProjectDir(cb) {
@@ -301,6 +425,8 @@ define(function(require, exports, module) {
       }
 
       function compileContracts(results, cb) {
+        if (!deployContracts) return cb(null, results);
+
         async.waterfall([
           getFiles.bind(null, current),
           compile
@@ -337,7 +463,7 @@ define(function(require, exports, module) {
         function compile(files, cb) {
           if (files.length === 0) cb(null, []);
           else {
-            compiler.binaryAndABI(files, results.config.contracts, function(err, output) {
+            compiler.binaryAndABI(files, results.config.contracts, withDebug, function(err, output) {
               if (err) {
                 if (err.type === 'SYNTAX') gotoLine(err);
                 cb('<pre>' + err.message + '</pre>');
@@ -365,10 +491,37 @@ define(function(require, exports, module) {
         }
       }
 
-      function startSandbox(projectName, config, cb) {
-        sandbox.start(projectName, config, cb);
+      function startSandbox(projectName, projectDir, debug, config, cb) {
+        sandbox.start(projectName, projectDir, debug, config, cb);
+      }
+      function startDebugger(cb) {
+        if (withDebug) {
+          var process = {
+            name: 'ethereum-sandbox',
+            web3: sandbox.web3,
+            runner: {
+              'debugger': 'solidity'
+            },
+            STARTED: 1,
+            running: 1,
+            meta: {},
+            on: function(event, cb) {}
+          };
+          debug.debug(process, false, function(err) {
+            if (err) return cb('Could not start a debugger: ' + err);
+            else {
+              console.log('debugger has been started');
+              cb();
+            }
+          });
+        } else cb();
+      }
+      function createAccounts(config, cb) {
+        sandbox.web3.sandbox.createAccounts(config.env.accounts, cb);
       }
       function createContracts(config, contracts, cb) {
+        if (!deployContracts) return cb();
+
         if (config.deploy) {
           async.eachSeries(config.deploy, function(name, cb) {
             var contract = _.find(contracts, { name: name });
@@ -389,13 +542,17 @@ define(function(require, exports, module) {
           }
           
           if (libs.length != 0) {
-            async.eachSeries(libs, deploy, function(err) {
-              if (err) return cb(err);
-              _.each(libs, function(lib) {
-                putLibAddress(lib.name, lib.address);
-              });
-              deploy(contract, cb);
-            });
+            async.eachSeries(
+              libs,
+              function(details, cb) { deploy(details.lib, cb); },
+              function(err) {
+                if (err) return cb(err);
+                _.each(libs, function(lib) {
+                  putLibAddress(lib.tag, lib.lib.address);
+                });
+                deploy(contract, cb);
+              }
+            );
           } else {
             var ctor = _.findWhere(contract.abi, { type: 'constructor' });
             if (ctor && ctor.inputs.length > 0) {
@@ -407,32 +564,37 @@ define(function(require, exports, module) {
           }
 
           function findLibs() {
-            var match, libs = [], libRe = /[^_]__(\w{36})__[^_]/g;
+            var match, libs = [], libRe = /[^_](__.{36}__)[^_]/g;
             while (match = libRe.exec(contract.binary)) {
-              if (_.some(libs, matchName.bind(null, match[1]))) continue;
+              // __delegatecall-test.sol:L_______________
+              var tag = match[1];
+              if (_.any(libs, { tag: tag })) continue;
               
-              var lib = _.find(contracts, matchName.bind(null, match[1]));
+              var lib = _.find(contracts, matchName.bind(null, tag));
               if (!lib) throw "There is no lib to link with " + match[1];
-              libs.push(lib);
+              var details = { lib: lib, tag: tag };
+              libs.push(details);
             }
             return libs;
             
-            function matchName(nameWithUnderscores, lib) {
+            function matchName(tag, lib) {
               var name = lib.name;
-              if (name.length > 36) name = name.substr(0, 36);
-              else if (name.length < 36) name += _.repeat('_', 36 - name.length);
-              return nameWithUnderscores == name;
+              var nameIndex = tag.indexOf(':') + 1;
+              var nameLen = 38 - nameIndex;
+              if (name.length > nameLen) name = name.substr(0, nameLen);
+              else if (name.length < nameLen) name += _.repeat('_', nameLen - name.length + 2);
+              return tag.substr(nameIndex) == name;
             }
           }
-          function putLibAddress(name, address) {
-            if (name.length > 36) name = name.substr(0, 36);
-            var placeholder = '__' + name + '__';
-            placeholder = placeholder + _.repeat('_', 40 - placeholder.length);
-            var re = new RegExp(placeholder, 'g');
-            contract.binary = contract.binary.replace(re, address.substr(2));
+          function putLibAddress(tag, address) {
+            while (contract.binary.indexOf(tag) != -1) {
+              contract.binary = contract.binary.replace(tag, address.substr(2));
+            }
           }
           function sendTx(args) {
             var txHash;
+
+            contract.args = _.clone(args);
 
             args.push({
               contract: contract,
@@ -444,15 +606,53 @@ define(function(require, exports, module) {
                 if (err.message === 'The contract code couldn\'t be stored, please check your gas amount.') {
                   sandbox.web3.sandbox.receipt(txHash, function(error, receipt) {
                     if (error) return cb(error);
-                    if (receipt.exception) log('Exception in ' + contract.name + ' constructor: ' + receipt.exception);
-                    else log('Contract ' + contract.name + ' has no code.');
+                    if (receipt.exception) {
+                      var e = receipt.exception;
+                      if (e == 'out of gas') e += '. Consider increasing env.block.gasLimit in the ethereum.json';
+                      log('Exception in ' + contract.name + ' constructor: ' + e);
+                    } else log('Contract ' + contract.name + ' has no code.');
                     cb();
                   });
                 } else cb(err);
               }
               else if (newContract.address) {
                 contract.address = newContract.address;
-                cb();
+
+                var ticks = 0;
+                var cleared = false; // workaround to prevent double notifying
+                var timer = setInterval(function() {
+                  sandbox.web3.sandbox.receipt(txHash, function(err, receipt) {
+
+                    if (cleared) return;
+                    
+                    if (err) {
+                      cb(err);
+                      clearInterval(timer);
+                      cleared = true;
+                      return;
+                    }
+
+                    if (receipt) {
+                      
+                      clearInterval(timer);
+                      cleared = true;
+
+                      if (receipt.exception) {
+                        cb('Contract ' + contract.name + ' got exception: ' + receipt.exception);
+                      } else {
+                        logMessage('Contract ' + contract.name + ' deployed');
+                        cb();
+                      }
+                    }
+
+                    if (++ticks > 30) {
+                      clearInterval(timer);
+                      cleared = true;
+                      cb('Contract ' + contract.name + ' deployment exceeded waiting timeout');
+                    }
+
+                  })
+                }, 300);
               }
               else txHash = newContract.transactionHash;
             });
@@ -471,6 +671,13 @@ define(function(require, exports, module) {
       ethConsole.logger(function(err, logger) {
         if (err) console.error(err);
         else logger.error(message);
+      });
+    }
+
+    function logMessage(message) {
+      ethConsole.logger(function(err, logger) {
+        if (err) console.error(err);
+        else logger.log(message);
       });
     }
 

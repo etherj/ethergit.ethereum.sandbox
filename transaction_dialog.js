@@ -13,6 +13,7 @@ define(function(require) {
     var $ = libs.jquery();
 
     var displayFields = [
+      'hash',
       'from',
       'nonce',
       'to',
@@ -30,7 +31,7 @@ define(function(require) {
       name: 'sandbox-transaction',
       allowClose: true,
       title: 'Transaction',
-      width: 500,
+      width: 550,
       elements: [
         {
           type: 'button', id: 'closeTransactionDialog', color: 'blue',
@@ -47,10 +48,14 @@ define(function(require) {
     function showTransaction(sandbox, id) {
       dialog.show();
       var $container = $('[data-name=transaction]');
-      sandbox.transactions(function(err, transactions) {
+      sandbox.transactions(false, function(err, transactions) {
         var tx = transactions[id];
         displayFields.forEach(function(field) {
-          $container.find('[data-name=' + field + ']').text(tx[field]);
+          var val = tx[field];
+          if (field == 'value') {
+            val = new BigNumber(val.substr(2), 16).toFixed();
+          }
+          $container.find('[data-name=' + field + ']').text(val);
         });
         folder.init($container);
       });

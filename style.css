@@ -125,4 +125,8 @@
     overflow: visible !important;
 }
 
+.folded {
+    cursor: pointer;
+}
+
 /* end */

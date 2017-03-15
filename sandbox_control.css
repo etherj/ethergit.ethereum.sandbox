@@ -3,6 +3,12 @@
     overflow: visible;
 }
 
+/* a hack for "save all" dialog */
+.btn-default-css3 .caption {
+    padding-left: 18px;
+    padding-right: 18px;
+}
+
 .btn.eci-btn-default {
     background-color: transparent;
     font-size: 12px;
@@ -38,7 +44,7 @@
 
 .flat-light.panel-container .btn-group {
     height: 100%;
-    width: 170px;
+    width: 180px;
 }
 
 #startSandbox.stopped div {

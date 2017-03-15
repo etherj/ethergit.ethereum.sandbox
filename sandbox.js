@@ -67,9 +67,14 @@ define(function(require, exports, module) {
           params: 0
         }),
         new web3._extend.Method({
+          name: 'contract',
+          call: 'sandbox_contract',
+          params: 1
+        }),
+        new web3._extend.Method({
           name: 'transactions',
           call: 'sandbox_transactions',
-          params: 0
+          params: 1
         }),
         new web3._extend.Method({
           name: 'receipt',
@@ -79,6 +84,31 @@ define(function(require, exports, module) {
         new web3._extend.Method({
           name: 'setProjectName',
           call: 'sandbox_setProjectName',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'setBreakpoint',
+          call: 'sandbox_setBreakpoint',
+          params: 2
+        }),
+        new web3._extend.Method({
+          name: 'setProjectDir',
+          call: 'sandbox_setProjectDir',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'newMessageFilter',
+          call: 'sandbox_newMessageFilter',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'getFilterChanges',
+          call: 'sandbox_getFilterChanges',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'uninstallFilter',
+          call: 'sandbox_uninstallFilter',
           params: 1
         })
       ],
@@ -95,10 +125,82 @@ define(function(require, exports, module) {
         new web3._extend.Property({
           name: 'projectName',
           getter: 'sandbox_projectName'
+        }),
+        new web3._extend.Property({
+          name: 'projectDir',
+          getter: 'sandbox_projectDir'
+        })
+      ]
+    });
+    
+    web3._extend({
+      property: 'debug',
+      methods: [
+        new web3._extend.Method({
+          name: 'setBreakpoints',
+          call: 'debug_setBreakpoints',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'removeBreakpoints',
+          call: 'debug_removeBreakpoints',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'newBreakpointFilter',
+          call: 'debug_newBreakpointFilter',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'getFilterChanges',
+          call: 'debug_getFilterChanges',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'uninstallFilter',
+          call: 'debug_uninstallFilter',
+          params: 1
+        }),
+        new web3._extend.Method({
+          name: 'resume',
+          call: 'debug_resume',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepInto',
+          call: 'debug_stepInto',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepOver',
+          call: 'debug_stepOver',
+          params: 0
+        }),
+        new web3._extend.Method({
+          name: 'stepOut',
+          call: 'debug_stepOut',
+          params: 0
+        })
+      ],
+      properties: [
+        new web3._extend.Property({
+          name: 'enabled',
+          getter: 'debug_enabled'
         })
       ]
     });
 
+    var cache = {
+      data: {},
+      init: function() {
+        plugin.on('select', this.reset.bind(this));
+      },
+      reset: function() {
+        this.data = {};
+      }
+    };
+    cache.init();
+    
     function select(sandboxId) {
       pinnedId = null;
       if (id) {
@@ -117,7 +219,7 @@ define(function(require, exports, module) {
       }
     }
     
-    function start(projectName, config, cb) {
+    function start(projectName, projectDir, debug, config, cb) {
       var accounts = _(config.env.accounts)
           .pairs()
           .filter(function(account) {
@@ -140,8 +242,8 @@ define(function(require, exports, module) {
           cb();
         },
         web3.sandbox.setProjectName.bind(web3.sandbox, projectName),
+        web3.sandbox.setProjectDir.bind(web3.sandbox, projectDir),
         web3.sandbox.setBlock.bind(web3.sandbox, config.env.block),
-        web3.sandbox.createAccounts.bind(web3.sandbox, config.env.accounts),
         web3.sandbox.addAccounts.bind(web3.sandbox, accounts),
         setDefaultAccount,
         async.asyncify(setupFilters),
@@ -161,6 +263,7 @@ define(function(require, exports, module) {
           query: query,
           contentType: 'application/json',
           body: JSON.stringify({
+            debug: debug,
             plugins: config.hasOwnProperty('plugins') ? config.plugins : {}
           }),
           timeout: 20000
@@ -171,7 +274,7 @@ define(function(require, exports, module) {
         });
       }
     }
-    
+
     function setupFilters() {
       filters['block'] = web3.eth.filter('latest');
       filters['block'].watch(function(err, result) {
@@ -232,6 +335,56 @@ define(function(require, exports, module) {
       http.request(sandboxUrl, { method: 'GET', timeout: 20000 }, cb);
     }
 
+    function isDebugEnabled(cb) {
+      if (!id) {
+        var msg = 'There is no active sandbox';
+        if (cb) cb(msg);
+        else throw msg;
+      } else {
+        if (_.has(cache.data, 'isDebugEnabled')) {
+          if (cb) cb(null, cache.data.isDebugEnabled);
+          else return cache.data.isDebugEnabled;
+        } else {
+          if (cb) {
+            web3.debug.getEnabled(function(err, enabled) {
+              if (err) return cb(err);
+              cache.data.isDebugEnabled = enabled;
+              cb(null, enabled);
+            });
+          } else {
+            var enabled = web3.debug.enabled;
+            cache.data.isDebugEnabled = enabled;
+            return enabled;
+          }
+        }
+      }
+    }
+
+    function getProjectDir(cb) {
+      if (!id) {
+        var msg = 'There is no active sandbox';
+        if (cb) cb(msg);
+        else throw msg;
+      } else {
+        if (_.has(cache.data, 'projectDir')) {
+          if (cb) cb(null, cache.data.projectDir);
+          else return cache.data.projectDir;
+        } else {
+          if (cb) {
+            web3.sandbox.getProjectDir(function(err, projectDir) {
+              if (err) return cb(err);
+              cache.data.projectDir = projectDir;
+              cb(null, projectDir);
+            });
+          } else {
+            var projectDir = web3.sandbox.projectDir;
+            cache.data.projectDir = projectDir;
+            return projectDir;
+          }
+        }
+      }
+    }
+
     plugin.freezePublicAPI({
       get web3() { return web3; },
       getId: function() { return id; },
@@ -245,7 +398,9 @@ define(function(require, exports, module) {
       accounts: web3.sandbox.accounts.bind(web3.sandbox),
       contracts: web3.sandbox.contracts.bind(web3.sandbox),
       transactions: web3.sandbox.transactions.bind(web3.sandbox),
-      coinbase: web3.eth.getCoinbase.bind(web3.eth)
+      coinbase: web3.eth.getCoinbase.bind(web3.eth),
+      isDebugEnabled: isDebugEnabled,
+      getProjectDir: getProjectDir
     });
     
     register(null, {
